@@ -99,22 +99,93 @@ pub fn get_connected_providers() -> Result<Vec<String>, String> {
     Ok(cache.connected)
 }
 
-/// 从 models.dev API 获取模型详细信息（描述、定价等）
+/// models.dev 缓存文件路径
+fn get_models_dev_cache_path() -> PathBuf {
+    get_cache_dir().join("models-dev-cache.json")
+}
+
+/// models.dev 缓存结构
+#[derive(Debug, Serialize, Deserialize)]
+struct ModelsDevCache {
+    /// 缓存时间戳（Unix 秒）
+    cached_at: u64,
+    /// 缓存的模型数据
+    models: Vec<ModelInfo>,
+}
+
+/// 获取当前 Unix 时间戳（秒）
+fn now_unix_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
+/// 缓存有效期：30 分钟
+const CACHE_TTL_SECS: u64 = 30 * 60;
+
+/// 读取本地 models.dev 缓存（仅在有效期内）
+fn read_models_dev_cache() -> Option<Vec<ModelInfo>> {
+    let cache_path = get_models_dev_cache_path();
+    let content = fs::read_to_string(&cache_path).ok()?;
+    let cache: ModelsDevCache = serde_json::from_str(&content).ok()?;
+    let age = now_unix_secs().saturating_sub(cache.cached_at);
+    if age < CACHE_TTL_SECS {
+        Some(cache.models)
+    } else {
+        None
+    }
+}
+
+/// 写入 models.dev 缓存到本地
+fn write_models_dev_cache(models: &[ModelInfo]) {
+    let cache = ModelsDevCache {
+        cached_at: now_unix_secs(),
+        models: models.to_vec(),
+    };
+    if let Ok(json) = serde_json::to_string(&cache) {
+        let cache_path = get_models_dev_cache_path();
+        if let Some(parent) = cache_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        let _ = fs::write(&cache_path, json);
+    }
+}
+
+/// 读取过期缓存作为兜底（忽略 TTL）
+fn read_expired_cache() -> Vec<ModelInfo> {
+    let cache_path = get_models_dev_cache_path();
+    if let Ok(content) = fs::read_to_string(&cache_path) {
+        if let Ok(cache) = serde_json::from_str::<ModelsDevCache>(&content) {
+            return cache.models;
+        }
+    }
+    Vec::new()
+}
+
+/// 从 models.dev API 获取模型详细信息（带本地缓存）
 ///
-/// 带超时控制（5秒），如果 API 不可用则优雅降级返回空列表
-/// 这样即使外部服务挂了，应用也能正常使用本地缓存的模型列表
+/// 策略：
+/// 1. 先读本地缓存（30分钟有效期）
+/// 2. 缓存命中 → 直接返回，零延迟
+/// 3. 缓存未命中 → 请求 API（5秒超时），成功后写入缓存
+/// 4. API 失败 → 尝试读取过期缓存作为兜底
+/// 5. 都没有 → 返回空列表
 pub fn fetch_models_dev() -> Result<Vec<ModelInfo>, String> {
-    // 使用 ureq 进行 HTTP 请求，设置 5 秒超时
+    // 1. 尝试读取有效缓存
+    if let Some(cached) = read_models_dev_cache() {
+        return Ok(cached);
+    }
+
+    // 2. 缓存未命中，请求 API
     let response = ureq::get("https://models.dev/api.json")
         .timeout(Duration::from_secs(5))
         .call();
 
     match response {
         Ok(resp) => {
-            // 解析响应 JSON
             match resp.into_json::<ModelsDevResponse>() {
                 Ok(models_dev) => {
-                    // 转换为我们的 ModelInfo 结构
                     let models: Vec<ModelInfo> = models_dev
                         .models
                         .into_iter()
@@ -130,23 +201,22 @@ pub fn fetch_models_dev() -> Result<Vec<ModelInfo>, String> {
                         })
                         .collect();
 
+                    // 写入缓存
+                    write_models_dev_cache(&models);
                     Ok(models)
                 }
                 Err(e) => {
-                    // JSON 解析失败也优雅降级
-                    eprintln!("解析 models.dev API 响应失败（{}），降级到本地缓存模式", e);
-                    Ok(Vec::new())
+                    eprintln!("解析 models.dev API 响应失败（{}），尝试过期缓存", e);
+                    Ok(read_expired_cache())
                 }
             }
         }
         Err(e) => {
-            // 优雅降级：API 不可用时返回空列表，不影响应用运行
-            eprintln!("models.dev API 不可用（{}），降级到本地缓存模式", e);
-            Ok(Vec::new())
+            eprintln!("models.dev API 不可用（{}），尝试过期缓存", e);
+            Ok(read_expired_cache())
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
