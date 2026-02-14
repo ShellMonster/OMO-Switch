@@ -2,11 +2,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod i18n;
 mod services;
+mod tray;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            tray::setup_tray(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::model_commands::get_available_models,
             commands::model_commands::get_connected_providers,
@@ -25,6 +32,9 @@ fn main() {
             commands::import_export_commands::import_omo_config,
             commands::import_export_commands::validate_import,
             commands::import_export_commands::get_import_export_history,
+            commands::i18n_commands::get_locale,
+            commands::i18n_commands::set_locale,
+            commands::version_commands::check_versions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

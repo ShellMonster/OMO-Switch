@@ -11,10 +11,12 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 serde_json = { version = "1", features = ["preserve_order"] }
 serde = { version = "1", features = ["derive"] }
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 ureq = { version = "2", features = ["json"] }
 chrono = "0.4"
 tauri-plugin-dialog = "2.6.0"
+lazy_static = "1.4"
+tauri-plugin-opener = "2"
 
 [features]
 default = ["custom-protocol"]

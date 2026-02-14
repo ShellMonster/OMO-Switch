@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
-import { 
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import {
   FileText, 
   Clock, 
   Users, 
@@ -16,6 +18,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { cn } from '../common/cn';
+import { getAgentLocalizedName } from '../AgentList/AgentCard';
 import type { OmoConfig } from '../../services/tauri';
 
 /**
@@ -62,6 +65,7 @@ interface AgentModelInfo {
  * 5. 配置验证状态
  */
 export function ConfigDashboard() {
+  const { t } = useTranslation();
   // 状态管理
   const [configPath, setConfigPath] = useState<string>('');
   const [omoConfig, setOmoConfig] = useState<OmoConfig | null>(null);
@@ -116,13 +120,13 @@ export function ConfigDashboard() {
           } catch (err) {
             setValidation({ 
               valid: false, 
-              errors: [err instanceof Error ? err.message : '配置验证失败'] 
+              errors: [err instanceof Error ? err.message : t('configDashboard.configValidationFailed')] 
             });
           }
         } else {
           setValidation({ 
             valid: false, 
-            errors: [configResult.reason instanceof Error ? configResult.reason.message : '无法读取配置'] 
+            errors: [configResult.reason instanceof Error ? configResult.reason.message : t('configDashboard.cannotReadConfig')] 
           });
         }
 
@@ -132,7 +136,7 @@ export function ConfigDashboard() {
         }
 
       } catch (err) {
-        setError(err instanceof Error ? err.message : '加载配置数据失败');
+        setError(err instanceof Error ? err.message : t('configDashboard.loadConfigFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -223,7 +227,7 @@ export function ConfigDashboard() {
             <div className="absolute inset-0 border-4 border-slate-200 rounded-full" />
             <div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" />
           </div>
-          <p className="text-slate-500 text-sm">正在加载配置数据...</p>
+          <p className="text-slate-500 text-sm">{t('configDashboard.loading')}</p>
         </div>
       </div>
     );
@@ -238,7 +242,7 @@ export function ConfigDashboard() {
             <AlertCircle className="w-8 h-8 text-rose-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-1">加载失败</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('configDashboard.loadFailed')}</h3>
             <p className="text-slate-500 text-sm">{error}</p>
           </div>
         </div>
@@ -257,8 +261,8 @@ export function ConfigDashboard() {
           <Database className="w-7 h-7 text-white" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-800">配置状态总览</h2>
-          <p className="text-slate-400 mt-1">查看和管理您的 OMO 配置文件状态</p>
+          <h2 className="text-xl font-bold text-slate-800">{t('configDashboard.title')}</h2>
+          <p className="text-slate-400 mt-1">{t('configDashboard.description')}</p>
         </div>
       </div>
 
@@ -267,89 +271,103 @@ export function ConfigDashboard() {
         {/* Agent总数 */}
         <StatCard
           icon={Users}
-          label="Agent 总数"
+          label={t('configDashboard.totalAgents')}
           value={agentList.length}
           color="cyan"
-          subtitle="已配置的 agents"
+          subtitle={t('configDashboard.configuredAgents')}
         />
         
         {/* 模型数 */}
         <StatCard
           icon={Cpu}
-          label="已配置模型"
+          label={t('configDashboard.configuredModels')}
           value={uniqueModels}
           color="violet"
-          subtitle="去重后的模型数"
+          subtitle={t('configDashboard.uniqueModels')}
         />
         
         {/* 提供商数 */}
         <StatCard
           icon={Server}
-          label="连接提供商"
+          label={t('configDashboard.connectedProviders')}
           value={providers.length}
           color="emerald"
-          subtitle="可用的模型源"
+          subtitle={t('configDashboard.availableSources')}
         />
         
         {/* 验证状态 */}
-        <ValidationCard validation={validation} />
+        <ValidationCard validation={validation} t={t} />
       </div>
 
       {/* 配置文件元数据 */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
               <FileText className="w-4 h-4 text-indigo-600" />
             </div>
-            <h3 className="font-semibold text-slate-800">配置文件信息</h3>
+            <h3 className="font-semibold text-slate-800">{t('configDashboard.configFileInfo')}</h3>
           </div>
         </div>
         
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 文件路径 */}
+          <div className="space-y-4">
+            {/* 文件路径 - 单独一行 */}
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                配置文件路径
+                {t('configDashboard.configPath')}
               </label>
-              <div className="flex items-start gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+              <div
+                className={cn(
+                  "flex items-start gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200",
+                  configPath && "cursor-pointer hover:bg-slate-200 transition-colors"
+                )}
+                onClick={() => {
+                  if (configPath) {
+                    revealItemInDir(configPath).catch(() => {});
+                  }
+                }}
+                title={configPath ? "点击在文件管理器中打开" : undefined}
+              >
                 <FolderOpen className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <code className="text-sm text-indigo-600 font-mono break-all">
-                  {configPath || '未找到配置文件'}
+                  {configPath || t('configDashboard.configPathNotFound')}
                 </code>
               </div>
             </div>
 
-            {/* 最后修改时间 */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                最后修改时间
-              </label>
-              <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-700">
-                  {configMetadata?.lastModified 
-                    ? formatDateTime(configMetadata.lastModified)
-                    : '未知'
-                  }
-                </span>
+            {/* 时间 + 大小 - 合一行 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 最后修改时间 */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  {t('configDashboard.lastModified')}
+                </label>
+                <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                  <Clock className="w-4 h-4 text-slate-500" />
+                  <span className="text-sm text-slate-700">
+                    {configMetadata?.lastModified 
+                      ? formatDateTime(configMetadata.lastModified)
+                      : t('configDashboard.unknown')
+                    }
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* 文件大小 */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                文件大小
-              </label>
-              <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
-                <Database className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-700">
-                  {configMetadata?.size !== undefined 
-                    ? formatFileSize(configMetadata.size)
-                    : '未知'
-                  }
-                </span>
+              {/* 文件大小 */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  {t('configDashboard.fileSize')}
+                </label>
+                <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                  <Database className="w-4 h-4 text-slate-500" />
+                  <span className="text-sm text-slate-700">
+                    {configMetadata?.size !== undefined 
+                      ? formatFileSize(configMetadata.size)
+                      : t('configDashboard.unknown')
+                    }
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -361,13 +379,13 @@ export function ConfigDashboard() {
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
                 <Activity className="w-4 h-4 text-violet-600" />
               </div>
-              <h3 className="font-semibold text-slate-800">Agent 模型分配</h3>
+              <h3 className="font-semibold text-slate-800">{t('configDashboard.agentModelAssignment')}</h3>
             </div>
             <span className="text-sm text-slate-400">
-              共 {agentList.length} 个配置
+              {t('configDashboard.totalConfigs', { count: agentList.length })}
             </span>
           </div>
         </div>
@@ -377,16 +395,16 @@ export function ConfigDashboard() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  名称
+                  {t('configDashboard.tableName')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  类型
+                  {t('configDashboard.tableType')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  分配模型
+                  {t('configDashboard.tableModel')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  变体
+                  {t('configDashboard.tableVariant')}
                 </th>
               </tr>
             </thead>
@@ -398,7 +416,7 @@ export function ConfigDashboard() {
                       <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                         <Users className="w-6 h-6 text-slate-600" />
                       </div>
-                      <p className="text-slate-500">暂无 Agent 配置</p>
+                      <p className="text-slate-500">{t('configDashboard.noAgentConfig')}</p>
                     </div>
                   </td>
                 </tr>
@@ -428,6 +446,12 @@ export function ConfigDashboard() {
                         </div>
                         <span className="font-medium text-slate-700">
                           {agent.name}
+                          {(() => {
+                            const localized = getAgentLocalizedName(agent.name, t, agent.category === 'category');
+                            return localized !== agent.name ? (
+                              <span className="text-slate-400 font-normal ml-1">({localized})</span>
+                            ) : null;
+                          })()}
                         </span>
                       </div>
                     </td>
@@ -438,7 +462,7 @@ export function ConfigDashboard() {
                           ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
                           : 'bg-violet-50 text-violet-600 border border-violet-200'
                       )}>
-                        {agent.category === 'agent' ? 'Agent' : '分类'}
+                        {agent.category === 'agent' ? 'Agent' : t('configDashboard.tableType')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -468,10 +492,10 @@ export function ConfigDashboard() {
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
               <Server className="w-4 h-4 text-emerald-600" />
             </div>
-            <h3 className="font-semibold text-slate-800">已连接提供商</h3>
+            <h3 className="font-semibold text-slate-800">{t('configDashboard.connectedProvidersList')}</h3>
           </div>
         </div>
 
@@ -481,7 +505,7 @@ export function ConfigDashboard() {
               <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                 <Server className="w-6 h-6 text-slate-600" />
               </div>
-              <p className="text-slate-500">暂无连接的提供商</p>
+              <p className="text-slate-500">{t('configDashboard.noProviders')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -498,7 +522,7 @@ export function ConfigDashboard() {
                     <p className="font-medium text-slate-700 truncate">
                       {provider}
                     </p>
-                    <p className="text-xs text-slate-500">已连接</p>
+                    <p className="text-xs text-slate-500">{t('configDashboard.connected')}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-600 transition-colors" />
                 </div>
@@ -571,17 +595,18 @@ function StatCard({ icon: Icon, label, value, color, subtitle }: StatCardProps) 
  */
 interface ValidationCardProps {
   validation: ValidationResult | null;
+  t: (key: string) => string;
 }
 
-function ValidationCard({ validation }: ValidationCardProps) {
+function ValidationCard({ validation, t }: ValidationCardProps) {
   if (!validation) {
     return (
       <StatCard
         icon={Shield}
-        label="配置状态"
+        label={t('configDashboard.configStatus')}
         value={0}
         color="rose"
-        subtitle="等待验证"
+        subtitle={t('configDashboard.waitingValidation')}
       />
     );
   }
@@ -592,12 +617,12 @@ function ValidationCard({ validation }: ValidationCardProps) {
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative flex items-start justify-between">
           <div>
-            <p className="text-emerald-600/80 text-sm font-medium">配置状态</p>
+            <p className="text-emerald-600/80 text-sm font-medium">{t('configDashboard.configStatus')}</p>
             <div className="flex items-center gap-2 mt-2">
               <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-              <span className="text-2xl font-bold text-emerald-600">有效</span>
+              <span className="text-2xl font-bold text-emerald-600">{t('configDashboard.valid')}</span>
             </div>
-            <p className="text-emerald-600 text-xs mt-1">配置格式正确</p>
+            <p className="text-emerald-600 text-xs mt-1">{t('configDashboard.configFormatCorrect')}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <Shield className="w-6 h-6 text-white" />
@@ -612,10 +637,10 @@ function ValidationCard({ validation }: ValidationCardProps) {
       <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="relative flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-rose-600 text-sm font-medium">配置状态</p>
+          <p className="text-rose-600 text-sm font-medium">{t('configDashboard.configStatus')}</p>
           <div className="flex items-center gap-2 mt-2">
             <XCircle className="w-6 h-6 text-rose-600 flex-shrink-0" />
-            <span className="text-2xl font-bold text-rose-600">无效</span>
+            <span className="text-2xl font-bold text-rose-600">{t('configDashboard.invalid')}</span>
           </div>
           <div className="mt-2 space-y-1">
             {validation.errors.map((error, i) => (
