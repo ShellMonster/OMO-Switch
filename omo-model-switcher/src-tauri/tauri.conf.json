@@ -23,7 +23,14 @@
       "csp": null
     }
   },
-  "plugins": {},
+  "plugins": {
+    "updater": {
+      "pubkey": "MCowBQYDK2VwAyEAwYtU1QLKT0fFzLaTSI/dnnSxoXOlaHTEtumrkvLqhOQ=",
+      "endpoints": [
+        "https://github.com/ShellMonster/OMO-Switch/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
