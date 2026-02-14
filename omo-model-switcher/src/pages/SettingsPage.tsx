@@ -19,6 +19,9 @@ import { cn } from '../components/common/cn';
 import { supportedLanguages } from '../i18n';
 import { checkVersions, VersionInfo } from '../services/tauri';
 
+// 模块级缓存：存储版本信息，实现 stale-while-revalidate 模式
+let cachedVersions: VersionInfo[] | null = null;
+
 /**
  * 设置页面组件
  * 
@@ -90,10 +93,28 @@ export function SettingsPage() {
     loadVersions();
   }, []);
 
-  const loadVersions = async () => {
+  const loadVersions = async (forceRefresh = false) => {
+    // 有缓存且非强制刷新: 先显示缓存，后台更新
+    if (cachedVersions && !forceRefresh) {
+      setVersions(cachedVersions);
+      setIsLoadingVersions(false);
+
+      // 后台静默获取最新版本信息
+      try {
+        const v = await checkVersions();
+        cachedVersions = v;
+        setVersions(v);
+      } catch (error) {
+        console.error('Failed to refresh versions:', error);
+      }
+      return;
+    }
+
+    // 无缓存或强制刷新: 显示 loading 状态
     setIsLoadingVersions(true);
     try {
       const v = await checkVersions();
+      cachedVersions = v;
       setVersions(v);
     } catch (error) {
       console.error('Failed to check versions:', error);
@@ -251,15 +272,15 @@ export function SettingsPage() {
             ))
           )}
 
-          {!isLoadingVersions && (
-            <button
-              onClick={loadVersions}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
-            >
-              <Download className="w-4 h-4" />
-              {t('versionCheck.checkUpdate')}
-            </button>
-          )}
+           {!isLoadingVersions && (
+             <button
+               onClick={() => loadVersions(true)}
+               className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+             >
+               <Download className="w-4 h-4" />
+               {t('versionCheck.checkUpdate')}
+             </button>
+           )}
         </div>
       </div>
 
