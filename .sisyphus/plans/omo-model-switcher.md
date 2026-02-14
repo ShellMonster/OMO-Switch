@@ -278,7 +278,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 5. 前端基础框架（布局、路由、Store）
+- [x] 5. 前端基础框架（布局、路由、Store）
 
   **做什么**:
   - 创建 src/components/Layout/MainLayout.tsx — 侧边栏 + 主内容区

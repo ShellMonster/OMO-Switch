@@ -118,3 +118,127 @@ omo-model-switcher/
 - 外部依赖（网络 API）必须有完整的错误处理链
 - 不能在中间环节使用 `?` 提前返回错误
 - 所有可能失败的步骤都需要显式 `match` 处理
+
+## Task 5: 前端基础框架 (2026-02-14)
+
+### 组件架构模式
+
+#### 1. 通用组件设计模式
+- **Button 组件**: 使用 variants + sizes 模式，支持 primary/secondary/danger/ghost/outline 变体
+- **clsx + tailwind-merge**: 通过 `cn()` 工具函数合并类名，解决 Tailwind 冲突
+- **组件结构**: 使用 `React.forwardRef` 支持 ref 转发，便于表单集成
+
+#### 2. 样式处理规范
+```typescript
+// cn.ts 工具函数
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+```
+
+#### 3. Store 设计模式
+
+**Zustand + Persist 中间件**:
+```typescript
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+export const useXXXStore = create<State>()(
+  persist(
+    (set) => ({ ... }),
+    {
+      name: 'storage-key',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
+```
+
+**创建的 4 个 Store**:
+1. `uiStore.ts`: 管理当前页面、侧边栏状态、主题
+2. `configStore.ts`: 管理 Ollama 连接配置、系统参数
+3. `modelStore.ts`: 管理模型列表、选中模型、加载状态
+4. `presetStore.ts`: 管理预设配置（CRUD 操作）
+
+#### 4. 布局组件结构
+
+**MainLayout.tsx**:
+- 左侧可折叠侧边栏（64px/256px 切换）
+- 顶部标题栏显示当前页面名称
+- 导航项使用 Lucide 图标 + 标签
+- 支持响应式交互
+
+#### 5. 服务层封装
+
+**tauri.ts 服务层**:
+- 所有 Tauri invoke 调用集中封装
+- 定义 TypeScript 接口与后端 Rust 结构对应
+- 按功能模块分组：配置命令、模型命令
+
+```typescript
+// 调用示例
+export async function getConfig(): Promise<AppConfig> {
+  return invoke<AppConfig>('get_config');
+}
+```
+
+#### 6. 页面组件模式
+
+创建了 5 个空页面组件（仅 UI 框架）：
+- `AgentPage.tsx`: Agent 切换页面
+- `ConfigPage.tsx`: 配置总览页面  
+- `PresetPage.tsx`: 预设管理页面
+- `ModelsPage.tsx`: 模型库页面
+- `ImportExportPage.tsx`: 导入导出页面
+
+每个页面使用渐变色标题栏 + 卡片式布局。
+
+#### 7. TypeScript 严格模式注意事项
+
+- 未使用的 import 会报错（`TS6133`）
+- 未使用的变量也会报错
+- 必须使用 `edit` 修改现有文件
+
+### 依赖检查
+- `lucide-react`: 图标库（已安装）
+- `zustand`: 状态管理（已安装）
+- `clsx`: 条件类名（已安装）
+- `tailwind-merge`: Tailwind 类名合并（已安装）
+- `@tauri-apps/api/core`: Tauri invoke（已安装）
+
+### 文件清单
+```
+src/
+├── components/
+│   ├── Layout/
+│   │   └── MainLayout.tsx       # 主布局组件
+│   └── common/
+│       ├── Button.tsx            # 按钮组件
+│       ├── cn.ts                 # 类名合并工具
+│       ├── Modal.tsx             # 模态框组件
+│       ├── Toast.tsx             # Toast 通知组件
+│       ├── Select.tsx            # 下拉选择组件
+│       └── SearchInput.tsx       # 搜索输入框组件
+├── store/
+│   ├── uiStore.ts                # UI 状态
+│   ├── configStore.ts            # 配置状态
+│   ├── modelStore.ts             # 模型状态
+│   └── presetStore.ts            # 预设状态
+├── services/
+│   └── tauri.ts                  # Tauri 服务封装
+└── pages/
+    ├── AgentPage.tsx             # Agent 页面
+    ├── ConfigPage.tsx            # 配置页面
+    ├── PresetPage.tsx            # 预设页面
+    ├── ModelsPage.tsx            # 模型库页面
+    └── ImportExportPage.tsx      # 导入导出页面
+```
+
+### 验证结果
+- ✅ `npm run build` 成功（无 TypeScript 错误）
+- ✅ 所有组件类型检查通过
+- ✅ 输出文件: dist/index.html, dist/assets/*
+
