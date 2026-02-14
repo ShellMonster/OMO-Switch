@@ -83,7 +83,7 @@ export function ConfigDashboard() {
         // 并行加载所有数据
         const [pathResult, configResult, providersResult] = await Promise.allSettled([
           invoke<string>('get_config_path'),
-          invoke<OmoConfig>('get_omo_config'),
+          invoke<OmoConfig>('read_omo_config'),
           invoke<string[]>('get_connected_providers'),
         ]);
 

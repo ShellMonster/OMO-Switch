@@ -127,7 +127,7 @@ export async function fetchModelsDev(): Promise<ModelInfo[]> {
 }
 
 export async function getOmoConfig(): Promise<OmoConfig> {
-  return invoke<OmoConfig>('get_omo_config');
+  return invoke<OmoConfig>('read_omo_config');
 }
 
 export async function updateAgentModel(
