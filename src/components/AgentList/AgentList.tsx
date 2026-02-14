@@ -6,8 +6,10 @@ import { ModelSelector } from './ModelSelector';
 import { Button } from '../common/Button';
 import { cn } from '../common/cn';
 import { useConfigStore } from '../../store/configStore';
+import { usePresetStore } from '../../store/presetStore';
 import {
   updateAgentModel,
+  updatePreset,
   type AgentConfig,
 } from '../../services/tauri';
 
@@ -73,6 +75,16 @@ export function AgentList({
           updateAgentConfig(selectedAgent, { model, variant });
         } else {
           updateCategoryConfig(selectedAgent, { model, variant });
+        }
+
+        // 如果有激活预设，同步更新到预设文件
+        const activePreset = usePresetStore.getState().activePreset;
+        if (activePreset) {
+          try {
+            await updatePreset(activePreset);
+          } catch (error) {
+            console.error('Failed to sync preset:', error);
+          }
         }
       } finally {
         setIsSaving(false);

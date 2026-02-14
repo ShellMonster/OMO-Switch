@@ -4,6 +4,7 @@ import { Bot, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
 import { useConfigStore } from '../store/configStore';
 import { getOmoConfig, getAvailableModels, getConnectedProviders } from '../services/tauri';
 import { AgentList } from '../components/AgentList';
+import { PresetSelector } from '../components/Presets';
 import { Button } from '../components/common/Button';
 import { toast } from '../components/common/Toast';
 import { cn } from '../components/common/cn';
@@ -102,6 +103,11 @@ export function AgentPage() {
           <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
           {t('agentList.refresh')}
         </Button>
+      </div>
+
+      {/* 预设选择器 */}
+      <div className="mb-6">
+        <PresetSelector onLoadPreset={loadConfig} />
       </div>
 
       {/* Agents 区域 */}
