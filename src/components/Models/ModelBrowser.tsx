@@ -586,16 +586,16 @@ export function ModelBrowser({
       </div>
 
       {/* 搜索和过滤 */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex-1 w-full sm:w-auto">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder={t('modelBrowser.searchPlaceholder')}
           />
         </div>
-        
-        <div className="w-48">
+
+        <div className="w-full sm:w-48">
           <Select
             value={selectedProvider}
             onChange={setSelectedProvider}
