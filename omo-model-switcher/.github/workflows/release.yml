@@ -6,43 +6,119 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   release:
-    runs-on: macos-latest
+    name: Build and Release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            platform: macos-latest
+            tauriArgs: '--target aarch64-apple-darwin'
+    runs-on: ${{ matrix.platform }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
+          cache: 'npm'
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: 'aarch64-apple-darwin'
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build Tauri app
-        run: npm run tauri build
+      - name: Import Apple Certificate
+        id: import_apple_cert
+        if: matrix.platform == 'macos-latest'
+        continue-on-error: true
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          if [ -z "${APPLE_CERTIFICATE:-}" ] || [ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ]; then
+            echo "No certificate provided, skip signing."
+            exit 1
+          fi
+          
+          CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 16)
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -d user -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import "$CERT_PATH" -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          
+          CERT_ID=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/"/ {print $2; exit}')
+          echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> $GITHUB_ENV
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: omo-switch-macos
-          path: src-tauri/target/release/bundle/macos/*.app
-
-      - name: Upload DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: omo-switch-dmg
-          path: src-tauri/target/release/bundle/dmg/*.dmg
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            src-tauri/target/release/bundle/dmg/*.dmg
+      - name: Build and Release (Signed)
+        if: steps.import_apple_cert.outcome == 'success'
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
+        with:
+          args: ${{ matrix.tauriArgs }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'OMO Switch ${{ github.ref_name }}'
+          releaseBody: |
+            ## OMO Switch - AI模型配置管理工具
+            
+            ### 更新内容
+            详见 [CHANGELOG.md](./CHANGELOG.md)
+            
+            ### 系统要求
+            - macOS 11.0+ (Apple Silicon)
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          includeRelease: true
+
+      - name: Build and Release (Unsigned)
+        if: steps.import_apple_cert.outcome != 'success'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ matrix.tauriArgs }} --no-sign
+          tagName: ${{ github.ref_name }}
+          releaseName: 'OMO Switch ${{ github.ref_name }}'
+          releaseBody: |
+            ## OMO Switch - AI模型配置管理工具
+            
+            ### 更新内容
+            详见 [CHANGELOG.md](./CHANGELOG.md)
+            
+            ### 系统要求
+            - macOS 11.0+ (Apple Silicon)
+            
+            **注意**: 此版本未签名，首次打开需要在系统偏好设置中允许。
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          includeRelease: true
