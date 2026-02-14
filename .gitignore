@@ -13,3 +13,6 @@ src-tauri/target
 
 # Tauri generated
 src-tauri/gen
+
+# Environment variables
+.env

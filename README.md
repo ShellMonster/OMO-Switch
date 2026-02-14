@@ -249,9 +249,9 @@ bun run tauri signer generate -- -w ~/.tauri/omo-switch.key
 | 配置项 | 描述 |
 | :--- | :--- |
 | `OMO 配置路径` | `~/.config/opencode/opencode.json` |
-| `预设存储路径` | `~/.config/omo-model-switcher/presets/` |
-| `备份存储路径` | `~/.config/omo-model-switcher/backups/` |
-| `应用数据目录` | `~/.config/omo-model-switcher/` |
+| `预设存储路径` | `~/.config/OMO-Switch/presets/` |
+| `备份存储路径` | `~/.config/OMO-Switch/backups/` |
+| `应用数据目录` | `~/.config/OMO-Switch/` |
 
 ---
 

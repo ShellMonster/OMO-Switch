@@ -6,20 +6,20 @@ use super::config_service::{read_omo_config, write_omo_config};
 use crate::i18n;
 
 /// 获取预设目录路径
-/// 返回 ~/.config/omo-model-switcher/presets/ 的完整路径
+/// 返回 ~/.config/OMO-Switch/presets/ 的完整路径
 pub fn get_presets_dir() -> Result<PathBuf, String> {
     let home = std::env::var("HOME").map_err(|_| i18n::tr_current("home_env_var_error"))?;
 
     let presets_dir = PathBuf::from(home)
         .join(".config")
-        .join("omo-model-switcher")
+        .join("OMO-Switch")
         .join("presets");
 
     Ok(presets_dir)
 }
 
 /// 获取预设文件路径
-/// 返回 ~/.config/omo-model-switcher/presets/{name}.json 的完整路径
+/// 返回 ~/.config/OMO-Switch/presets/{name}.json 的完整路径
 pub fn get_preset_path(name: &str) -> Result<PathBuf, String> {
     let presets_dir = get_presets_dir()?;
     let preset_path = presets_dir.join(format!("{}.json", name));
@@ -27,7 +27,7 @@ pub fn get_preset_path(name: &str) -> Result<PathBuf, String> {
 }
 
 /// 保存预设
-/// 将当前 OMO 配置保存为预设到 ~/.config/omo-model-switcher/presets/{name}.json
+/// 将当前 OMO 配置保存为预设到 ~/.config/OMO-Switch/presets/{name}.json
 ///
 /// 参数：
 /// - name: 预设名称（不含 .json 后缀）
