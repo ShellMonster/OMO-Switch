@@ -8,14 +8,10 @@ interface AgentCardProps {
   agentName: string;
   config: AgentConfig;
   onEdit: () => void;
+  index: number;
 }
 
-/**
- * Agent 描述信息映射
- * 基于 OMO 系统中各 agent 的实际职责
- */
 const AGENT_DESCRIPTIONS: Record<string, string> = {
-  // 核心 agents
   'sisyphus': '主执行者，负责执行工作计划中的任务，持续推进直到完成',
   'sisyphus-junior': '轻量执行者，处理被委派的子任务，适合中小型工作',
   'hephaestus': '代码工匠，专注于代码实现、构建和工程细节',
@@ -27,7 +23,6 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   'metis': '计划审查员，检查计划的完整性和潜在遗漏',
   'momus': '质量审计员，严格验证计划的每个细节',
   'atlas': '任务调度器，协调多任务并行执行和依赖管理',
-  // 通用 agents
   'build': '构建代理，处理编译、打包和部署相关任务',
   'plan': '计划代理，辅助任务规划和分解',
   'OpenCode-Builder': 'OpenCode 构建器，核心代码生成和修改代理',
@@ -36,9 +31,6 @@ const AGENT_DESCRIPTIONS: Record<string, string> = {
   'document-writer': '文档撰写者，负责技术文档和说明编写',
 };
 
-/**
- * Category 描述信息映射
- */
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'visual-engineering': '视觉工程类任务：前端、UI/UX、设计、样式、动画',
   'ultrabrain': '高难度逻辑任务：复杂算法、架构设计、深度推理',
@@ -53,9 +45,6 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'data-analysis': '数据分析类任务：统计、报表、数据处理',
 };
 
-/**
- * 获取 agent 或 category 的描述
- */
 export function getAgentDescription(name: string, isCategory = false): string {
   if (isCategory) {
     return CATEGORY_DESCRIPTIONS[name] || '自定义分类';
@@ -104,7 +93,7 @@ function getAgentIcon(agentName: string): React.ReactNode {
   return iconMap[agentName] || <Bot className={iconClass} />;
 }
 
-export function AgentCard({ agentName, config, onEdit }: AgentCardProps) {
+export function AgentCard({ agentName, config, onEdit, index }: AgentCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const variantStyle = getVariantStyle(config.variant);
   const icon = getAgentIcon(agentName);
@@ -115,8 +104,8 @@ export function AgentCard({ agentName, config, onEdit }: AgentCardProps) {
   return (
     <div
       className={cn(
-        "group relative p-5 bg-white rounded-2xl border transition-all duration-200",
-        "hover:shadow-lg hover:border-indigo-300 hover:-translate-y-0.5",
+        "group relative flex items-center gap-4 px-4 py-3 bg-white rounded-xl border transition-all duration-150",
+        "hover:shadow-md hover:border-indigo-300",
         "border-slate-200"
       )}
       onMouseEnter={() => setShowTooltip(true)}
@@ -124,69 +113,67 @@ export function AgentCard({ agentName, config, onEdit }: AgentCardProps) {
     >
       {/* Hover 预览浮层 */}
       {showTooltip && (
-        <div className="absolute z-30 left-0 right-0 -top-2 -translate-y-full px-1">
+        <div className="absolute z-30 left-4 right-4 -top-2 -translate-y-full">
           <div className="bg-slate-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
             <p className="font-medium mb-0.5">{displayName}</p>
             <p className="text-slate-300 leading-relaxed">{description}</p>
             <p className="text-slate-400 mt-1 font-mono text-[10px]">{config.model}</p>
-            {/* 小三角 */}
-            <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-slate-800 rotate-45" />
+            <div className="absolute left-8 -bottom-1 w-2 h-2 bg-slate-800 rotate-45" />
           </div>
         </div>
       )}
 
-      {/* 头部：图标和编辑按钮 */}
-      <div className="flex items-center justify-between mb-3">
-        <div className={cn(
-          "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
-          "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
-        )}>
-          {icon}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onEdit}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
+      {/* 序号 */}
+      <span className="text-xs text-slate-400 w-5 text-right flex-shrink-0 font-mono">
+        {index + 1}
+      </span>
+
+      {/* 图标 */}
+      <div className={cn(
+        "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+        "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
+      )}>
+        {icon}
+      </div>
+
+      {/* 名称 + 描述 */}
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-slate-800 text-sm leading-tight">
+          {displayName}
+        </h3>
+        <p className="text-xs text-slate-400 mt-0.5 truncate">{description}</p>
+      </div>
+
+      {/* 模型 */}
+      <div className="flex-shrink-0 text-right hidden sm:block">
+        <span
+          className="text-xs font-medium text-slate-600 font-mono"
+          title={config.model}
         >
-          <Edit2 className="w-4 h-4 mr-1.5" />
-          编辑
-        </Button>
+          {shortModelName}
+        </span>
       </div>
 
-      {/* Agent 名称 */}
-      <h3 className="font-semibold text-slate-800 mb-1 text-base">
-        {displayName}
-      </h3>
+      {/* Variant 标签 */}
+      <span className={cn(
+        "flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
+        variantStyle.bg,
+        variantStyle.text,
+        variantStyle.border
+      )}>
+        {config.variant || 'none'}
+      </span>
 
-      {/* 描述 */}
-      <p className="text-xs text-slate-400 mb-3 line-clamp-1">{description}</p>
-
-      {/* 模型信息 */}
-      <div className="space-y-2">
-        <div className="flex items-center text-sm">
-          <span className="text-slate-500 mr-2">模型:</span>
-          <span
-            className="font-medium text-slate-700 truncate"
-            title={config.model}
-          >
-            {shortModelName}
-          </span>
-        </div>
-
-        {/* Variant 标签 */}
-        <div className="flex items-center text-sm">
-          <span className="text-slate-500 mr-2">强度:</span>
-          <span className={cn(
-            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
-            variantStyle.bg,
-            variantStyle.text,
-            variantStyle.border
-          )}>
-            {config.variant || 'none'}
-          </span>
-        </div>
-      </div>
+      {/* 编辑按钮 */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onEdit}
+        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <Edit2 className="w-3.5 h-3.5 mr-1" />
+        编辑
+      </Button>
     </div>
   );
 }

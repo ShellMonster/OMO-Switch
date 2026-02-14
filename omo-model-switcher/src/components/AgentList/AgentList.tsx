@@ -165,11 +165,12 @@ export function AgentList() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {agents.map(([agentName, config]) => (
+      <div className="flex flex-col gap-3">
+        {agents.map(([agentName, config], index) => (
           <AgentCard
             key={agentName}
             agentName={agentName}
+            index={index}
             config={config}
             onEdit={() => handleEdit(agentName)}
           />
