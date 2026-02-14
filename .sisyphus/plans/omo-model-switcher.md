@@ -186,7 +186,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 2. Rust 配置引擎（读写 OMO 配置）
+- [x] 2. Rust 配置引擎（读写 OMO 配置）
 
   **做什么**:
   - 创建 src-tauri/src/services/config_service.rs

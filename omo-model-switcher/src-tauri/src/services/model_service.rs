@@ -112,27 +112,32 @@ pub fn fetch_models_dev() -> Result<Vec<ModelInfo>, String> {
     match response {
         Ok(resp) => {
             // 解析响应 JSON
-            let models_dev: ModelsDevResponse = resp
-                .into_json()
-                .map_err(|e| format!("解析 models.dev API 响应失败: {}", e))?;
+            match resp.into_json::<ModelsDevResponse>() {
+                Ok(models_dev) => {
+                    // 转换为我们的 ModelInfo 结构
+                    let models: Vec<ModelInfo> = models_dev
+                        .models
+                        .into_iter()
+                        .map(|m| ModelInfo {
+                            id: m.id,
+                            name: m.name,
+                            description: m.description,
+                            pricing: m.pricing.map(|p| ModelPricing {
+                                prompt: p.prompt,
+                                completion: p.completion,
+                                currency: p.currency,
+                            }),
+                        })
+                        .collect();
 
-            // 转换为我们的 ModelInfo 结构
-            let models: Vec<ModelInfo> = models_dev
-                .models
-                .into_iter()
-                .map(|m| ModelInfo {
-                    id: m.id,
-                    name: m.name,
-                    description: m.description,
-                    pricing: m.pricing.map(|p| ModelPricing {
-                        prompt: p.prompt,
-                        completion: p.completion,
-                        currency: p.currency,
-                    }),
-                })
-                .collect();
-
-            Ok(models)
+                    Ok(models)
+                }
+                Err(e) => {
+                    // JSON 解析失败也优雅降级
+                    eprintln!("解析 models.dev API 响应失败（{}），降级到本地缓存模式", e);
+                    Ok(Vec::new())
+                }
+            }
         }
         Err(e) => {
             // 优雅降级：API 不可用时返回空列表，不影响应用运行
