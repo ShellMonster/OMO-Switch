@@ -191,8 +191,8 @@
     "delete": "删除",
     "confirmDelete": "删除预设",
     "deleteMessage": "确定要删除预设 \"{{name}}\" 吗？此操作无法撤销。",
-    "deleteSuccess": "预设已删除",
-    "loadSuccess": "预设已加载",
+    "deleteSuccess": "已删除预设「{{name}}」",
+    "loadSuccess": "已加载预设「{{name}}」",
     "saveSuccess": "预设已保存",
     "saveFailed": "保存预设失败",
     "loadFailed": "加载预设失败",
@@ -203,6 +203,18 @@
     "cancel": "取消",
     "save": "保存",
     "loading": "加载中..."
+  },
+  "presetSelector": {
+    "default": "(默认配置)",
+    "currentPreset": "当前预设",
+    "saveAs": "另存为",
+    "switchSuccess": "已切换到预设「{{name}}」",
+    "switchFailed": "切换预设失败",
+    "saveSuccess": "预设「{{name}}」保存成功",
+    "saveFailed": "保存预设失败"
+  },
+  "presetCard": {
+    "active": "启用中"
   },
   "modelBrowser": {
     "title": "模型库",

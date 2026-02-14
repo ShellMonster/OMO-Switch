@@ -191,8 +191,8 @@
     "delete": "삭제",
     "confirmDelete": "프리셋 삭제",
     "deleteMessage": "프리셋 \"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
-    "deleteSuccess": "프리셋이 삭제되었습니다",
-    "loadSuccess": "프리셋이 로드되었습니다",
+    "deleteSuccess": "프리셋 \"{{name}}\" 삭제됨",
+    "loadSuccess": "프리셋 \"{{name}}\" 로드됨",
     "saveSuccess": "프리셋이 저장되었습니다",
     "saveFailed": "프리셋 저장 실패",
     "loadFailed": "프리셋 로딩 실패",
@@ -203,6 +203,18 @@
     "cancel": "취소",
     "save": "저장",
     "loading": "로딩 중..."
+  },
+  "presetSelector": {
+    "default": "(기본값)",
+    "currentPreset": "현재 프리셋",
+    "saveAs": "다른 이름으로 저장",
+    "switchSuccess": "프리셋 \"{{name}}\"로 전환",
+    "switchFailed": "프리셋 전환 실패",
+    "saveSuccess": "프리셋 \"{{name}}\" 저장됨",
+    "saveFailed": "프리셋 저장 실패"
+  },
+  "presetCard": {
+    "active": "활성"
   },
   "modelBrowser": {
     "title": "모델 라이브러리",

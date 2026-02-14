@@ -191,8 +191,8 @@
     "delete": "Delete",
     "confirmDelete": "Delete Preset",
     "deleteMessage": "Are you sure you want to delete preset \"{{name}}\"? This action cannot be undone.",
-    "deleteSuccess": "Preset deleted",
-    "loadSuccess": "Preset loaded",
+    "deleteSuccess": "Deleted preset \"{{name}}\"",
+    "loadSuccess": "Loaded preset \"{{name}}\"",
     "saveSuccess": "Preset saved",
     "saveFailed": "Failed to save preset",
     "loadFailed": "Failed to load preset",
@@ -203,6 +203,18 @@
     "cancel": "Cancel",
     "save": "Save",
     "loading": "Loading..."
+  },
+  "presetSelector": {
+    "default": "(Default)",
+    "currentPreset": "Current Preset",
+    "saveAs": "Save As",
+    "switchSuccess": "Switched to preset \"{{name}}\"",
+    "switchFailed": "Failed to switch preset",
+    "saveSuccess": "Preset \"{{name}}\" saved",
+    "saveFailed": "Failed to save preset"
+  },
+  "presetCard": {
+    "active": "Active"
   },
   "modelBrowser": {
     "title": "Model Library",
