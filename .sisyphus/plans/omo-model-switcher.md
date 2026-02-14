@@ -308,7 +308,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 6. 配置状态总览仪表板
+- [x] 6. 配置状态总览仪表板
 
   **做什么**:
   - 创建 src/components/Dashboard/ConfigDashboard.tsx

@@ -58,3 +58,64 @@
   ```
 - 所有字段都通过 `Value` 保留，不做强制类型检查
 
+
+
+## Task 6: 配置状态总览仪表板
+
+### 实现模式
+- 组件位置: src/components/Dashboard/ConfigDashboard.tsx
+- 设计理念: 工业/实用主义美学
+  - 深色主题（slate-900）配合霓虹色点缀（cyan/violet/emerald）
+  - 高信息密度但层次分明
+  - 卡片式布局组织不同类型的信息
+  - 表格形式清晰展示 Agent 模型分配
+
+### 组件结构
+ConfigDashboard
+├── 统计卡片网格 (4个卡片)
+│   ├── Agent 总数
+│   ├── 已配置模型数（去重）
+│   ├── 连接提供商数
+│   └── 配置验证状态
+├── 配置文件元数据卡片
+│   ├── 文件路径
+│   ├── 最后修改时间
+│   └── 文件大小
+├── Agent 模型分配表格
+│   ├── 名称列（带首字母图标）
+│   ├── 类型列（Agent/分类标签）
+│   ├── 分配模型列（代码样式）
+│   └── 变体列
+└── 已连接提供商列表
+    └── 卡片式网格布局
+
+### 数据获取模式
+- 使用 Promise.allSettled 并行加载多个 Tauri 命令
+- 错误处理：每个命令独立处理，不影响其他数据加载
+- 加载状态：统一的 isLoading 状态管理
+- 数据转换：前端计算 Agent 列表和去重模型数
+
+### Tauri 命令调用
+- invoke<string>("get_config_path") - 获取配置文件路径
+- invoke<OmoConfig>("get_omo_config") - 读取 OMO 配置
+- invoke<string[]>("get_connected_providers") - 获取已连接提供商
+- invoke("validate_config", { config }) - 验证配置
+
+### 样式模式
+- 统计卡片: 渐变背景 + 图标 + 大数字展示
+- 表格: 深色表头 + 悬停效果 + 状态标签
+- 提供商卡片: 悬停边框变化 + 渐变图标背景
+- 验证状态: 有效/无效两种视觉状态（emerald/rose）
+
+### 工具函数
+- getAgentModelList(): 合并 agents 和 categories
+- getUniqueModelCount(): 计算去重后的模型数
+- formatFileSize(): 字节转可读格式
+- formatDateTime(): ISO 时间转本地格式
+
+### 设计决策
+1. 深色主题: 与系统整体风格一致，降低视觉疲劳
+2. 霓虹色点缀: cyan/violet/emerald 区分不同类型信息
+3. 表格展示: Agent 模型分配使用表格，信息密度高且清晰
+4. 卡片布局: 不同类型信息用卡片分隔，层次分明
+5. 只读展示: 本页面仅展示状态，不提供编辑功能
