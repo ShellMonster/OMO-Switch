@@ -14,6 +14,11 @@ fn main() {
             commands::config_commands::read_omo_config,
             commands::config_commands::write_omo_config,
             commands::config_commands::validate_config,
+            commands::preset_commands::save_preset,
+            commands::preset_commands::load_preset,
+            commands::preset_commands::list_presets,
+            commands::preset_commands::delete_preset,
+            commands::preset_commands::get_preset_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

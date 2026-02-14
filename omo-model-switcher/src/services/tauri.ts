@@ -175,6 +175,34 @@ export async function updateAgentsBatch(
   return invoke<OmoConfig>('update_agents_batch', { updates });
 }
 
+// ==================== 预设管理命令 ====================
+
+export interface PresetInfo {
+  name: string;
+  agentCount: number;
+  createdAt: string;
+}
+
+export async function savePreset(name: string): Promise<void> {
+  return invoke<void>('save_preset', { name });
+}
+
+export async function loadPreset(name: string): Promise<void> {
+  return invoke<void>('load_preset', { name });
+}
+
+export async function listPresets(): Promise<string[]> {
+  return invoke<string[]>('list_presets');
+}
+
+export async function deletePreset(name: string): Promise<void> {
+  return invoke<void>('delete_preset', { name });
+}
+
+export async function getPresetInfo(name: string): Promise<[number, string]> {
+  return invoke<[number, string]>('get_preset_info', { name });
+}
+
 // ==================== 默认导出 ====================
 
 const tauriService = {
@@ -193,6 +221,13 @@ const tauriService = {
   getOmoConfig,
   updateAgentModel,
   updateAgentsBatch,
+
+  // 预设管理
+  savePreset,
+  loadPreset,
+  listPresets,
+  deletePreset,
+  getPresetInfo,
 };
 
 export default tauriService;

@@ -335,7 +335,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 7. 预设方案管理
+- [x] 7. 预设方案管理
 
   **做什么**:
   - Rust 端：创建 src-tauri/src/services/preset_service.rs

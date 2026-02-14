@@ -1,0 +1,357 @@
+use serde_json::Value;
+use std::fs;
+use std::path::PathBuf;
+
+use super::config_service::{read_omo_config, write_omo_config};
+
+/// 获取预设目录路径
+/// 返回 ~/.config/omo-model-switcher/presets/ 的完整路径
+pub fn get_presets_dir() -> Result<PathBuf, String> {
+    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量".to_string())?;
+
+    let presets_dir = PathBuf::from(home)
+        .join(".config")
+        .join("omo-model-switcher")
+        .join("presets");
+
+    Ok(presets_dir)
+}
+
+/// 获取预设文件路径
+/// 返回 ~/.config/omo-model-switcher/presets/{name}.json 的完整路径
+pub fn get_preset_path(name: &str) -> Result<PathBuf, String> {
+    let presets_dir = get_presets_dir()?;
+    let preset_path = presets_dir.join(format!("{}.json", name));
+    Ok(preset_path)
+}
+
+/// 保存预设
+/// 将当前 OMO 配置保存为预设到 ~/.config/omo-model-switcher/presets/{name}.json
+///
+/// 参数：
+/// - name: 预设名称（不含 .json 后缀）
+///
+/// 返回：
+/// - Ok(()) 保存成功
+/// - Err(String) 保存失败，包含错误信息
+pub fn save_preset(name: &str) -> Result<(), String> {
+    // 验证预设名称（不能为空，不能包含路径分隔符）
+    if name.is_empty() {
+        return Err("预设名称不能为空".to_string());
+    }
+    if name.contains('/') || name.contains('\\') {
+        return Err("预设名称不能包含路径分隔符".to_string());
+    }
+
+    // 读取当前 OMO 配置
+    let config = read_omo_config()?;
+
+    // 确保预设目录存在
+    let presets_dir = get_presets_dir()?;
+    fs::create_dir_all(&presets_dir).map_err(|e| format!("创建预设目录失败: {}", e))?;
+
+    // 获取预设文件路径
+    let preset_path = get_preset_path(name)?;
+
+    // 格式化 JSON（带缩进，便于人类阅读）
+    let json_string =
+        serde_json::to_string_pretty(&config).map_err(|e| format!("序列化 JSON 失败: {}", e))?;
+
+    // 写入预设文件
+    fs::write(&preset_path, json_string).map_err(|e| format!("写入预设文件失败: {}", e))?;
+
+    Ok(())
+}
+
+/// 加载预设
+/// 读取预设并应用到 OMO 配置（先备份当前配置）
+///
+/// 参数：
+/// - name: 预设名称（不含 .json 后缀）
+///
+/// 返回：
+/// - Ok(()) 加载成功
+/// - Err(String) 加载失败，包含错误信息
+pub fn load_preset(name: &str) -> Result<(), String> {
+    // 验证预设名称
+    if name.is_empty() {
+        return Err("预设名称不能为空".to_string());
+    }
+
+    // 获取预设文件路径
+    let preset_path = get_preset_path(name)?;
+
+    // 检查预设文件是否存在
+    if !preset_path.exists() {
+        return Err(format!("预设不存在: {}", name));
+    }
+
+    // 读取预设文件内容
+    let content =
+        fs::read_to_string(&preset_path).map_err(|e| format!("读取预设文件失败: {}", e))?;
+
+    // 解析 JSON
+    let preset_config: Value =
+        serde_json::from_str(&content).map_err(|e| format!("解析预设 JSON 失败: {}", e))?;
+
+    // 写入 OMO 配置（write_omo_config 会自动创建备份）
+    write_omo_config(&preset_config)?;
+
+    Ok(())
+}
+
+/// 列出所有预设
+/// 返回预设名称列表（不含 .json 后缀）
+///
+/// 返回：
+/// - Ok(Vec<String>) 预设名称列表
+/// - Err(String) 列出失败，包含错误信息
+pub fn list_presets() -> Result<Vec<String>, String> {
+    let presets_dir = get_presets_dir()?;
+
+    // 如果预设目录不存在，返回空列表
+    if !presets_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    // 读取目录内容
+    let entries = fs::read_dir(&presets_dir).map_err(|e| format!("读取预设目录失败: {}", e))?;
+
+    // 过滤出 .json 文件，提取文件名（不含后缀）
+    let mut presets = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let path = entry.path();
+
+        // 只处理 .json 文件
+        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
+            if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
+                presets.push(name.to_string());
+            }
+        }
+    }
+
+    // 按名称排序
+    presets.sort();
+
+    Ok(presets)
+}
+
+/// 删除预设
+/// 删除指定名称的预设文件
+///
+/// 参数：
+/// - name: 预设名称（不含 .json 后缀）
+///
+/// 返回：
+/// - Ok(()) 删除成功
+/// - Err(String) 删除失败，包含错误信息
+pub fn delete_preset(name: &str) -> Result<(), String> {
+    // 验证预设名称
+    if name.is_empty() {
+        return Err("预设名称不能为空".to_string());
+    }
+
+    // 获取预设文件路径
+    let preset_path = get_preset_path(name)?;
+
+    // 检查预设文件是否存在
+    if !preset_path.exists() {
+        return Err(format!("预设不存在: {}", name));
+    }
+
+    // 删除预设文件
+    fs::remove_file(&preset_path).map_err(|e| format!("删除预设文件失败: {}", e))?;
+
+    Ok(())
+}
+
+/// 获取预设详情
+/// 读取预设文件并返回其中的 agent 数量和创建时间
+///
+/// 参数：
+/// - name: 预设名称（不含 .json 后缀）
+///
+/// 返回：
+/// - Ok((agent_count, created_at)) 预设详情
+/// - Err(String) 读取失败，包含错误信息
+pub fn get_preset_info(name: &str) -> Result<(usize, String), String> {
+    // 获取预设文件路径
+    let preset_path = get_preset_path(name)?;
+
+    // 检查预设文件是否存在
+    if !preset_path.exists() {
+        return Err(format!("预设不存在: {}", name));
+    }
+
+    // 读取预设文件内容
+    let content =
+        fs::read_to_string(&preset_path).map_err(|e| format!("读取预设文件失败: {}", e))?;
+
+    // 解析 JSON
+    let preset_config: Value =
+        serde_json::from_str(&content).map_err(|e| format!("解析预设 JSON 失败: {}", e))?;
+
+    // 获取 agent 数量
+    let agent_count = preset_config
+        .get("agents")
+        .and_then(|agents| agents.as_object())
+        .map(|obj| obj.len())
+        .unwrap_or(0);
+
+    // 获取文件创建时间
+    let metadata = fs::metadata(&preset_path).map_err(|e| format!("读取文件元数据失败: {}", e))?;
+    let created_at = metadata
+        .created()
+        .or_else(|_| metadata.modified())
+        .map(|time| {
+            let datetime: chrono::DateTime<chrono::Local> = time.into();
+            datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+        })
+        .unwrap_or_else(|_| "未知".to_string());
+
+    Ok((agent_count, created_at))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::fs;
+
+    #[test]
+    fn test_get_presets_dir() {
+        let result = get_presets_dir();
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert!(path
+            .to_string_lossy()
+            .contains(".config/omo-model-switcher/presets"));
+    }
+
+    #[test]
+    fn test_get_preset_path() {
+        let result = get_preset_path("test");
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert!(path.to_string_lossy().ends_with("test.json"));
+    }
+
+    #[test]
+    fn test_save_and_load_preset() {
+        // 创建临时目录
+        let temp_dir = std::env::temp_dir().join("omo_preset_test");
+        let presets_dir = temp_dir.join("presets");
+        fs::create_dir_all(&presets_dir).unwrap();
+
+        // 创建测试配置
+        let test_config = json!({
+            "agents": {
+                "test_agent": {
+                    "model": "test/model"
+                }
+            },
+            "categories": {}
+        });
+
+        // 保存到临时文件
+        let preset_path = presets_dir.join("test_preset.json");
+        fs::write(
+            &preset_path,
+            serde_json::to_string_pretty(&test_config).unwrap(),
+        )
+        .unwrap();
+
+        // 验证文件存在
+        assert!(preset_path.exists());
+
+        // 读取并验证内容
+        let content = fs::read_to_string(&preset_path).unwrap();
+        let loaded_config: Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(loaded_config, test_config);
+
+        // 清理
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_list_presets() {
+        // 创建临时目录
+        let temp_dir = std::env::temp_dir().join("omo_preset_list_test");
+        let presets_dir = temp_dir.join("presets");
+        fs::create_dir_all(&presets_dir).unwrap();
+
+        // 创建测试预设文件
+        let test_config = json!({"agents": {}, "categories": {}});
+        fs::write(
+            presets_dir.join("preset1.json"),
+            serde_json::to_string_pretty(&test_config).unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            presets_dir.join("preset2.json"),
+            serde_json::to_string_pretty(&test_config).unwrap(),
+        )
+        .unwrap();
+
+        // 验证列表（手动读取目录）
+        let entries = fs::read_dir(&presets_dir).unwrap();
+        let mut presets: Vec<String> = entries
+            .filter_map(|entry| {
+                let entry = entry.ok()?;
+                let path = entry.path();
+                if path.is_file() && path.extension()?.to_str()? == "json" {
+                    Some(path.file_stem()?.to_str()?.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        presets.sort();
+
+        assert_eq!(presets.len(), 2);
+        assert!(presets.contains(&"preset1".to_string()));
+        assert!(presets.contains(&"preset2".to_string()));
+
+        // 清理
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_delete_preset() {
+        // 创建临时目录
+        let temp_dir = std::env::temp_dir().join("omo_preset_delete_test");
+        let presets_dir = temp_dir.join("presets");
+        fs::create_dir_all(&presets_dir).unwrap();
+
+        // 创建测试预设文件
+        let test_config = json!({"agents": {}, "categories": {}});
+        let preset_path = presets_dir.join("test_delete.json");
+        fs::write(
+            &preset_path,
+            serde_json::to_string_pretty(&test_config).unwrap(),
+        )
+        .unwrap();
+
+        // 验证文件存在
+        assert!(preset_path.exists());
+
+        // 删除文件
+        fs::remove_file(&preset_path).unwrap();
+
+        // 验证文件已删除
+        assert!(!preset_path.exists());
+
+        // 清理
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_invalid_preset_name() {
+        let result = save_preset("");
+        assert!(result.is_err());
+
+        let result = save_preset("test/invalid");
+        assert!(result.is_err());
+    }
+}

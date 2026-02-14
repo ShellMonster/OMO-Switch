@@ -375,3 +375,60 @@ Updated:
 - ✅ 所有组件正确导出
 - ✅ AgentList 动态渲染所有 agent
 
+
+
+## Task 7: 预设方案管理 (2026-02-14)
+
+### Rust 后端实现
+
+#### preset_service.rs
+- `save_preset(name)`: 保存当前 OMO 配置为预设到 ~/.config/omo-model-switcher/presets/{name}.json
+- `load_preset(name)`: 读取预设并应用到 OMO 配置（自动备份）
+- `list_presets()`: 列出所有已保存的预设
+- `delete_preset(name)`: 删除预设
+- `get_preset_info(name)`: 获取预设详情（agent 数量、创建时间）
+
+#### 关键设计模式
+- 复用 config_service 的 read_omo_config/write_omo_config（自动备份）
+- 预设目录: ~/.config/omo-model-switcher/presets/
+- 预设文件格式与 OMO 配置相同（JSON）
+- 名称验证：不能为空、不能包含路径分隔符
+
+#### 单元测试
+- 16 个测试全部通过
+- 测试覆盖：保存/加载/列出/删除/无效名称
+
+### 前端实现
+
+#### PresetManager.tsx
+- 预设列表展示（卡片式布局）
+- 保存当前配置为新预设（Modal 输入）
+- 加载预设（自动备份当前配置）
+- 删除预设（二次确认）
+- 预设卡片显示：名称、agent 数量、创建时间
+
+#### UI 特性
+- 使用通用组件：Button, Modal, ConfirmModal
+- 加载状态指示器
+- 错误提示（红色警告框）
+- 空状态提示（无预设时）
+- 悬停效果（卡片阴影、按钮显示）
+
+#### 集成点
+- PresetPage.tsx 集成 PresetManager
+- tauri.ts 添加 5 个预设命令类型定义
+- 命令已在 main.rs 中注册
+
+### 验证结果
+- ✅ cargo test: 16 passed
+- ✅ npm run build: 成功（1.03s）
+- ✅ TypeScript 无错误
+- ✅ 所有预设命令已注册
+
+### 技术栈
+- Rust: chrono 0.4（时间格式化）
+- React: useState, useEffect（状态管理）
+- Tauri: invoke（命令调用）
+- Lucide React: Bookmark, Plus, Trash2, Download, Calendar, Users（图标）
+
+
