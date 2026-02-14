@@ -22,3 +22,13 @@ src-tauri/target
 *.swo
 *~
 .DS_Store
+
+# Sisyphus
+.sisyphus/
+
+# Tauri generated
+src-tauri/gen
+
+# Environment
+.env
+.env.local
