@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getVersion, getName } from '@tauri-apps/api/app';
 import { cn } from '../common/cn';
 import { 
   Bot, 
@@ -7,25 +9,24 @@ import {
   Database, 
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Cog
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 
-/**
- * 导航项配置
- */
 interface NavItem {
   id: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
 }
 
 const navItems: NavItem[] = [
-  { id: 'agent', label: 'Agent 切换', icon: Bot },
-  { id: 'config', label: '配置总览', icon: Settings },
-  { id: 'preset', label: '预设管理', icon: Bookmark },
-  { id: 'models', label: '模型库', icon: Database },
-  { id: 'import-export', label: '导入导出', icon: Download },
+  { id: 'agent', labelKey: 'nav.agent', icon: Bot },
+  { id: 'config', labelKey: 'nav.config', icon: Settings },
+  { id: 'preset', labelKey: 'nav.preset', icon: Bookmark },
+  { id: 'models', labelKey: 'nav.models', icon: Database },
+  { id: 'import-export', labelKey: 'nav.importExport', icon: Download },
+  { id: 'settings', labelKey: 'nav.settings', icon: Cog },
 ];
 
 interface MainLayoutProps {
@@ -48,12 +49,29 @@ interface MainLayoutProps {
  * - 导入导出
  */
 export function MainLayout({ children }: MainLayoutProps) {
+  const { t } = useTranslation();
   const { 
     currentPage, 
     setCurrentPage, 
     isSidebarCollapsed, 
     toggleSidebar 
   } = useUIStore();
+  
+  // 从 Tauri API 动态读取应用版本号
+  const [appVersion, setAppVersion] = useState('');
+  const [appName, setAppName] = useState('OMO Switch');
+  useEffect(() => {
+    getVersion()
+      .then(v => setAppVersion(v))
+      .catch(() => setAppVersion('0.0.0'));
+  }, []);
+  
+  // 从 Tauri API 动态读取应用名称
+  useEffect(() => {
+    getName()
+      .then(n => setAppName(n))
+      .catch(() => setAppName('OMO Switch'));
+  }, []);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -71,7 +89,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <Bot className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-slate-800">OMO Switch</span>
+              <span className="font-semibold text-slate-800">{appName}</span>
             </div>
           )}
           <button
@@ -107,13 +125,13 @@ export function MainLayout({ children }: MainLayoutProps) {
                     ? 'bg-indigo-50 text-indigo-700 font-medium'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 )}
-                title={isSidebarCollapsed ? item.label : undefined}
+                title={isSidebarCollapsed ? t(item.labelKey) : undefined}
               >
                 <Icon className={cn(
                   'w-5 h-5 flex-shrink-0',
                   isActive ? 'text-indigo-600' : 'text-slate-400'
                 )} />
-                {!isSidebarCollapsed && <span>{item.label}</span>}
+                {!isSidebarCollapsed && <span>{t(item.labelKey)}</span>}
               </button>
             );
           })}
@@ -123,7 +141,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         {!isSidebarCollapsed && (
           <div className="p-4 border-t border-slate-100">
             <div className="text-xs text-slate-400 text-center">
-              v1.0.0
+              v{appVersion}
             </div>
           </div>
         )}
@@ -134,7 +152,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         {/* 顶部标题栏 */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6">
           <h1 className="text-lg font-semibold text-slate-800">
-            {navItems.find(item => item.id === currentPage)?.label || '首页'}
+            {t(navItems.find(item => item.id === currentPage)?.labelKey || 'layout.title')}
           </h1>
         </header>
 
