@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Database, 
   Search, 
@@ -8,17 +9,26 @@ import {
   DollarSign,
   Info,
   CheckCircle2,
-  Loader2,
-  Filter
+  Loader2
 } from 'lucide-react';
 import { cn } from '../common/cn';
 import { SearchInput } from '../common/SearchInput';
+import { Select } from '../common/Select';
 import { 
   getAvailableModels, 
   getConnectedProviders, 
   fetchModelsDev,
   ModelInfo 
 } from '../../services/tauri';
+
+// ==================== 模块级缓存 ====================
+// 避免标签页切换时重复的IPC调用
+let cachedGroupedModels: GroupedModels[] | null = null;
+let cachedConnectedProviders: string[] | null = null;
+let cachedModelInfos: Record<string, ModelInfo> | null = null;
+
+// localStorage 持久化缓存的 key
+const CACHE_KEY = 'omo-model-browser-cache';
 
 // ==================== 类型定义 ====================
 
@@ -53,9 +63,9 @@ function formatModelName(modelId: string): string {
 /**
  * 格式化价格显示
  */
-function formatPrice(price?: number, currency?: string): string {
-  if (price === undefined || price === null) return '免费';
-  if (price === 0) return '免费';
+function formatPrice(price?: number, currency?: string, freeLabel = 'Free'): string {
+  if (price === undefined || price === null) return freeLabel;
+  if (price === 0) return freeLabel;
   
   const symbol = currency === 'USD' ? '$' : currency || '$';
   return `${symbol}${price.toFixed(6)}/1K tokens`;
@@ -93,6 +103,7 @@ function ModelCard({
   onSelect,
   showApplyButton,
   onApply,
+  t,
 }: {
   modelId: string;
   provider: string;
@@ -101,6 +112,7 @@ function ModelCard({
   onSelect: () => void;
   showApplyButton?: boolean;
   onApply?: () => void;
+  t: (key: string) => string;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -168,8 +180,8 @@ function ModelCard({
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
               <DollarSign className="w-3 h-3" />
               {pricing.prompt === 0 && pricing.completion === 0 
-                ? '免费' 
-                : `${formatPrice(pricing.prompt, pricing.currency)}`
+                ? t('modelBrowser.free') 
+                : `${formatPrice(pricing.prompt, pricing.currency, t('modelBrowser.free'))}`
               }
             </span>
           )}
@@ -181,7 +193,7 @@ function ModelCard({
             {description && (
               <div>
                 <h5 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
-                  描述
+                  {t('modelBrowser.description')}
                 </h5>
                 <p className="text-sm text-slate-700 leading-relaxed">
                   {description}
@@ -192,19 +204,19 @@ function ModelCard({
             {pricing && (pricing.prompt !== undefined || pricing.completion !== undefined) && (
               <div>
                 <h5 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
-                  定价
+                  {t('modelBrowser.pricing')}
                 </h5>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="bg-slate-50 rounded-lg p-2">
-                    <span className="text-slate-500">输入:</span>
+                    <span className="text-slate-500">{t('modelBrowser.input')}</span>
                     <span className="ml-2 text-slate-700 font-medium">
-                      {formatPrice(pricing.prompt, pricing.currency)}
+                      {formatPrice(pricing.prompt, pricing.currency, t('modelBrowser.free'))}
                     </span>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-2">
-                    <span className="text-slate-500">输出:</span>
+                    <span className="text-slate-500">{t('modelBrowser.output')}</span>
                     <span className="ml-2 text-slate-700 font-medium">
-                      {formatPrice(pricing.completion, pricing.currency)}
+                      {formatPrice(pricing.completion, pricing.currency, t('modelBrowser.free'))}
                     </span>
                   </div>
                 </div>
@@ -224,7 +236,7 @@ function ModelCard({
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Zap className="w-4 h-4" />
-              应用此模型
+              {t('modelBrowser.applyModel')}
             </button>
           </div>
         )}
@@ -246,6 +258,7 @@ function ProviderGroup({
   onSelectModel,
   showApplyButton,
   onApplyModel,
+  t,
 }: {
   provider: string;
   models: string[];
@@ -256,6 +269,7 @@ function ProviderGroup({
   onSelectModel: (modelId: string) => void;
   showApplyButton?: boolean;
   onApplyModel?: (modelId: string, provider: string) => void;
+  t: (key: string) => string;
 }) {
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
@@ -297,6 +311,7 @@ function ProviderGroup({
               onSelect={() => onSelectModel(modelId)}
               showApplyButton={showApplyButton}
               onApply={() => onApplyModel?.(modelId, provider)}
+              t={t}
             />
           ))}
         </div>
@@ -312,6 +327,7 @@ export function ModelBrowser({
   selectedModel,
   showApplyButton = false,
 }: ModelBrowserProps) {
+  const { t } = useTranslation();
   // 状态
   const [groupedModels, setGroupedModels] = useState<GroupedModels[]>([]);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
@@ -326,6 +342,48 @@ export function ModelBrowser({
   useEffect(() => {
     async function loadData() {
       try {
+        // 检查缓存 - 如果所有数据都已缓存，直接使用
+        if (cachedGroupedModels && cachedConnectedProviders && cachedModelInfos) {
+          setGroupedModels(cachedGroupedModels);
+          setConnectedProviders(cachedConnectedProviders);
+          setModelInfos(cachedModelInfos);
+          
+          // 默认展开前3个提供商
+          const topProviders = new Set(cachedGroupedModels.slice(0, 3).map(g => g.provider));
+          setExpandedProviders(topProviders);
+          
+          setLoading(false);
+          return;
+        }
+        
+        // 尝试从 localStorage 恢复
+        if (!cachedGroupedModels) {
+          try {
+            const stored = localStorage.getItem(CACHE_KEY);
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed.groupedModels && parsed.connectedProviders && parsed.modelInfos) {
+                cachedGroupedModels = parsed.groupedModels as GroupedModels[];
+                cachedConnectedProviders = parsed.connectedProviders as string[];
+                cachedModelInfos = parsed.modelInfos as Record<string, ModelInfo>;
+
+                // 立即显示缓存数据
+                setGroupedModels(cachedGroupedModels);
+                setConnectedProviders(cachedConnectedProviders);
+                setModelInfos(cachedModelInfos);
+
+                const topProviders = new Set(cachedGroupedModels.slice(0, 3).map(g => g.provider));
+                setExpandedProviders(topProviders);
+
+                setLoading(false);
+                // 继续执行下面的网络请求以获取最新数据
+              }
+            }
+          } catch {
+            // localStorage 解析失败，忽略
+          }
+        }
+        
         setLoading(true);
         setError(null);
         
@@ -360,8 +418,25 @@ export function ModelBrowser({
         // 默认展开前3个提供商
         const topProviders = new Set(grouped.slice(0, 3).map(g => g.provider));
         setExpandedProviders(topProviders);
+        
+         // 写入缓存
+         cachedGroupedModels = grouped;
+         cachedConnectedProviders = providersData;
+         cachedModelInfos = infoMap;
+
+         // 写入 localStorage
+         try {
+           localStorage.setItem(CACHE_KEY, JSON.stringify({
+             groupedModels: grouped,
+             connectedProviders: providersData,
+             modelInfos: infoMap,
+             timestamp: Date.now()
+           }));
+         } catch {
+           // localStorage 写入失败，忽略
+         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : '加载模型数据失败');
+        setError(err instanceof Error ? err.message : t('modelBrowser.loadModelsFailed'));
       } finally {
         setLoading(false);
       }
@@ -407,6 +482,15 @@ export function ModelBrowser({
       .filter((group): group is GroupedModels => group !== null);
   }, [groupedModels, modelInfos, searchQuery, selectedProvider]);
 
+  // 构建提供商过滤选项
+  const providerFilterOptions = useMemo(() => [
+    { value: 'all', label: t('modelBrowser.allProviders') },
+    ...groupedModels.map(g => ({
+      value: g.provider,
+      label: `${g.provider} (${g.models.length})`,
+    })),
+  ], [groupedModels, t]);
+
   // 切换提供商展开状态
   const toggleProvider = useCallback((provider: string) => {
     setExpandedProviders((prev) => {
@@ -434,7 +518,7 @@ export function ModelBrowser({
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-500">正在加载模型数据...</p>
+        <p className="text-slate-500">{t('modelBrowser.loading')}</p>
       </div>
     );
   }
@@ -446,13 +530,13 @@ export function ModelBrowser({
           <Info className="w-8 h-8 text-rose-500" />
         </div>
         <h3 className="text-lg font-semibold text-slate-800 mb-2">
-          加载失败
+          {t('modelBrowser.loadFailed')}
         </h3>
         <p className="text-slate-500 text-center max-w-md mb-4">
           {error}
         </p>
         <p className="text-sm text-slate-400 text-center">
-          请确保已安装并运行 Oh My OpenCode 主应用
+          {t('modelBrowser.loadFailedHint')}
         </p>
       </div>
     );
@@ -468,7 +552,7 @@ export function ModelBrowser({
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-indigo-100 text-sm">可用模型</p>
+              <p className="text-indigo-100 text-sm">{t('modelBrowser.availableModels')}</p>
               <p className="text-2xl font-bold">
                 {groupedModels.reduce((sum, g) => sum + g.models.length, 0)}
               </p>
@@ -482,7 +566,7 @@ export function ModelBrowser({
               <Server className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-emerald-100 text-sm">提供商</p>
+              <p className="text-emerald-100 text-sm">{t('modelBrowser.providers')}</p>
               <p className="text-2xl font-bold">{groupedModels.length}</p>
             </div>
           </div>
@@ -494,7 +578,7 @@ export function ModelBrowser({
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-amber-100 text-sm">已连接</p>
+              <p className="text-amber-100 text-sm">{t('modelBrowser.connectedCount')}</p>
               <p className="text-2xl font-bold">{connectedProviders.length}</p>
             </div>
           </div>
@@ -507,24 +591,16 @@ export function ModelBrowser({
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="搜索模型名称、描述..."
+            placeholder={t('modelBrowser.searchPlaceholder')}
           />
         </div>
         
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-slate-400" />
-          <select
+        <div className="w-48">
+          <Select
             value={selectedProvider}
-            onChange={(e) => setSelectedProvider(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-          >
-            <option value="all">全部提供商</option>
-            {groupedModels.map((group) => (
-              <option key={group.provider} value={group.provider}>
-                {group.provider} ({group.models.length})
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedProvider}
+            options={providerFilterOptions}
+          />
         </div>
       </div>
 
@@ -533,10 +609,10 @@ export function ModelBrowser({
         <div className="text-center py-16">
           <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-700 mb-2">
-            未找到匹配的模型
+            {t('modelBrowser.noModels')}
           </h3>
           <p className="text-slate-500">
-            尝试调整搜索词或过滤器
+            {t('modelBrowser.noModelsHint')}
           </p>
         </div>
       ) : (
@@ -553,6 +629,7 @@ export function ModelBrowser({
               onSelectModel={handleSelectModel}
               showApplyButton={showApplyButton}
               onApplyModel={handleApplyModel}
+              t={t}
             />
           ))}
         </div>
