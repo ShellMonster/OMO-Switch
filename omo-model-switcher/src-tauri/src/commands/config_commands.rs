@@ -23,7 +23,11 @@ pub fn validate_config(config: Value) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn update_agent_model(agent_name: String, model: String, variant: Option<String>) -> Result<Value, String> {
+pub fn update_agent_model(
+    agent_name: String,
+    model: String,
+    variant: Option<String>,
+) -> Result<Value, String> {
     let mut config = config_service::read_omo_config()?;
 
     // 尝试在 agents 中更新
@@ -32,7 +36,11 @@ pub fn update_agent_model(agent_name: String, model: String, variant: Option<Str
             if let Some(obj) = agent.as_object_mut() {
                 obj.insert("model".to_string(), Value::String(model.clone()));
                 if let Some(v) = &variant {
-                    obj.insert("variant".to_string(), Value::String(v.clone()));
+                    if v != "none" {
+                        obj.insert("variant".to_string(), Value::String(v.clone()));
+                    } else {
+                        obj.remove("variant");
+                    }
                 }
             }
         }
@@ -44,7 +52,11 @@ pub fn update_agent_model(agent_name: String, model: String, variant: Option<Str
             if let Some(obj) = category.as_object_mut() {
                 obj.insert("model".to_string(), Value::String(model.clone()));
                 if let Some(v) = &variant {
-                    obj.insert("variant".to_string(), Value::String(v.clone()));
+                    if v != "none" {
+                        obj.insert("variant".to_string(), Value::String(v.clone()));
+                    } else {
+                        obj.remove("variant");
+                    }
                 }
             }
         }
