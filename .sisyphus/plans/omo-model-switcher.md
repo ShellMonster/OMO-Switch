@@ -216,7 +216,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 3. 模型数据服务（Rust）
+- [x] 3. 模型数据服务（Rust）
 
   **做什么**:
   - 创建 src-tauri/src/services/model_service.rs

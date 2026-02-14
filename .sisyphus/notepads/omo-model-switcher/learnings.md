@@ -68,3 +68,31 @@ omo-model-switcher/
 4. 开发服务器端口为 5173（Vite 默认）
 5. Tauri 开发 URL 配置为 http://localhost:5173
 
+
+## Task 3: 模型数据服务实现 (2026-02-14)
+
+### 缓存文件格式
+- `provider-models.json`: `{ "models": { "provider_name": ["model1", "model2"] } }`
+- `connected-providers.json`: `{ "connected": ["provider1"], "updatedAt": "ISO8601" }`
+- 缓存位置: `~/.cache/oh-my-opencode/`
+
+### HTTP 客户端选择
+- 使用 `ureq` v2 而非 v3（Tauri 2 兼容性）
+- 需要 `json` feature: `ureq = { version = "2", features = ["json"] }`
+- 超时设置: `ureq::get(url).timeout(Duration::from_secs(5))`
+
+### 优雅降级模式
+- models.dev API 不可用时返回 `Ok(Vec::new())` 而非 `Err`
+- 应用可完全依赖本地缓存运行，外部 API 仅用于增强功能
+- 测试验证了 95 个提供商成功从缓存读取
+
+### Tauri 命令模式
+- 服务层 (`services/`) 包含业务逻辑
+- 命令层 (`commands/`) 仅做 `#[tauri::command]` 包装
+- `main.rs` 通过 `invoke_handler` 注册命令
+- 需要 `mod.rs` 声明子模块
+
+### 测试策略
+- 单元测试放在服务模块内 (`#[cfg(test)] mod tests`)
+- 测试优雅降级而非强制外部依赖可用
+- 使用 `--nocapture` 查看测试输出验证数据
