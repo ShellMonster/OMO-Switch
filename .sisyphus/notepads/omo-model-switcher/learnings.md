@@ -242,3 +242,136 @@ src/
 - ✅ 所有组件类型检查通过
 - ✅ 输出文件: dist/index.html, dist/assets/*
 
+
+## Task 4: Agent 模型切换 UI (2026-02-14)
+
+### 配置文件格式理解
+**`~/.config/opencode/oh-my-opencode.json` 结构**:
+```json
+{
+  "agents": {
+    "agent-name": { "model": "provider/model", "variant": "max|high|medium|low" },
+    ...
+  },
+  "categories": {
+    "category-name": { "model": "provider/model", "variant": "..." },
+    ...
+  }
+}
+```
+
+### Tauri 服务层扩展模式
+
+**新增 OMO 配置相关接口和命令**:
+```typescript
+// 1. 定义接口
+export interface AgentConfig {
+  model: string;
+  variant?: 'max' | 'high' | 'medium' | 'low' | 'none';
+}
+
+export interface OmoConfig {
+  agents: Record<string, AgentConfig>;
+  categories: Record<string, AgentConfig>;
+}
+
+// 2. 封装 Tauri 命令
+export async function getOmoConfig(): Promise<OmoConfig> {
+  return invoke<OmoConfig>('get_omo_config');
+}
+
+export async function updateAgentModel(
+  agentName: string,
+  model: string,
+  variant?: AgentConfig['variant']
+): Promise<OmoConfig> {
+  return invoke<OmoConfig>('update_agent_model', { agentName, model, variant });
+}
+```
+
+### Zustand Store 扩展模式
+
+**向现有 Store 添加新状态**:
+```typescript
+// 1. 扩展 State 接口
+export interface ConfigState {
+  // 原有状态...
+  
+  // 新增 OMO Agent 配置状态
+  omoConfig: OmoConfig | null;
+  isLoadingOmoConfig: boolean;
+  omoConfigError: string | null;
+  setOmoConfig: (config: OmoConfig) => void;
+  updateAgentConfig: (agentName: string, config: AgentConfig) => void;
+}
+
+// 2. persist 配置排除 OMO 配置（从文件读取而非 localStorage）
+partialize: (state) => ({
+  // 不包含 omoConfig 相关字段
+}),
+```
+
+### 组件设计模式
+
+#### AgentCard 组件
+- **动态图标**: 根据 agent 名称选择不同图标（Bot/Sparkles/Cpu）
+- **格式化名称**: `agent-name` → `Agent Name`
+- **悬停效果**: `group-hover` 显示编辑按钮
+- **简化模型名**: `provider/model-name` → `model-name`
+
+#### ModelSelector 弹窗
+- **搜索过滤**: 支持按模型名和提供商搜索
+- **分组显示**: 按提供商分组显示模型
+- **Variant 选择**: 使用 Select 组件选择强度等级
+- **预览区域**: 底部显示当前选择预览
+
+#### AgentList 组件
+- **动态加载**: 从 `getOmoConfig()` 读取配置
+- **本地状态更新**: 保存成功后立即更新 UI（乐观更新）
+- **错误处理**: Toast 通知显示操作结果
+- **刷新功能**: 支持手动刷新配置
+
+### 模型列表生成策略
+从配置中提取所有已使用的模型作为可用模型列表：
+```typescript
+const models: ModelOption[] = [];
+const seen = new Set<string>();
+
+// 从 agents 中提取
+Object.entries(omoConfig.agents).forEach(([_, config]) => {
+  if (!seen.has(config.model)) {
+    seen.add(config.model);
+    models.push({
+      id: config.model,
+      name: config.model.split('/').pop(),
+      provider: config.model.split('/')[0],
+    });
+  }
+});
+```
+
+### TypeScript 严格模式注意事项
+- ❌ 不能使用 `import React from 'react'`（未使用）
+- ❌ 不能使用 `import { type X }` 如果 X 未被使用
+- ✅ 使用 `import { useState } from 'react'` 代替
+
+### 文件清单
+```
+src/components/AgentList/
+├── AgentCard.tsx          # Agent 卡片组件
+├── AgentList.tsx          # Agent 列表主组件
+├── ModelSelector.tsx      # 模型选择弹窗
+└── index.ts               # 索引导出
+
+Updated:
+├── src/services/tauri.ts           # 添加 OMO 配置命令
+├── src/store/configStore.ts        # 添加 Agent 配置状态
+└── src/pages/AgentPage.tsx         # 集成 AgentList
+```
+
+### 验证结果
+- ✅ `npm run build` 成功（修复未使用导入后）
+- ✅ TypeScript 无错误
+- ✅ 所有组件正确导出
+- ✅ AgentList 动态渲染所有 agent
+

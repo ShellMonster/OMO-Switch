@@ -243,7 +243,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 4. Agent 模型切换 UI（核心功能）
+- [x] 4. Agent 模型切换 UI（核心功能）
 
   **做什么**:
   - 创建 src/components/AgentList/ 目录

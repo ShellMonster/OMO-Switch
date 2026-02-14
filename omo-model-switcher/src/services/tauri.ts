@@ -7,7 +7,36 @@ import { invoke } from '@tauri-apps/api/core';
  * 对应后端的命令模块：
  * - config_commands
  * - model_commands
+ * - omo_config_commands
  */
+
+// ==================== Agent 配置相关接口 ====================
+
+/**
+ * Agent 配置项
+ */
+export interface AgentConfig {
+  model: string;
+  variant?: 'max' | 'high' | 'medium' | 'low' | 'none';
+}
+
+/**
+ * Oh My OpenCode 完整配置结构
+ */
+export interface OmoConfig {
+  $schema?: string;
+  agents: Record<string, AgentConfig>;
+  categories: Record<string, AgentConfig>;
+}
+
+/**
+ * Agent 更新请求
+ */
+export interface AgentUpdateRequest {
+  agentName: string;
+  model: string;
+  variant?: 'max' | 'high' | 'medium' | 'low' | 'none';
+}
 
 // ==================== 配置相关接口 ====================
 
@@ -117,6 +146,35 @@ export async function pullModel(modelName: string): Promise<void> {
   return invoke<void>('pull_model', { modelName });
 }
 
+// ==================== OMO 配置命令 ====================
+
+/**
+ * 获取 Oh My OpenCode 配置
+ */
+export async function getOmoConfig(): Promise<OmoConfig> {
+  return invoke<OmoConfig>('get_omo_config');
+}
+
+/**
+ * 更新指定 Agent 的模型配置
+ */
+export async function updateAgentModel(
+  agentName: string,
+  model: string,
+  variant?: 'max' | 'high' | 'medium' | 'low' | 'none'
+): Promise<OmoConfig> {
+  return invoke<OmoConfig>('update_agent_model', { agentName, model, variant });
+}
+
+/**
+ * 批量更新多个 Agent 的模型配置
+ */
+export async function updateAgentsBatch(
+  updates: AgentUpdateRequest[]
+): Promise<OmoConfig> {
+  return invoke<OmoConfig>('update_agents_batch', { updates });
+}
+
 // ==================== 默认导出 ====================
 
 const tauriService = {
@@ -124,12 +182,17 @@ const tauriService = {
   getConfig,
   updateConfig,
   resetConfig,
-  
+
   // 模型
   listLocalModels,
   getModelDetails,
   deleteModel,
   pullModel,
+
+  // OMO 配置
+  getOmoConfig,
+  updateAgentModel,
+  updateAgentsBatch,
 };
 
 export default tauriService;
