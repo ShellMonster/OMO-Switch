@@ -3,6 +3,7 @@ use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::i18n;
 use crate::services::config_service::{read_omo_config, validate_config, write_omo_config};
 
 /// 导出当前 OMO 配置到指定路径
@@ -23,15 +24,17 @@ pub fn export_config(path: &str) -> Result<(), String> {
     // 确保目标路径的父目录存在
     let target_path = PathBuf::from(path);
     if let Some(parent) = target_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("创建目标目录失败: {}", e))?;
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("{}: {}", i18n::tr_current("create_target_dir_failed"), e))?;
     }
 
     // 格式化 JSON（带缩进）
-    let json_string =
-        serde_json::to_string_pretty(&config).map_err(|e| format!("序列化配置失败: {}", e))?;
+    let json_string = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
 
     // 写入文件
-    fs::write(&target_path, json_string).map_err(|e| format!("写入导出文件失败: {}", e))?;
+    fs::write(&target_path, json_string)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("write_export_file_failed"), e))?;
 
     Ok(())
 }
@@ -49,16 +52,16 @@ pub fn import_config(path: &str) -> Result<(), String> {
 
     // 检查文件是否存在
     if !import_path.exists() {
-        return Err(format!("导入文件不存在: {}", path));
+        return Err(i18n::tr_current("import_file_not_found"));
     }
 
     // 读取导入文件内容
-    let content =
-        fs::read_to_string(import_path).map_err(|e| format!("读取导入文件失败: {}", e))?;
+    let content = fs::read_to_string(import_path)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("read_import_file_failed"), e))?;
 
     // 解析 JSON
-    let imported_config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("解析导入文件失败: {}", e))?;
+    let imported_config: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_import_file_failed"), e))?;
 
     // 验证导入配置的有效性
     validate_config(&imported_config)?;
@@ -85,15 +88,16 @@ pub fn validate_import_file(path: &str) -> Result<Value, String> {
 
     // 检查文件是否存在
     if !import_path.exists() {
-        return Err(format!("文件不存在: {}", path));
+        return Err(i18n::tr_current("import_file_not_found"));
     }
 
     // 读取文件内容
-    let content = fs::read_to_string(import_path).map_err(|e| format!("读取文件失败: {}", e))?;
+    let content = fs::read_to_string(import_path)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("read_import_file_failed"), e))?;
 
     // 解析 JSON
-    let config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("JSON 格式错误: {}", e))?;
+    let config: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("json_format_error"), e))?;
 
     // 验证配置结构
     validate_config(&config)?;
@@ -110,13 +114,14 @@ fn backup_current_config() -> Result<PathBuf, String> {
     let config = read_omo_config()?;
 
     // 获取配置文件所在目录
-    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量".to_string())?;
+    let home = std::env::var("HOME").map_err(|_| i18n::tr_current("home_env_var_error"))?;
 
     let config_dir = PathBuf::from(home).join(".config").join("opencode");
 
     // 创建备份目录
     let backup_dir = config_dir.join("backups");
-    fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份目录失败: {}", e))?;
+    fs::create_dir_all(&backup_dir)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("backup_config_failed"), e))?;
 
     // 生成带时间戳的备份文件名
     let timestamp = Local::now().format("%Y%m%d_%H%M%S");
@@ -124,10 +129,11 @@ fn backup_current_config() -> Result<PathBuf, String> {
     let backup_path = backup_dir.join(backup_filename);
 
     // 写入备份文件
-    let json_string =
-        serde_json::to_string_pretty(&config).map_err(|e| format!("序列化配置失败: {}", e))?;
+    let json_string = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
 
-    fs::write(&backup_path, json_string).map_err(|e| format!("写入备份文件失败: {}", e))?;
+    fs::write(&backup_path, json_string)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("backup_config_failed"), e))?;
 
     Ok(backup_path)
 }
@@ -138,7 +144,7 @@ fn backup_current_config() -> Result<PathBuf, String> {
 /// - `Ok(Vec<BackupInfo>)`: 历史记录列表
 /// - `Err(String)`: 获取失败，包含错误信息
 pub fn get_backup_history() -> Result<Vec<BackupInfo>, String> {
-    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量".to_string())?;
+    let home = std::env::var("HOME").map_err(|_| i18n::tr_current("home_env_var_error"))?;
 
     let backup_dir = PathBuf::from(home)
         .join(".config")
@@ -271,7 +277,12 @@ mod tests {
         // 验证应该失败
         let result = validate_import_file(test_file.to_str().unwrap());
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("JSON 格式错误"));
+        let err_msg = result.unwrap_err();
+        assert!(
+            err_msg.contains("JSON")
+                || err_msg.contains("格式错误")
+                || err_msg.contains("format error")
+        );
 
         // 清理
         fs::remove_dir_all(&temp_dir).unwrap();

@@ -1,0 +1,442 @@
+{
+  "nav": {
+    "agent": "Agent 切替",
+    "config": "設定概要",
+    "preset": "プリセット管理",
+    "models": "モデルライブラリ",
+    "importExport": "インポート/エクスポート",
+    "settings": "設定"
+  },
+  "layout": {
+    "title": "ホーム"
+  },
+  "agentPage": {
+    "title": "Agent モデル切替",
+    "description": "各 Agent が使用する AI モデルと強度レベルを管理",
+    "agentsSection": "agents",
+    "categoriesSection": "categories",
+    "agentsCount": "全 {{count}} エージェント",
+    "categoriesCount": "全 {{count}} カテゴリ"
+  },
+  "configPage": {
+    "title": "設定ステータス概要",
+    "description": "OMO 設定ファイルのステータスを表示・管理"
+  },
+  "presetPage": {
+    "title": "プリセット管理",
+    "description": "モデルプリセット設定の作成と管理"
+  },
+  "modelsPage": {
+    "title": "モデルライブラリ",
+    "description": "AI モデルの閲覧・管理、プロバイダー・料金・機能情報の確認",
+    "currentSelection": "現在の選択"
+  },
+  "importExportPage": {
+    "title": "インポート/エクスポート",
+    "description": "設定とプリセットのバックアップと復元"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "description": "アプリ設定の管理とシステム情報の表示"
+  },
+  "agentList": {
+    "loading": "Agent 設定を読み込み中...",
+    "loadFailed": "設定を読み込めません",
+    "loadConfigFailed": "設定の読み込みに失敗しました",
+    "retry": "再試行",
+    "total": "全 {{count}} Agent",
+    "refresh": "更新"
+  },
+  "agentCard": {
+    "edit": "編集",
+    "editConfig": "設定を編集"
+  },
+  "agentNames": {
+    "sisyphus": "シーシュポス",
+    "sisyphus-junior": "シーシュポス Jr.",
+    "hephaestus": "ヘパイストス",
+    "oracle": "オラクル",
+    "librarian": "ライブラリアン",
+    "explore": "エクスプローラー",
+    "multimodal-looker": "マルチモーダルルッカー",
+    "prometheus": "プロメテウス",
+    "metis": "メティス",
+    "momus": "モムス",
+    "atlas": "アトラス",
+    "build": "ビルダー",
+    "plan": "プランナー",
+    "OpenCode-Builder": "OpenCode ビルダー",
+    "general": "汎用エージェント",
+    "frontend-ui-ux-engineer": "フロントエンドエンジニア",
+    "document-writer": "ドキュメントライター",
+    "custom": "カスタムエージェント"
+  },
+  "agentDescriptions": {
+    "sisyphus": "メイン実行者、作業計画のタスクを実行し、完了まで継続的に推進",
+    "sisyphus-junior": "軽量実行者、委任されたサブタスクを処理、中小規模の作業に適合",
+    "hephaestus": "コード職人、コード実装・ビルド・エンジニアリングの詳細に特化",
+    "oracle": "技術アドバイザー、アーキテクチャの推奨と深い技術分析を提供",
+    "librarian": "知識検索員、ドキュメント・API リファレンス・ベストプラクティスを検索",
+    "explore": "コードエクスプローラー、コードベースの構造分析・参照・パターンの検索",
+    "multimodal-looker": "マルチモーダルオブザーバー、画像・PDF などの視覚コンテンツを分析",
+    "prometheus": "戦略プランナー、要件分析と作業計画の策定を担当",
+    "metis": "計画レビュアー、計画の完全性と潜在的な見落としをチェック",
+    "momus": "品質監査員、計画のすべての詳細を厳密に検証",
+    "atlas": "タスクスケジューラー、マルチタスクの並列実行と依存関係管理を調整",
+    "build": "ビルドエージェント、コンパイル・パッケージング・デプロイ関連タスクを処理",
+    "plan": "プランエージェント、タスクの計画と分解を支援",
+    "OpenCode-Builder": "OpenCode ビルダー、コアコード生成・修正エージェント",
+    "general": "汎用エージェント、未分類の一般的なタスクを処理",
+    "frontend-ui-ux-engineer": "フロントエンドエンジニア、UI/UX デザインとフロントエンド実装に特化",
+    "document-writer": "ドキュメントライター、技術文書と説明書の作成を担当",
+    "custom": "カスタムエージェント"
+  },
+  "categoryDescriptions": {
+    "visual-engineering": "ビジュアルエンジニアリングタスク：フロントエンド、UI/UX、デザイン、スタイル、アニメーション",
+    "ultrabrain": "高難度ロジックタスク：複雑なアルゴリズム、アーキテクチャ設計、深い推論",
+    "deep": "深層研究タスク：行動前に徹底的な理解が必要な複雑な問題",
+    "artistry": "クリエイティブタスク：非従来型ソリューション、革新的デザイン、画期的なアイデア",
+    "quick": "クイックタスク：単一ファイル修正、スペル修正、簡単な調整",
+    "unspecified-low": "低複雑度の未分類タスク",
+    "unspecified-high": "高複雑度の未分類タスク",
+    "writing": "ライティングタスク：ドキュメント、テクニカルライティング、説明書",
+    "visual": "ビジュアルタスク：チャート、可視化、インターフェース関連",
+    "business-logic": "ビジネスロジックタスク：コア機能、データ処理、API",
+    "data-analysis": "データ分析タスク：統計、レポート、データ処理",
+     "custom": "カスタムカテゴリ"
+   },
+   "categoryNames": {
+     "visual-engineering": "ビジュアルエンジニアリング",
+     "ultrabrain": "ウルトラブレイン",
+     "deep": "ディープリサーチ",
+     "artistry": "アーティストリー",
+     "quick": "クイックタスク",
+     "unspecified-low": "低複雑度",
+     "unspecified-high": "高複雑度",
+     "writing": "ライティング",
+     "visual": "ビジュアル",
+     "business-logic": "ビジネスロジック",
+     "data-analysis": "データ分析",
+     "custom": "カスタムカテゴリ"
+   },
+   "modelSelector": {
+    "title": "{{name}} を編集",
+    "intensityLevel": "強度レベル",
+    "selectModel": "モデルを選択",
+    "searchPlaceholder": "モデル名またはプロバイダーを検索...",
+    "noModels": "一致するモデルが見つかりません",
+    "currentSelection": "現在の選択",
+    "model": "モデル:",
+    "intensity": "強度:",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "updateSuccess": "{{name}} のモデル設定を更新しました",
+    "saveFailed": "保存に失敗しました"
+  },
+  "variantOptions": {
+    "max": "max - 最高強度",
+    "high": "high - 高強度",
+    "medium": "medium - 中強度",
+    "low": "low - 低強度",
+    "none": "none - 強度なし"
+  },
+  "configDashboard": {
+    "title": "設定ステータス概要",
+    "description": "OMO 設定ファイルのステータスを表示・管理",
+    "configPath": "設定ファイルパス",
+    "configPathNotFound": "設定ファイルが見つかりません",
+    "lastModified": "最終更新日時",
+    "fileSize": "ファイルサイズ",
+    "unknown": "不明",
+    "totalAgents": "Agent 総数",
+    "configuredAgents": "設定済み agents",
+    "configuredModels": "設定済みモデル",
+    "uniqueModels": "重複除外モデル数",
+    "connectedProviders": "接続プロバイダー",
+    "availableSources": "利用可能なモデルソース",
+    "configFileInfo": "設定ファイル情報",
+    "agentModelAssignment": "Agent モデル割り当て",
+    "totalConfigs": "全 {{count}} 件の設定",
+    "tableName": "名前",
+    "tableType": "タイプ",
+    "tableModel": "割り当てモデル",
+    "tableVariant": "バリアント",
+    "noAgentConfig": "Agent 設定がありません",
+    "connectedProvidersList": "接続済みプロバイダー",
+    "noProviders": "接続済みプロバイダーがありません",
+    "connected": "接続済み",
+    "configStatus": "設定ステータス",
+    "valid": "有効",
+    "invalid": "無効",
+    "configFormatCorrect": "設定フォーマットは正しいです",
+    "waitingValidation": "検証待ち",
+    "configValidationFailed": "設定の検証に失敗しました",
+    "cannotReadConfig": "設定を読み取れません",
+    "loading": "設定データを読み込み中...",
+    "loadFailed": "読み込み失敗",
+    "loadConfigFailed": "設定データの読み込みに失敗しました"
+  },
+  "presetManager": {
+    "title": "プリセット管理",
+    "myPresets": "マイプリセット",
+    "presetCount": "{{count}} 件のプリセット設定",
+    "categoryCount": "{{count}} カテゴリ",
+    "saveCurrentConfig": "現在の設定を保存",
+    "savePreset": "プリセットを保存",
+    "presetName": "プリセット名",
+    "presetNamePlaceholder": "例：開発環境設定",
+    "saveDescription": "現在のすべての Agent のモデル設定を保存します",
+    "presetNameEmpty": "プリセット名を入力してください",
+    "load": "読み込み",
+    "delete": "削除",
+    "confirmDelete": "プリセットを削除",
+    "deleteMessage": "プリセット \"{{name}}\" を削除しますか？この操作は取り消せません。",
+    "deleteSuccess": "プリセットを削除しました",
+    "loadSuccess": "プリセットを読み込みました",
+    "saveSuccess": "プリセットを保存しました",
+    "saveFailed": "プリセットの保存に失敗しました",
+    "loadFailed": "プリセットの読み込みに失敗しました",
+    "loadListFailed": "プリセット一覧の読み込みに失敗しました",
+    "deleteFailed": "プリセットの削除に失敗しました",
+    "noPresets": "保存されたプリセットはありません",
+    "createFirst": "上のボタンをクリックして現在の設定を保存",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "loading": "読み込み中..."
+  },
+  "modelBrowser": {
+    "title": "モデルライブラリ",
+    "searchPlaceholder": "モデル名、説明を検索...",
+    "allProviders": "すべてのプロバイダー",
+    "availableModels": "利用可能なモデル",
+    "providers": "プロバイダー",
+    "connectedCount": "接続済み",
+    "free": "無料",
+    "applyModel": "このモデルを適用",
+    "noModels": "一致するモデルが見つかりません",
+    "noModelsHint": "検索ワードまたはフィルターを調整してください",
+    "loading": "モデルデータを読み込み中...",
+    "loadFailed": "読み込み失敗",
+    "loadFailedHint": "Oh My OpenCode メインアプリがインストール・実行されていることを確認してください",
+    "loadModelsFailed": "モデルデータの読み込みに失敗しました",
+    "description": "説明",
+    "pricing": "料金",
+    "input": "入力:",
+    "output": "出力:"
+  },
+  "importExport": {
+    "title": "インポート/エクスポート",
+    "export": "設定をエクスポート",
+    "exportDescription": "現在の設定を JSON としてエクスポート",
+    "import": "設定をインポート",
+    "importDescription": "JSON ファイルから設定をインポート",
+    "exportSuccess": "設定を正常にエクスポートしました: {{path}}",
+    "importSuccess": "設定を正常にインポートしました！現在の設定は自動バックアップされました。",
+    "importFailed": "インポートに失敗しました",
+    "exportFailed": "エクスポートに失敗しました",
+    "preview": "インポート設定のプレビュー",
+    "previewHint": "以下の設定をインポートします。現在の設定は自動バックアップされます。",
+    "agentsConfig": "Agents 設定",
+    "agentCount": "{{count}} 個の agent",
+    "categoriesConfig": "Categories 設定",
+    "categoryCount": "{{count}} 個の category",
+    "cancel": "キャンセル",
+    "confirm": "インポートを確認",
+    "importing": "インポート中...",
+    "error": "エラー",
+    "success": "成功",
+    "selectFileImport": "ファイルを選択してインポート",
+    "processing": "処理中...",
+    "exportConfig": "設定をエクスポート",
+    "exporting": "エクスポート中...",
+    "backupHistory": "バックアップ履歴",
+    "backupHistoryDescription": "自動バックアップ記録を表示",
+    "noBackups": "バックアップ記録がありません"
+  },
+  "settings": {
+    "language": {
+      "title": "言語設定",
+      "description": "表示言語を選択",
+      "selectLabel": "表示言語",
+      "hint": "言語変更は即座に適用され、次回訪問時に記憶されます。"
+    },
+    "about": {
+      "title": "アプリについて",
+      "description": "アプリ情報とシステムパス",
+      "appName": "アプリ名",
+      "version": "バージョン",
+      "configPath": "設定ファイルパス",
+      "cacheDirectory": "キャッシュディレクトリ"
+    },
+    "configPathError": "設定ファイルパスを取得できません",
+    "update": {
+      "title": "ソフトウェア更新",
+      "check": "更新を確認",
+      "checking": "更新を確認中...",
+      "checkingShort": "確認中...",
+      "view": "更新を表示",
+      "latest": "最新バージョンです",
+      "available": "新バージョン v{{version}} が利用可能",
+      "failed": "確認失敗",
+      "failedWith": "確認失敗：{{error}}",
+      "desktopOnly": "デスクトップ版のみ",
+      "autoNote": "アプリ起動時に自動で更新を確認します。新バージョンがある場合は通知され、ワンクリックでダウンロード・インストールできます。"
+    }
+  },
+  "versionBadge": {
+    "downloading": "ダウンロード中 {{percent}}%",
+    "installing": "更新をインストール中...",
+    "downloaded": "更新をダウンロード済み、クリックしてインストール",
+    "available": "新バージョン v{{version}} が利用可能、クリックして表示/インストール",
+    "check": "クリックして更新を確認",
+    "checking": "確認中...",
+    "latest": "最新です",
+    "error": "確認失敗",
+    "availableShort": "更新あり",
+    "desktopOnly": "デスクトップのみ",
+    "updateProgress": "更新中 {{percent}}%",
+    "installingShort": "インストール中",
+    "pendingInstall": "インストール待ち",
+    "version": "v{{version}}",
+    "repoMissing": "GitHubリポジトリが設定されていません"
+  },
+  "updater": {
+    "dismiss": {
+      "background": "バックグラウンドでダウンロード",
+      "later": "後で"
+    },
+    "title": {
+      "checking": "更新を確認中...",
+      "downloading": "更新をダウンロード中...",
+      "downloaded": "更新をダウンロード済み",
+      "installing": "更新をインストール中...",
+      "installed": "更新完了",
+      "error": "更新失敗",
+      "available": "新バージョンが利用可能"
+    },
+    "newVersion": "新バージョン",
+    "progress": "ダウンロード進捗",
+    "downloadHint": "このウィンドウを閉じて作業を続けることができます。ダウンロードはバックグラウンドで続行されます。",
+    "downloadedHint": "更新パッケージがダウンロードされました。「インストールして再起動」をクリックして更新を完了してください。",
+    "installingHint": "インストール中です。アプリを閉じないでください",
+    "errorFallback": "更新に失敗しました。後でもう一度お試しください",
+    "errorExtra": "Updaterを統合したばかりの場合は、tauri.conf.jsonにplugins.updater.pubkeyを追加し、CIでTAURI_SIGNING_PRIVATE_KEYを設定してください。",
+    "actions": {
+      "download": "更新をダウンロード",
+      "install": "インストールして再起動",
+      "retry": "再確認"
+    },
+    "toast": {
+      "checkFailed": "更新の確認に失敗しました",
+      "checkFailedManifest": "確認失敗：latest.jsonが見つかりません",
+      "checkFailedPubkey": "確認失敗：公開鍵がありません",
+      "checkFailedNetwork": "確認失敗：ネットワークエラー",
+      "downloadFailed": "更新のダウンロードに失敗しました",
+      "downloaded": "更新をダウンロードしました",
+      "installFailed": "更新のインストールに失敗しました",
+      "installManual": "更新をインストールしました。手動でアプリを再起動してください",
+      "installed": "更新をインストールしました"
+    }
+  },
+  "errorBoundary": {
+    "title": "アプリケーションでエラーが発生しました",
+    "description": "申し訳ございません、予期しないエラーが発生しました。ページの更新またはテクニカルサポートへの連絡をお試しください。",
+    "errorDetails": "エラー詳細：",
+    "viewStackTrace": "スタックトレースを表示",
+    "reload": "再読み込み",
+    "refreshPage": "ページを更新",
+    "persistHint": "問題が解決しない場合は、ブラウザキャッシュのクリアまたはテクニカルサポートへの連絡をお試しください"
+  },
+  "search": {
+    "placeholder": "検索...",
+    "clear": "検索をクリア"
+  },
+  "select": {
+    "placeholder": "選択してください..."
+  },
+  "button": {
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "add": "追加",
+    "remove": "削除",
+    "close": "閉じる",
+    "submit": "送信",
+    "reset": "リセット",
+    "loading": "読み込み中..."
+  },
+  "modal": {
+    "close": "閉じる",
+    "confirmAction": "操作を確認",
+    "confirm": "確認",
+    "cancel": "キャンセル"
+  },
+  "toast": {
+    "success": "成功",
+    "error": "エラー",
+    "info": "情報",
+    "warning": "警告"
+  },
+  "errors": {
+    "loadConfigFailed": "設定の読み込みに失敗しました",
+    "updateFailed": "更新に失敗しました",
+    "saveFailed": "保存に失敗しました",
+    "deleteFailed": "削除に失敗しました",
+    "importFailed": "インポートに失敗しました",
+    "exportFailed": "エクスポートに失敗しました",
+    "validationFailed": "検証に失敗しました",
+    "networkError": "ネットワークエラー",
+    "unknownError": "不明なエラー"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "warning": "警告",
+    "info": "情報",
+    "confirm": "確認",
+    "yes": "はい",
+    "no": "いいえ",
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "search": "検索..."
+  },
+   "errorBoundary": {
+     "title": "アプリケーションエラー",
+     "description": "申し訳ございません。予期しないエラーが発生しました。ページを更新するか、サポートにお問い合わせください。",
+     "details": "エラー詳細：",
+     "viewStack": "スタックトレースを表示",
+     "reload": "再読み込み",
+     "refreshPage": "ページを更新",
+     "persistHint": "問題が解決しない場合は、ブラウザのキャッシュをクリアするか、サポートにお問い合わせください"
+   },
+   "versionCheck": {
+     "title": "バージョン情報",
+     "description": "OpenCode と Oh My OpenCode のバージョン状態",
+     "currentVersion": "現在のバージョン",
+     "latestVersion": "最新バージョン",
+     "upToDate": "最新です",
+     "updateAvailable": "更新が利用可能",
+     "notInstalled": "未インストール",
+     "checkFailed": "チェック失敗",
+     "loading": "バージョンを確認中...",
+     "updateMethod": "更新方法",
+     "opencode": {
+       "updateHint": "ターミナルで 'opencode upgrade' を実行して更新",
+       "updateCommand": "opencode upgrade"
+     },
+     "omo": {
+       "updateHint": "~/.config/opencode/opencode.json の oh-my-opencode@バージョンを編集し、opencode を再起動",
+       "updateCommand": "opencode.json を編集"
+     },
+      "checkUpdate": "更新を確認",
+      "updateSteps": "更新方法",
+      "editConfig": "~/.config/opencode/opencode.json を編集:",
+      "changeVersion": "{{from}} を変更",
+      "thenRestart": "その後 opencode を再起動",
+      "runInTerminal": "ターミナルで実行:",
+      "copied": "コピーしました"
+    }
+  }

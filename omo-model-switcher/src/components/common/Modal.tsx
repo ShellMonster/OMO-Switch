@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from './cn';
 import { Button } from './Button';
 
@@ -36,6 +37,7 @@ export function Modal({
   size = 'md',
   showCloseButton = true,
 }: ModalProps) {
+  const { t } = useTranslation();
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -120,7 +122,7 @@ export function Modal({
                   'text-slate-400 hover:text-slate-600 hover:bg-slate-100',
                   !title && 'ml-auto'
                 )}
-                aria-label="关闭"
+                aria-label={t('modal.close')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -165,26 +167,31 @@ export function ConfirmModal({
   isOpen,
   onClose,
   onConfirm,
-  title = '确认操作',
+  title,
   message,
-  confirmText = '确认',
-  cancelText = '取消',
+  confirmText,
+  cancelText,
   confirmVariant = 'primary',
   isLoading = false,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title || t('modal.confirmAction');
+  const resolvedConfirmText = confirmText || t('modal.confirm');
+  const resolvedCancelText = cancelText || t('modal.cancel');
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={title}
+      title={resolvedTitle}
       size="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           <Button variant={confirmVariant} onClick={onConfirm} isLoading={isLoading}>
-            {confirmText}
+            {resolvedConfirmText}
           </Button>
         </>
       }

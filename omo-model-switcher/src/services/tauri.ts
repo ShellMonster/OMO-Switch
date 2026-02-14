@@ -147,6 +147,7 @@ export async function updateAgentsBatch(
 export interface PresetInfo {
   name: string;
   agentCount: number;
+  categoryCount: number;
   createdAt: string;
 }
 
@@ -166,8 +167,8 @@ export async function deletePreset(name: string): Promise<void> {
   return invoke<void>('delete_preset', { name });
 }
 
-export async function getPresetInfo(name: string): Promise<[number, string]> {
-  return invoke<[number, string]>('get_preset_info', { name });
+export async function getPresetInfo(name: string): Promise<[number, number, string]> {
+  return invoke<[number, number, string]>('get_preset_info', { name });
 }
 
 export interface BackupInfo {
@@ -191,6 +192,22 @@ export async function validateImport(path: string): Promise<OmoConfig> {
 
 export async function getImportExportHistory(): Promise<BackupInfo[]> {
   return invoke<BackupInfo[]>('get_import_export_history');
+}
+
+// ==================== 版本检查接口 ====================
+
+export interface VersionInfo {
+  name: string;
+  current_version: string | null;
+  latest_version: string | null;
+  has_update: boolean;
+  update_command: string;
+  update_hint: string;
+  installed: boolean;
+}
+
+export async function checkVersions(): Promise<VersionInfo[]> {
+  return invoke<VersionInfo[]>('check_versions');
 }
 
 // ==================== 默认导出 ====================

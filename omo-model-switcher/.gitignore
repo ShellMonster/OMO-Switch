@@ -29,6 +29,12 @@ src-tauri/target
 # Tauri generated
 src-tauri/gen
 
+# Tauri build outputs (DMG, App, etc.)
+src-tauri/target/
+
 # Environment
 .env
 .env.local
+
+# Development progress (local notes)
+开发进度.md

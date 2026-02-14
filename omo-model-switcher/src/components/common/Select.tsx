@@ -35,7 +35,7 @@ export function Select({
   value,
   onChange,
   options,
-  placeholder = '请选择...',
+  placeholder = 'Select...',
   disabled = false,
   label,
   error,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion, getName } from '@tauri-apps/api/app';
@@ -13,11 +13,14 @@ import {
   AlertCircle,
   Download,
   Loader2,
-  Copy
+  Copy,
+  Github,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '../components/common/cn';
 import { supportedLanguages } from '../i18n';
 import { checkVersions, VersionInfo } from '../services/tauri';
+import { useUpdaterStore } from '../store/updaterStore';
 
 let cachedVersions: VersionInfo[] | null = null;
 let cachedConfigPath: string | null = null;
@@ -39,30 +42,39 @@ export function SettingsPage() {
   const [versions, setVersions] = useState<VersionInfo[]>(cachedVersions ?? []);
   const [isLoadingVersions, setIsLoadingVersions] = useState(!cachedVersions);
 
-  const [appVersion, setAppVersion] = useState(cachedAppVersion ?? '');
-  const [appName, setAppName] = useState(cachedAppName ?? 'OMO Switch');
+  // 合并应用信息状态，减少 re-render
+  const [appInfo, setAppInfo] = useState({
+    version: cachedAppVersion ?? '',
+    name: cachedAppName ?? 'OMO Switch'
+  });
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (cachedAppVersion) {
-      setAppVersion(cachedAppVersion);
-    } else {
-      getVersion().then(v => {
-        cachedAppVersion = v;
-        setAppVersion(v);
-      }).catch(() => setAppVersion('0.0.0'));
-    }
-  }, []);
+  // 从 updaterStore 获取更新相关状态和方法
+  const updaterStatus = useUpdaterStore((s) => s.status);
+  const update = useUpdaterStore((s) => s.update);
+  const checkForUpdates = useUpdaterStore((s) => s.checkForUpdates);
+  const openUpdater = useUpdaterStore((s) => s.open);
+  const [isChecking, setIsChecking] = useState(false);
+  const [updateHint, setUpdateHint] = useState<{ type: 'checking' | 'latest' | 'available' | 'error'; message: string } | null>(null);
 
+  // 合并 appVersion 和 appName 的加载逻辑，减少 useEffect 数量
   useEffect(() => {
-    if (cachedAppName) {
-      setAppName(cachedAppName);
-    } else {
-      getName().then(n => {
-        cachedAppName = n;
-        setAppName(n);
-      }).catch(() => setAppName('OMO Switch'));
+    // 如果缓存都存在，直接使用
+    if (cachedAppVersion && cachedAppName) {
+      return;
     }
+    
+    // 并行获取应用信息，减少等待时间
+    Promise.all([
+      cachedAppVersion ? Promise.resolve(cachedAppVersion) : getVersion(),
+      cachedAppName ? Promise.resolve(cachedAppName) : getName()
+    ]).then(([version, name]) => {
+      cachedAppVersion = version;
+      cachedAppName = name;
+      setAppInfo({ version, name });
+    }).catch(() => {
+      setAppInfo({ version: '0.0.0', name: 'OMO Switch' });
+    });
   }, []);
 
   useEffect(() => {
@@ -78,8 +90,10 @@ export function SettingsPage() {
     }
   }, [t]);
 
+  // 延迟加载版本检测，避免阻塞首次渲染
   useEffect(() => {
-    loadVersions();
+    const timer = setTimeout(() => loadVersions(), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const loadVersions = async (forceRefresh = false) => {
@@ -117,6 +131,86 @@ export function SettingsPage() {
     await i18n.changeLanguage(langCode);
     // i18n.ts 中已经监听了 languageChanged 事件并保存到 localStorage
   };
+
+  // 从环境变量获取 GitHub 仓库地址
+  const repoUrl = import.meta.env.VITE_GITHUB_REPO_URL || '';
+
+  /**
+   * 打开 GitHub 仓库页面
+   */
+  const handleOpenRepo = async () => {
+    if (!repoUrl) return;
+    try {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(repoUrl);
+    } catch (err) {
+      console.error('Open repo failed:', err);
+      window.open(repoUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  /**
+   * 处理检查更新
+   */
+  const handleCheckUpdates = async () => {
+    setIsChecking(true);
+    setUpdateHint({ type: 'checking', message: t('settings.update.checking') });
+
+    try {
+      await checkForUpdates({ silent: true, openIfAvailable: false });
+
+      const state = useUpdaterStore.getState();
+      if (state.status === 'available' && state.update) {
+        setUpdateHint({
+          type: 'available',
+          message: t('settings.update.available', { version: state.update.version })
+        });
+      } else if (state.status === 'error') {
+        setUpdateHint({
+          type: 'error',
+          message: state.error || t('settings.update.failed')
+        });
+      } else {
+        setUpdateHint({
+          type: 'latest',
+          message: t('settings.update.latest')
+        });
+      }
+    } catch {
+      setUpdateHint({
+        type: 'error',
+        message: t('settings.update.failed')
+      });
+    } finally {
+      setIsChecking(false);
+      // 3秒后清除提示
+      setTimeout(() => setUpdateHint(null), 3000);
+    }
+  };
+
+  /**
+   * 打开更新弹窗
+   */
+  const handleOpenUpdater = () => {
+    openUpdater();
+  };
+
+  // 使用 useMemo 缓存样式计算，避免每次渲染重新计算
+  const updateHintStyle = useMemo(() => {
+    if (!updateHint) return '';
+    switch (updateHint.type) {
+      case 'checking':
+        return 'text-blue-600';
+      case 'latest':
+        return 'text-emerald-600';
+      case 'available':
+        return 'text-amber-600';
+      case 'error':
+        return 'text-red-600';
+      default:
+        return '';
+    }
+  }, [updateHint]);
 
   // 获取当前语言
   const currentLanguage = i18n.language;
@@ -294,11 +388,11 @@ export function SettingsPage() {
               </div>
               <div>
                 <p className="font-medium text-slate-800">{t('settings.about.appName')}</p>
-                <p className="text-sm text-slate-500">{appName}</p>
+                <p className="text-sm text-slate-500">{appInfo.name}</p>
               </div>
             </div>
             <span className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm font-medium text-slate-600">
-              {t('settings.about.version')}: {appVersion}
+              {t('settings.about.version')}: {appInfo.version}
             </span>
           </div>
 
@@ -334,6 +428,106 @@ export function SettingsPage() {
               </code>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 软件更新卡片 */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <RefreshCw className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800">{t('settings.update.title')}</h3>
+              <p className="text-sm text-slate-500">{t('settings.update.description')}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* 应用信息区域 */}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+              <Package className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-900">{appInfo.name}</span>
+                <span className="text-sm font-mono text-slate-500">v{appInfo.version}</span>
+              </div>
+              {repoUrl && (
+                <button
+                  type="button"
+                  onClick={handleOpenRepo}
+                  className="mt-1 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 hover:underline underline-offset-2"
+                >
+                  <Github className="w-4 h-4" />
+                  <span className="truncate">{repoUrl}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 检查更新按钮 */}
+          <button
+            type="button"
+            onClick={handleCheckUpdates}
+            disabled={isChecking}
+            className={cn(
+              'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl',
+              'bg-indigo-50 text-indigo-600 font-medium',
+              'hover:bg-indigo-100 transition-colors',
+              'disabled:opacity-60 disabled:cursor-not-allowed'
+            )}
+          >
+            {isChecking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            {isChecking ? t('settings.update.checkingShort') : t('settings.update.check')}
+          </button>
+
+          {/* 更新状态提示 */}
+          {updateHint && (
+            <div className={`text-sm font-medium flex items-center gap-2 ${updateHintStyle}`}>
+              {updateHint.type === 'checking' && <Loader2 className="w-4 h-4 animate-spin" />}
+              {updateHint.type === 'latest' && <CheckCircle2 className="w-4 h-4" />}
+              {updateHint.type === 'available' && <AlertCircle className="w-4 h-4" />}
+              {updateHint.type === 'error' && <AlertCircle className="w-4 h-4" />}
+              <span>{updateHint.message}</span>
+              {updateHint.type === 'available' && (
+                <button
+                  type="button"
+                  onClick={handleOpenUpdater}
+                  className="underline underline-offset-2 text-amber-700 hover:text-amber-800"
+                >
+                  {t('settings.update.view')}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 显示当前 store 中的可用更新状态 */}
+          {!updateHint && updaterStatus === 'available' && update && (
+            <div className="text-sm font-medium flex items-center gap-2 text-amber-600">
+              <AlertCircle className="w-4 h-4" />
+              <span>{t('settings.update.available', { version: update.version })}</span>
+              <button
+                type="button"
+                onClick={handleOpenUpdater}
+                className="underline underline-offset-2 text-amber-700 hover:text-amber-800"
+              >
+                {t('settings.update.view')}
+              </button>
+            </div>
+          )}
+
+          {/* 自动更新说明 */}
+          <p className="text-sm text-slate-500 leading-relaxed">
+            {t('settings.update.autoNote')}
+          </p>
         </div>
       </div>
     </div>

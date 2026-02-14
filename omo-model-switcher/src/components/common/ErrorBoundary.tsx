@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from './Button';
+import i18n from '../../i18n';
 
 interface Props {
   children: ReactNode;
@@ -56,6 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const t = (key: string) => i18n.t(key);
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-6">
           <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
@@ -65,24 +67,24 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
               <div className="flex-1">
                 <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                  应用程序遇到错误
+                  {t('errorBoundary.title')}
                 </h1>
                 <p className="text-slate-600">
-                  很抱歉，应用程序遇到了一个意外错误。您可以尝试刷新页面或联系技术支持。
+                  {t('errorBoundary.description')}
                 </p>
               </div>
             </div>
 
             {this.state.error && (
               <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
-                <h2 className="text-sm font-semibold text-slate-700 mb-2">错误详情：</h2>
+                <h2 className="text-sm font-semibold text-slate-700 mb-2">{t('errorBoundary.details')}</h2>
                 <p className="text-sm text-red-600 font-mono break-all">
                   {this.state.error.toString()}
                 </p>
                 {this.state.errorInfo && (
                   <details className="mt-3">
                     <summary className="text-sm text-slate-600 cursor-pointer hover:text-slate-800">
-                      查看堆栈跟踪
+                      {t('errorBoundary.viewStack')}
                     </summary>
                     <pre className="mt-2 text-xs text-slate-600 overflow-auto max-h-64 bg-white p-3 rounded border border-slate-200">
                       {this.state.errorInfo.componentStack}
@@ -99,20 +101,20 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="flex-1"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                重新加载
+                {t('errorBoundary.reload')}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => window.location.reload()}
                 className="flex-1"
               >
-                刷新页面
+                {t('errorBoundary.refreshPage')}
               </Button>
             </div>
 
             <div className="mt-6 pt-6 border-t border-slate-200">
               <p className="text-xs text-slate-500 text-center">
-                如果问题持续存在，请尝试清除浏览器缓存或联系技术支持
+                {t('errorBoundary.persistHint')}
               </p>
             </div>
           </div>

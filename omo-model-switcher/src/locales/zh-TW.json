@@ -1,0 +1,442 @@
+{
+  "nav": {
+    "agent": "Agent 切換",
+    "config": "配置總覽",
+    "preset": "預設管理",
+    "models": "模型庫",
+    "importExport": "匯入匯出",
+    "settings": "設定"
+  },
+  "layout": {
+    "title": "首頁"
+  },
+  "agentPage": {
+    "title": "Agent 模型切換",
+    "description": "管理每個 Agent 使用的 AI 模型和強度等級",
+    "agentsSection": "agents",
+    "categoriesSection": "categories",
+    "agentsCount": "共 {{count}} 個 Agent",
+    "categoriesCount": "共 {{count}} 個分類"
+  },
+  "configPage": {
+    "title": "配置狀態總覽",
+    "description": "查看和管理您的 OMO 配置檔案狀態"
+  },
+  "presetPage": {
+    "title": "預設管理",
+    "description": "建立和管理您的模型預設配置"
+  },
+  "modelsPage": {
+    "title": "模型庫",
+    "description": "瀏覽和管理您的 AI 模型，查看提供商、定價和能力資訊",
+    "currentSelection": "目前選擇"
+  },
+  "importExportPage": {
+    "title": "匯入匯出",
+    "description": "備份和還原您的配置與預設"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "description": "管理應用程式偏好設定和查看系統資訊"
+  },
+  "agentList": {
+    "loading": "載入 Agent 配置...",
+    "loadFailed": "無法載入配置",
+    "loadConfigFailed": "載入配置失敗",
+    "retry": "重試",
+    "total": "共 {{count}} 個 Agent",
+    "refresh": "重新整理"
+  },
+  "agentCard": {
+    "edit": "編輯",
+    "editConfig": "編輯配置"
+  },
+  "agentNames": {
+    "sisyphus": "西西弗斯",
+    "sisyphus-junior": "小西西弗斯",
+    "hephaestus": "赫菲斯托斯",
+    "oracle": "神諭者",
+    "librarian": "圖書管理員",
+    "explore": "探索者",
+    "multimodal-looker": "多模態觀察者",
+    "prometheus": "普羅米修斯",
+    "metis": "墨提斯",
+    "momus": "摩墨斯",
+    "atlas": "阿特拉斯",
+    "build": "建構者",
+    "plan": "規劃者",
+    "OpenCode-Builder": "OpenCode 建構器",
+    "general": "通用代理",
+    "frontend-ui-ux-engineer": "前端工程師",
+    "document-writer": "文件撰寫者",
+    "custom": "自訂代理"
+  },
+  "agentDescriptions": {
+    "sisyphus": "主執行者，負責執行工作計畫中的任務，持續推進直到完成",
+    "sisyphus-junior": "輕量執行者，處理被委派的子任務，適合中小型工作",
+    "hephaestus": "程式碼工匠，專注於程式碼實現、建構和工程細節",
+    "oracle": "技術顧問，提供架構建議和深度技術分析",
+    "librarian": "知識檢索員，搜尋文件、API 參考和最佳實踐",
+    "explore": "程式碼探索者，分析程式碼庫結構、查找引用和模式",
+    "multimodal-looker": "多模態觀察者，分析圖片、PDF 等視覺內容",
+    "prometheus": "戰略規劃師，負責需求分析和工作計畫制定",
+    "metis": "計畫審查員，檢查計畫的完整性和潛在遺漏",
+    "momus": "品質審計員，嚴格驗證計畫的每個細節",
+    "atlas": "任務調度器，協調多任務並行執行和依賴管理",
+    "build": "建構代理，處理編譯、打包和部署相關任務",
+    "plan": "計畫代理，輔助任務規劃和分解",
+    "OpenCode-Builder": "OpenCode 建構器，核心程式碼生成和修改代理",
+    "general": "通用代理，處理未分類的一般性任務",
+    "frontend-ui-ux-engineer": "前端工程師，專注 UI/UX 設計和前端實現",
+    "document-writer": "文件撰寫者，負責技術文件和說明編寫",
+    "custom": "自訂代理"
+  },
+  "categoryDescriptions": {
+    "visual-engineering": "視覺工程類任務：前端、UI/UX、設計、樣式、動畫",
+    "ultrabrain": "高難度邏輯任務：複雜演算法、架構設計、深度推理",
+    "deep": "深度研究任務：需要徹底理解後再行動的複雜問題",
+    "artistry": "創意類任務：非常規方案、創新設計、突破性思路",
+    "quick": "快速任務：單檔案修改、拼寫修復、簡單調整",
+    "unspecified-low": "低複雜度未分類任務",
+    "unspecified-high": "高複雜度未分類任務",
+    "writing": "寫作類任務：文件、技術寫作、說明文件",
+    "visual": "視覺類任務：圖表、視覺化、介面相關",
+    "business-logic": "業務邏輯類任務：核心功能、資料處理、API",
+    "data-analysis": "資料分析類任務：統計、報表、資料處理",
+    "custom": "自訂分類"
+  },
+  "categoryNames": {
+    "visual-engineering": "視覺工程",
+    "ultrabrain": "超級大腦",
+    "deep": "深度研究",
+    "artistry": "創意工坊",
+    "quick": "快速任務",
+    "unspecified-low": "低複雜度",
+    "unspecified-high": "高複雜度",
+    "writing": "寫作",
+    "visual": "視覺",
+    "business-logic": "業務邏輯",
+    "data-analysis": "數據分析",
+    "custom": "自訂分類"
+  },
+  "modelSelector": {
+    "title": "編輯 {{name}}",
+    "intensityLevel": "強度等級",
+    "selectModel": "選擇模型",
+    "searchPlaceholder": "搜尋模型名稱或提供商...",
+    "noModels": "未找到匹配的模型",
+    "currentSelection": "目前選擇",
+    "model": "模型:",
+    "intensity": "強度:",
+    "cancel": "取消",
+    "save": "儲存",
+    "updateSuccess": "已更新 {{name}} 的模型配置",
+    "saveFailed": "儲存失敗"
+  },
+  "variantOptions": {
+    "max": "max - 最高強度",
+    "high": "high - 高強度",
+    "medium": "medium - 中等強度",
+    "low": "low - 低強度",
+    "none": "none - 無強度"
+  },
+  "configDashboard": {
+    "title": "配置狀態總覽",
+    "description": "查看和管理您的 OMO 配置檔案狀態",
+    "configPath": "配置檔案路徑",
+    "configPathNotFound": "未找到配置檔案",
+    "lastModified": "最後修改時間",
+    "fileSize": "檔案大小",
+    "unknown": "未知",
+    "totalAgents": "Agent 總數",
+    "configuredAgents": "已配置的 agents",
+    "configuredModels": "已配置模型",
+    "uniqueModels": "去重後的模型數",
+    "connectedProviders": "連線提供商",
+    "availableSources": "可用的模型源",
+    "configFileInfo": "配置檔案資訊",
+    "agentModelAssignment": "Agent 模型分配",
+    "totalConfigs": "共 {{count}} 個配置",
+    "tableName": "名稱",
+    "tableType": "類型",
+    "tableModel": "分配模型",
+    "tableVariant": "變體",
+    "noAgentConfig": "暫無 Agent 配置",
+    "connectedProvidersList": "已連線提供商",
+    "noProviders": "暫無連線的提供商",
+    "connected": "已連線",
+    "configStatus": "配置狀態",
+    "valid": "有效",
+    "invalid": "無效",
+    "configFormatCorrect": "配置格式正確",
+    "waitingValidation": "等待驗證",
+    "configValidationFailed": "配置驗證失敗",
+    "cannotReadConfig": "無法讀取配置",
+    "loading": "正在載入配置資料...",
+    "loadFailed": "載入失敗",
+    "loadConfigFailed": "載入配置資料失敗"
+  },
+  "presetManager": {
+    "title": "預設管理",
+    "myPresets": "我的預設",
+    "presetCount": "{{count}} 個預設配置",
+    "categoryCount": "{{count}} 個分類",
+    "saveCurrentConfig": "儲存目前配置",
+    "savePreset": "儲存預設",
+    "presetName": "預設名稱",
+    "presetNamePlaceholder": "例如：開發環境配置",
+    "saveDescription": "將儲存目前所有 Agent 的模型配置",
+    "presetNameEmpty": "預設名稱不能為空",
+    "load": "載入",
+    "delete": "刪除",
+    "confirmDelete": "刪除預設",
+    "deleteMessage": "確定要刪除預設 \"{{name}}\" 嗎？此操作無法撤銷。",
+    "deleteSuccess": "預設已刪除",
+    "loadSuccess": "預設已載入",
+    "saveSuccess": "預設已儲存",
+    "saveFailed": "儲存預設失敗",
+    "loadFailed": "載入預設失敗",
+    "loadListFailed": "載入預設列表失敗",
+    "deleteFailed": "刪除預設失敗",
+    "noPresets": "還沒有儲存任何預設",
+    "createFirst": "點擊上方按鈕儲存目前配置",
+    "cancel": "取消",
+    "save": "儲存",
+    "loading": "載入中..."
+  },
+  "modelBrowser": {
+    "title": "模型庫",
+    "searchPlaceholder": "搜尋模型名稱、描述...",
+    "allProviders": "全部提供商",
+    "availableModels": "可用模型",
+    "providers": "提供商",
+    "connectedCount": "已連線",
+    "free": "免費",
+    "applyModel": "套用此模型",
+    "noModels": "未找到匹配的模型",
+    "noModelsHint": "嘗試調整搜尋詞或篩選器",
+    "loading": "正在載入模型資料...",
+    "loadFailed": "載入失敗",
+    "loadFailedHint": "請確保已安裝並執行 Oh My OpenCode 主應用",
+    "loadModelsFailed": "載入模型資料失敗",
+    "description": "描述",
+    "pricing": "定價",
+    "input": "輸入:",
+    "output": "輸出:"
+  },
+  "importExport": {
+    "title": "匯入匯出",
+    "export": "匯出配置",
+    "exportDescription": "匯出目前配置為 JSON",
+    "import": "匯入配置",
+    "importDescription": "從 JSON 檔案匯入配置",
+    "exportSuccess": "配置已成功匯出到: {{path}}",
+    "importSuccess": "配置已成功匯入！目前配置已自動備份。",
+    "importFailed": "匯入失敗",
+    "exportFailed": "匯出失敗",
+    "preview": "預覽匯入配置",
+    "previewHint": "即將匯入以下配置。目前配置將自動備份。",
+    "agentsConfig": "Agents 配置",
+    "agentCount": "{{count}} 個 agent",
+    "categoriesConfig": "Categories 配置",
+    "categoryCount": "{{count}} 個 category",
+    "confirm": "確認匯入",
+    "importing": "匯入中...",
+    "cancel": "取消",
+    "backupHistory": "備份歷史",
+    "backupDescription": "查看自動備份記錄",
+    "noHistory": "暫無備份記錄",
+    "selectFileImport": "選擇檔案匯入",
+    "processing": "處理中...",
+    "exporting": "匯出中...",
+    "exportConfig": "匯出配置",
+    "error": "錯誤",
+    "success": "成功"
+  },
+  "settings": {
+    "language": {
+      "title": "語言設定",
+      "description": "選擇您喜歡的顯示語言",
+      "selectLabel": "顯示語言",
+      "hint": "語言更改將立即生效，並在下次訪問時記住您的選擇。"
+    },
+    "about": {
+      "title": "關於應用",
+      "description": "應用資訊和系統路徑",
+      "appName": "應用名稱",
+      "version": "版本",
+      "configPath": "設定檔案路徑",
+      "cacheDirectory": "快取目錄"
+    },
+    "configPathError": "無法取得設定檔案路徑",
+    "update": {
+      "title": "軟體更新",
+      "check": "檢查更新",
+      "checking": "正在檢查更新...",
+      "checkingShort": "檢查中...",
+      "view": "檢視更新",
+      "latest": "已是最新版本",
+      "available": "發現新版本 v{{version}}",
+      "failed": "檢查失敗",
+      "failedWith": "檢查失敗：{{error}}",
+      "desktopOnly": "僅桌面端可用",
+      "autoNote": "開啟應用會自動檢查更新；如有新版本會彈窗提示，一鍵下載安裝。"
+    }
+  },
+  "versionBadge": {
+    "downloading": "下載中 {{percent}}%",
+    "installing": "正在安裝更新...",
+    "downloaded": "更新已下載，點擊安裝",
+    "available": "發現新版本 v{{version}}，點擊檢視/安裝",
+    "check": "點擊檢查更新",
+    "checking": "檢查中...",
+    "latest": "已是最新",
+    "error": "檢查失敗",
+    "availableShort": "發現更新",
+    "desktopOnly": "僅桌面端",
+    "updateProgress": "更新 {{percent}}%",
+    "installingShort": "安裝中",
+    "pendingInstall": "待安裝",
+    "version": "v{{version}}",
+    "repoMissing": "未設定 GitHub 倉庫地址"
+  },
+  "updater": {
+    "dismiss": {
+      "background": "背景下載",
+      "later": "稍後"
+    },
+    "title": {
+      "checking": "正在檢查更新...",
+      "downloading": "正在下載更新...",
+      "downloaded": "更新已下載",
+      "installing": "正在安裝更新...",
+      "installed": "更新完成",
+      "error": "更新失敗",
+      "available": "發現新版本"
+    },
+    "newVersion": "新版本",
+    "progress": "下載進度",
+    "downloadHint": "你可以關閉視窗繼續使用，下載會在背景進行。",
+    "downloadedHint": "更新包已下載，點擊「安裝並重啟」完成更新。",
+    "installingHint": "正在安裝，請勿關閉應用",
+    "errorFallback": "更新失敗，請稍後重試",
+    "errorExtra": "若你剛整合 Updater，請先在 tauri.conf.json 填入 plugins.updater.pubkey 並在 CI 設定 TAURI_SIGNING_PRIVATE_KEY。",
+    "actions": {
+      "download": "下載更新",
+      "install": "安裝並重啟",
+      "retry": "重新檢查"
+    },
+    "toast": {
+      "checkFailed": "檢查更新失敗",
+      "checkFailedManifest": "檢查更新失敗：未找到 latest.json",
+      "checkFailedPubkey": "檢查更新失敗：缺少簽名公鑰",
+      "checkFailedNetwork": "檢查更新失敗：網路異常",
+      "downloadFailed": "下載更新失敗",
+      "downloaded": "更新已下載",
+      "installFailed": "安裝更新失敗",
+      "installManual": "更新已安裝，請手動重啟應用",
+      "installed": "更新已安裝"
+    }
+  },
+  "errorBoundary": {
+    "title": "應用程式遇到錯誤",
+    "description": "很抱歉，應用程式遇到了一個意外錯誤。您可以嘗試重新整理頁面或聯繫技術支援。",
+    "errorDetails": "錯誤詳情：",
+    "viewStack": "查看堆疊追蹤",
+    "reload": "重新載入",
+    "refreshPage": "重新整理頁面",
+    "persistHint": "如果問題持續存在，請嘗試清除瀏覽器快取或聯繫技術支援"
+  },
+  "searchInput": {
+    "placeholder": "搜尋...",
+    "clear": "清空搜尋"
+  },
+  "select": {
+    "placeholder": "請選擇..."
+  },
+  "button": {
+    "ok": "確定",
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "edit": "編輯",
+    "add": "新增",
+    "remove": "移除",
+    "close": "關閉",
+    "submit": "提交",
+    "reset": "重設",
+    "loading": "載入中..."
+  },
+  "modal": {
+    "close": "關閉",
+    "confirmAction": "確認操作",
+    "confirm": "確認",
+    "cancel": "取消"
+  },
+  "toast": {
+    "success": "成功",
+    "error": "錯誤",
+    "info": "資訊",
+    "warning": "警告"
+  },
+  "errors": {
+    "loadConfigFailed": "載入配置失敗",
+    "updateFailed": "更新失敗",
+    "saveFailed": "儲存失敗",
+    "deleteFailed": "刪除失敗",
+    "importFailed": "匯入失敗",
+    "exportFailed": "匯出失敗",
+    "validationFailed": "驗證失敗",
+    "networkError": "網路錯誤",
+    "unknownError": "未知錯誤"
+  },
+  "common": {
+    "loading": "載入中...",
+    "error": "錯誤",
+    "success": "成功",
+    "warning": "警告",
+    "info": "資訊",
+    "confirm": "確認",
+    "yes": "是",
+    "no": "否",
+    "ok": "確定",
+    "cancel": "取消",
+    "search": "搜尋..."
+  },
+   "errorBoundary": {
+     "title": "應用程式遇到錯誤",
+     "description": "很抱歉，應用程式遇到了一個意外錯誤。您可以嘗試重新整理頁面或聯繫技術支援。",
+     "details": "錯誤詳情：",
+     "viewStack": "查看堆疊追蹤",
+     "reload": "重新載入",
+     "refreshPage": "重新整理頁面",
+     "persistHint": "如果問題持續存在，請嘗試清除瀏覽器快取或聯繫技術支援"
+   },
+   "versionCheck": {
+     "title": "版本資訊",
+     "description": "OpenCode 和 Oh My OpenCode 版本狀態",
+     "currentVersion": "目前版本",
+     "latestVersion": "最新版本",
+     "upToDate": "已是最新",
+     "updateAvailable": "有更新可用",
+     "notInstalled": "未安裝",
+     "checkFailed": "檢測失敗",
+     "loading": "正在檢測版本...",
+     "updateMethod": "更新方式",
+     "opencode": {
+       "updateHint": "在終端機執行 'opencode upgrade' 更新",
+       "updateCommand": "opencode upgrade"
+     },
+     "omo": {
+       "updateHint": "修改 ~/.config/opencode/opencode.json 中的 oh-my-opencode@版本號，然後重啟 opencode",
+       "updateCommand": "編輯 opencode.json"
+     },
+      "checkUpdate": "檢查更新",
+      "updateSteps": "更新方式",
+      "editConfig": "編輯 ~/.config/opencode/opencode.json:",
+      "changeVersion": "將 {{from}} 改為",
+      "thenRestart": "然後重啟 opencode",
+      "runInTerminal": "在終端運行:",
+      "copied": "已複製"
+    }
+  }

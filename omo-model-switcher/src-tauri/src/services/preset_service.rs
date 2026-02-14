@@ -3,11 +3,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use super::config_service::{read_omo_config, write_omo_config};
+use crate::i18n;
 
 /// 获取预设目录路径
 /// 返回 ~/.config/omo-model-switcher/presets/ 的完整路径
 pub fn get_presets_dir() -> Result<PathBuf, String> {
-    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量".to_string())?;
+    let home = std::env::var("HOME").map_err(|_| i18n::tr_current("home_env_var_error"))?;
 
     let presets_dir = PathBuf::from(home)
         .join(".config")
@@ -37,10 +38,10 @@ pub fn get_preset_path(name: &str) -> Result<PathBuf, String> {
 pub fn save_preset(name: &str) -> Result<(), String> {
     // 验证预设名称（不能为空，不能包含路径分隔符）
     if name.is_empty() {
-        return Err("预设名称不能为空".to_string());
+        return Err(i18n::tr_current("preset_name_empty"));
     }
     if name.contains('/') || name.contains('\\') {
-        return Err("预设名称不能包含路径分隔符".to_string());
+        return Err(i18n::tr_current("preset_name_invalid_path"));
     }
 
     // 读取当前 OMO 配置
@@ -48,17 +49,19 @@ pub fn save_preset(name: &str) -> Result<(), String> {
 
     // 确保预设目录存在
     let presets_dir = get_presets_dir()?;
-    fs::create_dir_all(&presets_dir).map_err(|e| format!("创建预设目录失败: {}", e))?;
+    fs::create_dir_all(&presets_dir)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("create_preset_dir_failed"), e))?;
 
     // 获取预设文件路径
     let preset_path = get_preset_path(name)?;
 
     // 格式化 JSON（带缩进，便于人类阅读）
-    let json_string =
-        serde_json::to_string_pretty(&config).map_err(|e| format!("序列化 JSON 失败: {}", e))?;
+    let json_string = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
 
     // 写入预设文件
-    fs::write(&preset_path, json_string).map_err(|e| format!("写入预设文件失败: {}", e))?;
+    fs::write(&preset_path, json_string)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("write_preset_file_failed"), e))?;
 
     Ok(())
 }
@@ -75,7 +78,7 @@ pub fn save_preset(name: &str) -> Result<(), String> {
 pub fn load_preset(name: &str) -> Result<(), String> {
     // 验证预设名称
     if name.is_empty() {
-        return Err("预设名称不能为空".to_string());
+        return Err(i18n::tr_current("preset_name_empty"));
     }
 
     // 获取预设文件路径
@@ -83,16 +86,16 @@ pub fn load_preset(name: &str) -> Result<(), String> {
 
     // 检查预设文件是否存在
     if !preset_path.exists() {
-        return Err(format!("预设不存在: {}", name));
+        return Err(i18n::tr_current("preset_not_found"));
     }
 
     // 读取预设文件内容
-    let content =
-        fs::read_to_string(&preset_path).map_err(|e| format!("读取预设文件失败: {}", e))?;
+    let content = fs::read_to_string(&preset_path)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("read_preset_file_failed"), e))?;
 
     // 解析 JSON
-    let preset_config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("解析预设 JSON 失败: {}", e))?;
+    let preset_config: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_preset_file_failed"), e))?;
 
     // 写入 OMO 配置（write_omo_config 会自动创建备份）
     write_omo_config(&preset_config)?;
@@ -149,7 +152,7 @@ pub fn list_presets() -> Result<Vec<String>, String> {
 pub fn delete_preset(name: &str) -> Result<(), String> {
     // 验证预设名称
     if name.is_empty() {
-        return Err("预设名称不能为空".to_string());
+        return Err(i18n::tr_current("preset_name_empty"));
     }
 
     // 获取预设文件路径
@@ -157,31 +160,32 @@ pub fn delete_preset(name: &str) -> Result<(), String> {
 
     // 检查预设文件是否存在
     if !preset_path.exists() {
-        return Err(format!("预设不存在: {}", name));
+        return Err(i18n::tr_current("preset_not_found"));
     }
 
     // 删除预设文件
-    fs::remove_file(&preset_path).map_err(|e| format!("删除预设文件失败: {}", e))?;
+    fs::remove_file(&preset_path)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("delete_preset_failed"), e))?;
 
     Ok(())
 }
 
 /// 获取预设详情
-/// 读取预设文件并返回其中的 agent 数量和创建时间
+/// 读取预设文件并返回其中的 agent 数量、category 数量和创建时间
 ///
 /// 参数：
 /// - name: 预设名称（不含 .json 后缀）
 ///
 /// 返回：
-/// - Ok((agent_count, created_at)) 预设详情
+/// - Ok((agent_count, category_count, created_at)) 预设详情
 /// - Err(String) 读取失败，包含错误信息
-pub fn get_preset_info(name: &str) -> Result<(usize, String), String> {
+pub fn get_preset_info(name: &str) -> Result<(usize, usize, String), String> {
     // 获取预设文件路径
     let preset_path = get_preset_path(name)?;
 
     // 检查预设文件是否存在
     if !preset_path.exists() {
-        return Err(format!("预设不存在: {}", name));
+        return Err(i18n::tr_current("preset_not_found"));
     }
 
     // 读取预设文件内容
@@ -199,6 +203,13 @@ pub fn get_preset_info(name: &str) -> Result<(usize, String), String> {
         .map(|obj| obj.len())
         .unwrap_or(0);
 
+    // 获取 category 数量
+    let category_count = preset_config
+        .get("categories")
+        .and_then(|cats| cats.as_object())
+        .map(|obj| obj.len())
+        .unwrap_or(0);
+
     // 获取文件创建时间
     let metadata = fs::metadata(&preset_path).map_err(|e| format!("读取文件元数据失败: {}", e))?;
     let created_at = metadata
@@ -210,7 +221,7 @@ pub fn get_preset_info(name: &str) -> Result<(usize, String), String> {
         })
         .unwrap_or_else(|_| "未知".to_string());
 
-    Ok((agent_count, created_at))
+    Ok((agent_count, category_count, created_at))
 }
 
 #[cfg(test)]

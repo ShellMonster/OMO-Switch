@@ -31,7 +31,7 @@ interface SearchInputProps {
 export function SearchInput({
   value,
   onChange,
-  placeholder = '搜索...',
+  placeholder = 'Search...',
   disabled = false,
   className,
   onFocus,
@@ -121,7 +121,7 @@ export function SearchInput({
             'transition-all duration-200',
             'focus:outline-none focus:ring-2 focus:ring-indigo-500/20'
           )}
-          aria-label="清空搜索"
+          aria-label="Clear search"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

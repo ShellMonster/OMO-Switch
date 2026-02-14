@@ -1,114 +1,66 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { AgentCard } from './AgentCard';
 import { ModelSelector } from './ModelSelector';
 import { Button } from '../common/Button';
-import { toast } from '../common/Toast';
 import { cn } from '../common/cn';
 import { useConfigStore } from '../../store/configStore';
 import {
-  getOmoConfig,
   updateAgentModel,
   type AgentConfig,
 } from '../../services/tauri';
 
-interface ModelOption {
-  id: string;
-  name: string;
-  provider: string;
+/**
+ * AgentList 组件的 Props 接口
+ * 
+ * 支持两种数据源：
+ * - 'agents': 代理列表
+ * - 'categories': 分类列表
+ */
+interface AgentListProps {
+  // 数据源类型
+  dataSource: 'agents' | 'categories';
+  // 代理或分类数据
+  data: Record<string, AgentConfig>;
+  // 提供商模型映射
+  providerModels: Record<string, string[]>;
+  // 已连接的提供商列表
+  connectedProviders: string[];
+  // 是否加载中
+  isLoading?: boolean;
+  // 错误信息
+  error?: string | null;
+  // 刷新回调
+  onRefresh?: () => void;
 }
 
-/**
- * Agent 列表组件
- * 
- * 功能：
- * - 从配置动态加载所有 agent
- * - 渲染 AgentCard 网格
- * - 管理 ModelSelector 弹窗状态
- * - 处理配置更新
- */
-export function AgentList() {
-  const { omoConfig, setOmoConfig, updateAgentConfig, setOmoConfigLoading, setOmoConfigError } =
-    useConfigStore();
+export function AgentList({
+  dataSource,
+  data,
+  providerModels,
+  connectedProviders,
+  isLoading = false,
+  error = null,
+  onRefresh,
+}: AgentListProps) {
+  const { t } = useTranslation();
+  const { updateAgentConfig, updateCategoryConfig } = useConfigStore();
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [availableModels, setAvailableModels] = useState<ModelOption[]>([]);
 
-  // 加载 OMO 配置
-  const loadConfig = useCallback(async () => {
-    setIsLoading(true);
-    setOmoConfigLoading(true);
-    try {
-      const config = await getOmoConfig();
-      setOmoConfig(config);
-      setOmoConfigError(null);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : '加载配置失败';
-      setOmoConfigError(msg);
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-      setOmoConfigLoading(false);
-    }
-  }, [setOmoConfig, setOmoConfigLoading, setOmoConfigError]);
-
-  // 初始加载
-  useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
-
-  // 生成可用模型列表（模拟数据，实际应从模型服务获取）
-  useEffect(() => {
-    if (omoConfig) {
-      const models: ModelOption[] = [];
-      const seen = new Set<string>();
-
-      // 从当前配置中提取所有使用的模型
-      Object.entries(omoConfig.agents).forEach(([_, config]) => {
-        if (!seen.has(config.model)) {
-          seen.add(config.model);
-          const parts = config.model.split('/');
-          models.push({
-            id: config.model,
-            name: parts[parts.length - 1],
-            provider: parts[0] || 'unknown',
-          });
-        }
-      });
-
-      // 从 categories 中提取
-      Object.entries(omoConfig.categories).forEach(([_, config]) => {
-        if (!seen.has(config.model)) {
-          seen.add(config.model);
-          const parts = config.model.split('/');
-          models.push({
-            id: config.model,
-            name: parts[parts.length - 1],
-            provider: parts[0] || 'unknown',
-          });
-        }
-      });
-
-      setAvailableModels(models);
-    }
-  }, [omoConfig]);
-
-  // 打开编辑弹窗
   const handleEdit = useCallback((agentName: string) => {
     setSelectedAgent(agentName);
     setIsSelectorOpen(true);
   }, []);
 
-  // 关闭编辑弹窗
   const handleClose = useCallback(() => {
     setIsSelectorOpen(false);
     setSelectedAgent(null);
   }, []);
 
-  // 保存配置
   const handleSave = useCallback(
     async (model: string, variant: AgentConfig['variant']) => {
       if (!selectedAgent) return;
@@ -116,62 +68,71 @@ export function AgentList() {
       setIsSaving(true);
       try {
         await updateAgentModel(selectedAgent, model, variant);
-        // 更新本地状态
-        updateAgentConfig(selectedAgent, { model, variant });
+        // 根据数据源类型调用不同的 store 方法
+        if (dataSource === 'agents') {
+          updateAgentConfig(selectedAgent, { model, variant });
+        } else {
+          updateCategoryConfig(selectedAgent, { model, variant });
+        }
       } finally {
         setIsSaving(false);
       }
     },
-    [selectedAgent, updateAgentConfig]
+    [selectedAgent, dataSource, updateAgentConfig, updateCategoryConfig]
   );
 
-  // 获取选中 agent 的当前配置
-  const selectedAgentConfig = selectedAgent
-    ? omoConfig?.agents[selectedAgent]
-    : undefined;
+  const selectedAgentConfig = selectedAgent ? data[selectedAgent] : undefined;
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-        <span className="ml-3 text-slate-600">加载 Agent 配置...</span>
+        <span className="ml-3 text-slate-600">{t('agentList.loading')}</span>
       </div>
     );
   }
 
-  if (!omoConfig) {
+  if (error) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-500 mb-4">无法加载配置</p>
-        <Button variant="primary" onClick={loadConfig}>
+        <p className="text-slate-500 mb-4">{error}</p>
+        <Button variant="primary" onClick={onRefresh} disabled={isLoading}>
           <RefreshCw className="w-4 h-4 mr-2" />
-          重试
+          {t('agentList.retry')}
         </Button>
       </div>
     );
   }
 
-  const agents = Object.entries(omoConfig.agents);
+  if (Object.keys(data).length === 0) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-slate-500">{t('agentList.empty')}</p>
+      </div>
+    );
+  }
+
+  const items = Object.entries(data);
 
   return (
     <>
       <div className="flex items-center justify-between mb-6">
         <div className="text-sm text-slate-500">
-          共 {agents.length} 个 Agent
+          {t('agentList.total', { count: items.length })}
         </div>
-        <Button variant="ghost" size="sm" onClick={loadConfig} disabled={isLoading}>
+        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
           <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-          刷新
+          {t('agentList.refresh')}
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {agents.map(([agentName, config], index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {items.map(([agentName, config]) => (
           <AgentCard
             key={agentName}
             agentName={agentName}
-            index={index}
             config={config}
+            isCategory={dataSource === 'categories'}
             onEdit={() => handleEdit(agentName)}
           />
         ))}
@@ -183,7 +144,8 @@ export function AgentList() {
           onClose={handleClose}
           agentName={selectedAgent}
           currentConfig={selectedAgentConfig}
-          availableModels={availableModels}
+          providerModels={providerModels}
+          connectedProviders={connectedProviders}
           onSave={handleSave}
           isSaving={isSaving}
         />

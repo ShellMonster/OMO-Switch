@@ -17,6 +17,8 @@ chrono = "0.4"
 tauri-plugin-dialog = "2.6.0"
 lazy_static = "1.4"
 tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 [features]
 default = ["custom-protocol"]

@@ -1,3 +1,4 @@
+use crate::i18n;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
@@ -5,7 +6,7 @@ use std::path::PathBuf;
 /// 获取 OMO 配置文件路径
 /// 返回 ~/.config/opencode/oh-my-opencode.json 的完整路径
 pub fn get_config_path() -> Result<PathBuf, String> {
-    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量".to_string())?;
+    let home = std::env::var("HOME").map_err(|_| i18n::tr_current("home_env_var_error"))?;
 
     let config_path = PathBuf::from(home)
         .join(".config")
@@ -22,16 +23,16 @@ pub fn read_omo_config() -> Result<Value, String> {
 
     // 检查文件是否存在
     if !config_path.exists() {
-        return Err(format!("配置文件不存在: {}", config_path.display()));
+        return Err(i18n::tr_current("config_file_not_found"));
     }
 
     // 读取文件内容
-    let content =
-        fs::read_to_string(&config_path).map_err(|e| format!("读取配置文件失败: {}", e))?;
+    let content = fs::read_to_string(&config_path)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("read_config_failed"), e))?;
 
     // 解析 JSON（使用 Value 保留所有未知字段）
-    let config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
+    let config: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_json_failed"), e))?;
 
     Ok(config)
 }
@@ -45,20 +46,23 @@ pub fn write_omo_config(config: &Value) -> Result<(), String> {
     // 如果原文件存在，先创建备份
     if config_path.exists() {
         let backup_path = config_path.with_extension("json.bak");
-        fs::copy(&config_path, &backup_path).map_err(|e| format!("创建备份文件失败: {}", e))?;
+        fs::copy(&config_path, &backup_path)
+            .map_err(|e| format!("{}: {}", i18n::tr_current("create_backup_failed"), e))?;
     }
 
     // 确保父目录存在
     if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("创建配置目录失败: {}", e))?;
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("{}: {}", i18n::tr_current("create_config_dir_failed"), e))?;
     }
 
     // 格式化 JSON（带缩进，便于人类阅读）
-    let json_string =
-        serde_json::to_string_pretty(config).map_err(|e| format!("序列化 JSON 失败: {}", e))?;
+    let json_string = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
 
     // 写入文件
-    fs::write(&config_path, json_string).map_err(|e| format!("写入配置文件失败: {}", e))?;
+    fs::write(&config_path, json_string)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("write_config_failed"), e))?;
 
     Ok(())
 }
@@ -68,18 +72,18 @@ pub fn write_omo_config(config: &Value) -> Result<(), String> {
 pub fn validate_config(config: &Value) -> Result<(), String> {
     // 检查是否为对象
     if !config.is_object() {
-        return Err("配置文件根节点必须是对象".to_string());
+        return Err(i18n::tr_current("config_root_must_be_object"));
     }
 
     let obj = config.as_object().unwrap();
 
     // 检查必需字段
     if !obj.contains_key("agents") {
-        return Err("配置文件缺少 'agents' 字段".to_string());
+        return Err(i18n::tr_current("config_missing_agents"));
     }
 
     if !obj.contains_key("categories") {
-        return Err("配置文件缺少 'categories' 字段".to_string());
+        return Err(i18n::tr_current("config_missing_categories"));
     }
 
     // 检查 agents 是否为对象
@@ -160,7 +164,8 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("对象"));
+        let err_msg = result.unwrap_err();
+        assert!(err_msg.contains("对象") || err_msg.contains("object"));
     }
 
     /// 测试往返保留所有字段

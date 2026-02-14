@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Download, Upload, FileJson, Clock, HardDrive, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
@@ -13,6 +14,7 @@ import {
 import { open, save } from '@tauri-apps/plugin-dialog';
 
 export function ImportExportPanel() {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<BackupInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function ImportExportPanel() {
       setSuccess(null);
 
       const filePath = await save({
-        defaultPath: 'omo-config-export.json',
+        defaultPath: 'oh-my-opencode.json',
         filters: [{ name: 'JSON', extensions: ['json'] }],
       });
 
@@ -52,7 +54,7 @@ export function ImportExportPanel() {
       }
 
       await exportOmoConfig(filePath);
-      setSuccess(`配置已成功导出到: ${filePath}`);
+      setSuccess(t('importExport.exportSuccess', { path: filePath }));
       await loadHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -98,7 +100,7 @@ export function ImportExportPanel() {
       setPreviewModal(false);
 
       await importOmoConfig(importPath);
-      setSuccess('配置已成功导入！当前配置已自动备份。');
+      setSuccess(t('importExport.importSuccess'));
       await loadHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -121,7 +123,7 @@ export function ImportExportPanel() {
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-800">错误</p>
+            <p className="text-sm font-medium text-red-800">{t('common.error')}</p>
             <p className="text-sm text-red-600 mt-1">{error}</p>
           </div>
         </div>
@@ -131,7 +133,7 @@ export function ImportExportPanel() {
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
           <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-emerald-800">成功</p>
+            <p className="text-sm font-medium text-emerald-800">{t('common.success')}</p>
             <p className="text-sm text-emerald-600 mt-1">{success}</p>
           </div>
         </div>
@@ -144,8 +146,8 @@ export function ImportExportPanel() {
               <Upload className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">导入配置</h3>
-              <p className="text-sm text-slate-500">从 JSON 文件导入配置</p>
+              <h3 className="font-semibold text-slate-800">{t('importExport.import')}</h3>
+              <p className="text-sm text-slate-500">{t('importExport.importDescription')}</p>
             </div>
           </div>
 
@@ -156,7 +158,7 @@ export function ImportExportPanel() {
             disabled={loading}
           >
             <Upload className="w-4 h-4 mr-2" />
-            {loading ? '处理中...' : '选择文件导入'}
+            {loading ? t('importExport.processing') : t('importExport.selectFileImport')}
           </Button>
         </div>
 
@@ -166,8 +168,8 @@ export function ImportExportPanel() {
               <Download className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">导出配置</h3>
-              <p className="text-sm text-slate-500">导出当前配置为 JSON</p>
+              <h3 className="font-semibold text-slate-800">{t('importExport.export')}</h3>
+              <p className="text-sm text-slate-500">{t('importExport.exportDescription')}</p>
             </div>
           </div>
 
@@ -178,7 +180,7 @@ export function ImportExportPanel() {
             disabled={loading}
           >
             <Download className="w-4 h-4 mr-2" />
-            {loading ? '导出中...' : '导出配置'}
+            {loading ? t('importExport.exporting') : t('importExport.export')}
           </Button>
         </div>
       </div>
@@ -189,15 +191,15 @@ export function ImportExportPanel() {
             <Clock className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-800">备份历史</h3>
-            <p className="text-sm text-slate-500">查看自动备份记录</p>
+              <h3 className="font-semibold text-slate-800">{t('importExport.backupHistory')}</h3>
+              <p className="text-sm text-slate-500">{t('importExport.viewBackups')}</p>
           </div>
         </div>
 
         {history.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <FileJson className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">暂无备份记录</p>
+            <p className="text-sm">{t('importExport.noHistory')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -235,28 +237,28 @@ export function ImportExportPanel() {
           setPreviewConfig(null);
           setImportPath(null);
         }}
-        title="预览导入配置"
+        title={t('importExport.preview')}
       >
         <div className="space-y-4">
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              即将导入以下配置。当前配置将自动备份。
+              {t('importExport.previewHint')}
             </p>
           </div>
 
           {previewConfig && (
             <div className="space-y-3">
               <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm font-medium text-slate-700 mb-2">Agents 配置</p>
+                <p className="text-sm font-medium text-slate-700 mb-2">{t('importExport.agentsConfig')}</p>
                 <p className="text-xs text-slate-600">
-                  {Object.keys(previewConfig.agents || {}).length} 个 agent
+                  {Object.keys(previewConfig.agents || {}).length} agents
                 </p>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm font-medium text-slate-700 mb-2">Categories 配置</p>
+                <p className="text-sm font-medium text-slate-700 mb-2">{t('importExport.categoriesConfig')}</p>
                 <p className="text-xs text-slate-600">
-                  {Object.keys(previewConfig.categories || {}).length} 个 category
+                  {Object.keys(previewConfig.categories || {}).length} categories
                 </p>
               </div>
             </div>
@@ -272,7 +274,7 @@ export function ImportExportPanel() {
                 setImportPath(null);
               }}
             >
-              取消
+              {t('importExport.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -280,7 +282,7 @@ export function ImportExportPanel() {
               onClick={handleConfirmImport}
               disabled={loading}
             >
-              {loading ? '导入中...' : '确认导入'}
+              {loading ? t('importExport.importing') : t('importExport.confirmImport')}
             </Button>
           </div>
         </div>

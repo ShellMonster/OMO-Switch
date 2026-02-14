@@ -38,6 +38,7 @@ export interface ConfigState {
   omoConfigError: string | null;
   setOmoConfig: (config: OmoConfig) => void;
   updateAgentConfig: (agentName: string, config: AgentConfig) => void;
+  updateCategoryConfig: (categoryName: string, config: AgentConfig) => void;
   setOmoConfigLoading: (loading: boolean) => void;
   setOmoConfigError: (error: string | null) => void;
 
@@ -78,18 +79,30 @@ export const useConfigStore = create<ConfigState>()(
       isLoadingOmoConfig: false,
       omoConfigError: null,
       setOmoConfig: (omoConfig) => set({ omoConfig }),
-      updateAgentConfig: (agentName, config) =>
-        set((state) => ({
-          omoConfig: state.omoConfig
-            ? {
-                ...state.omoConfig,
-                agents: {
-                  ...state.omoConfig.agents,
-                  [agentName]: config,
-                },
-              }
-            : null,
-        })),
+       updateAgentConfig: (agentName, config) =>
+         set((state) => ({
+           omoConfig: state.omoConfig
+             ? {
+                 ...state.omoConfig,
+                 agents: {
+                   ...state.omoConfig.agents,
+                   [agentName]: config,
+                 },
+               }
+             : null,
+         })),
+       updateCategoryConfig: (categoryName, config) =>
+         set((state) => ({
+           omoConfig: state.omoConfig
+             ? {
+                 ...state.omoConfig,
+                 categories: {
+                   ...state.omoConfig.categories,
+                   [categoryName]: config,
+                 },
+               }
+             : null,
+         })),
       setOmoConfigLoading: (isLoadingOmoConfig) => set({ isLoadingOmoConfig }),
       setOmoConfigError: (omoConfigError) => set({ omoConfigError }),
 

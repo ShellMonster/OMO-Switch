@@ -21,6 +21,6 @@ pub fn delete_preset(name: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_preset_info(name: String) -> Result<(usize, String), String> {
+pub fn get_preset_info(name: String) -> Result<(usize, usize, String), String> {
     preset_service::get_preset_info(&name)
 }

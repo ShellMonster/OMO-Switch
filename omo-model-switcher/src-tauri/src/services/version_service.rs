@@ -93,17 +93,8 @@ pub fn check_all_versions() -> Vec<VersionInfo> {
         current_version: omo_current.clone(),
         latest_version: omo_latest.clone(),
         has_update,
-        update_command: match &omo_latest {
-            Some(v) => format!("oh-my-opencode@{}", v),
-            None => "oh-my-opencode@latest".to_string(),
-        },
-        update_hint: match (&omo_current, &omo_latest) {
-            (Some(c), Some(l)) => format!(
-                "Edit ~/.config/opencode/opencode.json: change oh-my-opencode@{} to oh-my-opencode@{}, then restart opencode",
-                c, l
-            ),
-            _ => "Edit ~/.config/opencode/opencode.json and update oh-my-opencode version, then restart opencode".to_string(),
-        },
+        update_command: "bunx oh-my-opencode install".to_string(),
+        update_hint: "Run in terminal:".to_string(),
     });
 
     results

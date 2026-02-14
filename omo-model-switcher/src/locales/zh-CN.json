@@ -1,0 +1,442 @@
+{
+  "nav": {
+    "agent": "Agent 切换",
+    "config": "配置总览",
+    "preset": "预设管理",
+    "models": "模型库",
+    "importExport": "导入导出",
+    "settings": "设置"
+  },
+  "layout": {
+    "title": "首页"
+  },
+  "agentPage": {
+    "title": "Agent 模型切换",
+    "description": "管理每个 Agent 使用的 AI 模型和强度等级",
+    "agentsSection": "agents",
+    "categoriesSection": "categories",
+    "agentsCount": "共 {{count}} 个 Agent",
+    "categoriesCount": "共 {{count}} 个分类"
+  },
+  "configPage": {
+    "title": "配置状态总览",
+    "description": "查看和管理您的 OMO 配置文件状态"
+  },
+  "presetPage": {
+    "title": "预设管理",
+    "description": "创建和管理您的模型预设配置"
+  },
+  "modelsPage": {
+    "title": "模型库",
+    "description": "浏览和管理您的 AI 模型，查看提供商、定价和能力信息",
+    "currentSelection": "当前选择"
+  },
+  "importExportPage": {
+    "title": "导入导出",
+    "description": "备份和恢复您的配置与预设"
+  },
+  "settingsPage": {
+    "title": "设置",
+    "description": "管理应用偏好设置和查看系统信息"
+  },
+  "agentList": {
+    "loading": "加载 Agent 配置...",
+    "loadFailed": "无法加载配置",
+    "loadConfigFailed": "加载配置失败",
+    "retry": "重试",
+    "total": "共 {{count}} 个 Agent",
+    "refresh": "刷新"
+  },
+  "agentCard": {
+    "edit": "编辑",
+    "editConfig": "编辑配置"
+  },
+  "agentNames": {
+    "sisyphus": "西西弗斯",
+    "sisyphus-junior": "小西西弗斯",
+    "hephaestus": "赫菲斯托斯",
+    "oracle": "神谕者",
+    "librarian": "图书管理员",
+    "explore": "探索者",
+    "multimodal-looker": "多模态观察者",
+    "prometheus": "普罗米修斯",
+    "metis": "墨提斯",
+    "momus": "摩墨斯",
+    "atlas": "阿特拉斯",
+    "build": "构建者",
+    "plan": "规划者",
+    "OpenCode-Builder": "OpenCode 构建器",
+    "general": "通用代理",
+    "frontend-ui-ux-engineer": "前端工程师",
+    "document-writer": "文档撰写者",
+    "custom": "自定义代理"
+  },
+  "agentDescriptions": {
+    "sisyphus": "主执行者，负责执行工作计划中的任务，持续推进直到完成",
+    "sisyphus-junior": "轻量执行者，处理被委派的子任务，适合中小型工作",
+    "hephaestus": "代码工匠，专注于代码实现、构建和工程细节",
+    "oracle": "技术顾问，提供架构建议和深度技术分析",
+    "librarian": "知识检索员，搜索文档、API 参考和最佳实践",
+    "explore": "代码探索者，分析代码库结构、查找引用和模式",
+    "multimodal-looker": "多模态观察者，分析图片、PDF 等视觉内容",
+    "prometheus": "战略规划师，负责需求分析和工作计划制定",
+    "metis": "计划审查员，检查计划的完整性和潜在遗漏",
+    "momus": "质量审计员，严格验证计划的每个细节",
+    "atlas": "任务调度器，协调多任务并行执行和依赖管理",
+    "build": "构建代理，处理编译、打包和部署相关任务",
+    "plan": "计划代理，辅助任务规划和分解",
+    "OpenCode-Builder": "OpenCode 构建器，核心代码生成和修改代理",
+    "general": "通用代理，处理未分类的一般性任务",
+    "frontend-ui-ux-engineer": "前端工程师，专注 UI/UX 设计和前端实现",
+    "document-writer": "文档撰写者，负责技术文档和说明编写",
+    "custom": "自定义代理"
+  },
+  "categoryDescriptions": {
+    "visual-engineering": "视觉工程类任务：前端、UI/UX、设计、样式、动画",
+    "ultrabrain": "高难度逻辑任务：复杂算法、架构设计、深度推理",
+    "deep": "深度研究任务：需要彻底理解后再行动的复杂问题",
+    "artistry": "创意类任务：非常规方案、创新设计、突破性思路",
+    "quick": "快速任务：单文件修改、拼写修复、简单调整",
+    "unspecified-low": "低复杂度未分类任务",
+    "unspecified-high": "高复杂度未分类任务",
+    "writing": "写作类任务：文档、技术写作、说明文档",
+    "visual": "视觉类任务：图表、可视化、界面相关",
+    "business-logic": "业务逻辑类任务：核心功能、数据处理、API",
+    "data-analysis": "数据分析类任务：统计、报表、数据处理",
+    "custom": "自定义分类"
+  },
+  "categoryNames": {
+    "visual-engineering": "视觉工程",
+    "ultrabrain": "超级大脑",
+    "deep": "深度研究",
+    "artistry": "创意工坊",
+    "quick": "快速任务",
+    "unspecified-low": "低复杂度",
+    "unspecified-high": "高复杂度",
+    "writing": "写作",
+    "visual": "视觉",
+    "business-logic": "业务逻辑",
+    "data-analysis": "数据分析",
+    "custom": "自定义分类"
+  },
+  "modelSelector": {
+    "title": "编辑 {{name}}",
+    "intensityLevel": "强度等级",
+    "selectModel": "选择模型",
+    "searchPlaceholder": "搜索模型名称或提供商...",
+    "noModels": "未找到匹配的模型",
+    "currentSelection": "当前选择",
+    "model": "模型:",
+    "intensity": "强度:",
+    "cancel": "取消",
+    "save": "保存",
+    "updateSuccess": "已更新 {{name}} 的模型配置",
+    "saveFailed": "保存失败"
+  },
+  "variantOptions": {
+    "max": "max - 最高强度",
+    "high": "high - 高强度",
+    "medium": "medium - 中等强度",
+    "low": "low - 低强度",
+    "none": "none - 无强度"
+  },
+  "configDashboard": {
+    "title": "配置状态总览",
+    "description": "查看和管理您的 OMO 配置文件状态",
+    "configPath": "配置文件路径",
+    "configPathNotFound": "未找到配置文件",
+    "lastModified": "最后修改时间",
+    "fileSize": "文件大小",
+    "unknown": "未知",
+    "totalAgents": "Agent 总数",
+    "configuredAgents": "已配置的 agents",
+    "configuredModels": "已配置模型",
+    "uniqueModels": "去重后的模型数",
+    "connectedProviders": "连接提供商",
+    "availableSources": "可用的模型源",
+    "configFileInfo": "配置文件信息",
+    "agentModelAssignment": "Agent 模型分配",
+    "totalConfigs": "共 {{count}} 个配置",
+    "tableName": "名称",
+    "tableType": "类型",
+    "tableModel": "分配模型",
+    "tableVariant": "变体",
+    "noAgentConfig": "暂无 Agent 配置",
+    "connectedProvidersList": "已连接提供商",
+    "noProviders": "暂无连接的提供商",
+    "connected": "已连接",
+    "configStatus": "配置状态",
+    "valid": "有效",
+    "invalid": "无效",
+    "configFormatCorrect": "配置格式正确",
+    "waitingValidation": "等待验证",
+    "configValidationFailed": "配置验证失败",
+    "cannotReadConfig": "无法读取配置",
+    "loading": "正在加载配置数据...",
+    "loadFailed": "加载失败",
+    "loadConfigFailed": "加载配置数据失败"
+  },
+  "presetManager": {
+    "title": "预设管理",
+    "myPresets": "我的预设",
+    "presetCount": "{{count}} 个预设配置",
+    "categoryCount": "{{count}} 个分类",
+    "saveCurrentConfig": "保存当前配置",
+    "savePreset": "保存预设",
+    "presetName": "预设名称",
+    "presetNamePlaceholder": "例如：开发环境配置",
+    "saveDescription": "将保存当前所有 Agent 的模型配置",
+    "presetNameEmpty": "预设名称不能为空",
+    "load": "加载",
+    "delete": "删除",
+    "confirmDelete": "删除预设",
+    "deleteMessage": "确定要删除预设 \"{{name}}\" 吗？此操作无法撤销。",
+    "deleteSuccess": "预设已删除",
+    "loadSuccess": "预设已加载",
+    "saveSuccess": "预设已保存",
+    "saveFailed": "保存预设失败",
+    "loadFailed": "加载预设失败",
+    "loadListFailed": "加载预设列表失败",
+    "deleteFailed": "删除预设失败",
+    "noPresets": "还没有保存任何预设",
+    "createFirst": "点击上方按钮保存当前配置",
+    "cancel": "取消",
+    "save": "保存",
+    "loading": "加载中..."
+  },
+  "modelBrowser": {
+    "title": "模型库",
+    "searchPlaceholder": "搜索模型名称、描述...",
+    "allProviders": "全部提供商",
+    "availableModels": "可用模型",
+    "providers": "提供商",
+    "connectedCount": "已连接",
+    "free": "免费",
+    "applyModel": "应用此模型",
+    "noModels": "未找到匹配的模型",
+    "noModelsHint": "尝试调整搜索词或过滤器",
+    "loading": "正在加载模型数据...",
+    "loadFailed": "加载失败",
+    "loadFailedHint": "请确保已安装并运行 Oh My OpenCode 主应用",
+    "loadModelsFailed": "加载模型数据失败",
+    "description": "描述",
+    "pricing": "定价",
+    "input": "输入:",
+    "output": "输出:"
+  },
+  "importExport": {
+    "title": "导入导出",
+    "export": "导出配置",
+    "exportDescription": "导出当前配置为 JSON",
+    "import": "导入配置",
+    "importDescription": "从 JSON 文件导入配置",
+    "exportSuccess": "配置已成功导出到: {{path}}",
+    "importSuccess": "配置已成功导入！当前配置已自动备份。",
+    "importFailed": "导入失败",
+    "exportFailed": "导出失败",
+    "preview": "预览导入配置",
+    "previewHint": "即将导入以下配置。当前配置将自动备份。",
+    "agentsConfig": "Agents 配置",
+    "agentCount": "{{count}} 个 agent",
+    "categoriesConfig": "Categories 配置",
+    "categoryCount": "{{count}} 个 category",
+    "confirm": "确认导入",
+    "cancel": "取消",
+    "importing": "导入中...",
+    "exporting": "导出中...",
+    "processing": "处理中...",
+    "selectFileImport": "选择文件导入",
+    "exportConfig": "导出配置",
+    "backupHistory": "备份历史",
+    "backupDescription": "查看自动备份记录",
+    "noBackups": "暂无备份记录",
+    "error": "错误",
+    "success": "成功"
+  },
+  "settings": {
+    "language": {
+      "title": "语言设置",
+      "description": "选择您喜欢的显示语言",
+      "selectLabel": "显示语言",
+      "hint": "语言更改将立即生效，并在下次访问时记住您的选择。"
+    },
+    "about": {
+      "title": "关于应用",
+      "description": "应用信息和系统路径",
+      "appName": "应用名称",
+      "version": "版本",
+      "configPath": "配置文件路径",
+      "cacheDirectory": "缓存目录"
+    },
+    "configPathError": "无法获取配置文件路径",
+    "update": {
+      "title": "软件更新",
+      "check": "检查更新",
+      "checking": "正在检查更新...",
+      "checkingShort": "检查中...",
+      "view": "查看更新",
+      "latest": "已是最新版本",
+      "available": "发现新版本 v{{version}}",
+      "failed": "检查失败",
+      "failedWith": "检查失败：{{error}}",
+      "desktopOnly": "仅桌面端可用",
+      "autoNote": "开启应用会自动检查更新；如有新版本会弹窗提示，一键下载安装。"
+    }
+  },
+  "versionBadge": {
+    "downloading": "下载中 {{percent}}%",
+    "installing": "正在安装更新...",
+    "downloaded": "更新已下载，点击安装",
+    "available": "发现新版本 v{{version}}，点击查看/安装",
+    "check": "点击检查更新",
+    "checking": "检查中...",
+    "latest": "已是最新",
+    "error": "检查失败",
+    "availableShort": "发现更新",
+    "desktopOnly": "仅桌面端",
+    "updateProgress": "更新 {{percent}}%",
+    "installingShort": "安装中",
+    "pendingInstall": "待安装",
+    "version": "v{{version}}",
+    "repoMissing": "未配置 GitHub 仓库地址"
+  },
+  "updater": {
+    "dismiss": {
+      "background": "后台下载",
+      "later": "稍后"
+    },
+    "title": {
+      "checking": "正在检查更新...",
+      "downloading": "正在下载更新...",
+      "downloaded": "更新已下载",
+      "installing": "正在安装更新...",
+      "installed": "更新完成",
+      "error": "更新失败",
+      "available": "发现新版本"
+    },
+    "newVersion": "新版本",
+    "progress": "下载进度",
+    "downloadHint": "你可以关闭窗口继续使用，下载会在后台进行。",
+    "downloadedHint": "更新包已下载，点击「安装并重启」完成更新。",
+    "installingHint": "正在安装，请勿关闭应用",
+    "errorFallback": "更新失败，请稍后重试",
+    "errorExtra": "若你刚集成 Updater，请先在 tauri.conf.json 填入 plugins.updater.pubkey 并在 CI 配置 TAURI_SIGNING_PRIVATE_KEY。",
+    "actions": {
+      "download": "下载更新",
+      "install": "安装并重启",
+      "retry": "重新检查"
+    },
+    "toast": {
+      "checkFailed": "检查更新失败",
+      "checkFailedManifest": "检查更新失败：未找到 latest.json",
+      "checkFailedPubkey": "检查更新失败：缺少签名公钥",
+      "checkFailedNetwork": "检查更新失败：网络异常",
+      "downloadFailed": "下载更新失败",
+      "downloaded": "更新已下载",
+      "installFailed": "安装更新失败",
+      "installManual": "更新已安装，请手动重启应用",
+      "installed": "更新已安装"
+    }
+  },
+  "errorBoundary": {
+    "title": "应用程序遇到错误",
+    "description": "很抱歉，应用程序遇到了一个意外错误。您可以尝试刷新页面或联系技术支持。",
+    "errorDetails": "错误详情：",
+    "viewStack": "查看堆栈跟踪",
+    "reload": "重新加载",
+    "refreshPage": "刷新页面",
+    "persistHint": "如果问题持续存在，请尝试清除浏览器缓存或联系技术支持"
+  },
+  "searchInput": {
+    "placeholder": "搜索...",
+    "clear": "清空搜索"
+  },
+  "select": {
+    "placeholder": "请选择..."
+  },
+  "button": {
+    "ok": "确定",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "remove": "移除",
+    "close": "关闭",
+    "submit": "提交",
+    "reset": "重置",
+    "loading": "加载中..."
+  },
+  "modal": {
+    "close": "关闭",
+    "confirmAction": "确认操作",
+    "confirm": "确认",
+    "cancel": "取消"
+  },
+  "toast": {
+    "success": "成功",
+    "error": "错误",
+    "info": "信息",
+    "warning": "警告"
+  },
+  "errors": {
+    "loadConfigFailed": "加载配置失败",
+    "updateFailed": "更新失败",
+    "saveFailed": "保存失败",
+    "deleteFailed": "删除失败",
+    "importFailed": "导入失败",
+    "exportFailed": "导出失败",
+    "validationFailed": "验证失败",
+    "networkError": "网络错误",
+    "unknownError": "未知错误"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "信息",
+    "confirm": "确认",
+    "yes": "是",
+    "no": "否",
+    "ok": "确定",
+    "cancel": "取消",
+    "search": "搜索..."
+  },
+   "errorBoundary": {
+     "title": "应用程序遇到错误",
+     "description": "很抱歉，应用程序遇到了一个意外错误。您可以尝试刷新页面或联系技术支持。",
+     "details": "错误详情：",
+     "viewStack": "查看堆栈跟踪",
+     "reload": "重新加载",
+     "refreshPage": "刷新页面",
+     "persistHint": "如果问题持续存在，请尝试清除浏览器缓存或联系技术支持"
+   },
+   "versionCheck": {
+     "title": "版本信息",
+     "description": "OpenCode 和 Oh My OpenCode 版本状态",
+     "currentVersion": "当前版本",
+     "latestVersion": "最新版本",
+     "upToDate": "已是最新",
+     "updateAvailable": "有更新可用",
+     "notInstalled": "未安装",
+     "checkFailed": "检测失败",
+     "loading": "正在检测版本...",
+     "updateMethod": "更新方式",
+     "opencode": {
+       "updateHint": "在终端运行 'opencode upgrade' 更新",
+       "updateCommand": "opencode upgrade"
+     },
+     "omo": {
+       "updateHint": "修改 ~/.config/opencode/opencode.json 中的 oh-my-opencode@版本号，然后重启 opencode",
+       "updateCommand": "编辑 opencode.json"
+     },
+      "checkUpdate": "检查更新",
+      "updateSteps": "更新方式",
+      "editConfig": "编辑 ~/.config/opencode/opencode.json:",
+      "changeVersion": "将 {{from}} 改为",
+      "thenRestart": "然后重启 opencode",
+      "runInTerminal": "在终端运行:",
+      "copied": "已复制"
+    }
+  }

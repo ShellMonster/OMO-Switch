@@ -1,0 +1,441 @@
+{
+  "nav": {
+    "agent": "Agent Switch",
+    "config": "Config Overview",
+    "preset": "Preset Manager",
+    "models": "Model Library",
+    "importExport": "Import/Export",
+    "settings": "Settings"
+  },
+  "layout": {
+    "title": "Home"
+  },
+  "agentPage": {
+    "title": "Agent Model Switch",
+    "description": "Manage AI models and intensity levels for each Agent",
+    "agentsSection": "agents",
+    "categoriesSection": "categories",
+    "agentsCount": "{{count}} Agents total",
+    "categoriesCount": "{{count}} Categories total"
+  },
+  "configPage": {
+    "title": "Config Status Overview",
+    "description": "View and manage your OMO configuration file status"
+  },
+  "presetPage": {
+    "title": "Preset Manager",
+    "description": "Create and manage your model preset configurations"
+  },
+  "modelsPage": {
+    "title": "Model Library",
+    "description": "Browse and manage your AI models, view provider, pricing and capability info",
+    "currentSelection": "Current Selection"
+  },
+  "importExportPage": {
+    "title": "Import/Export",
+    "description": "Backup and restore your configurations and presets"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "description": "Manage application preferences and view system information"
+  },
+  "agentList": {
+    "loading": "Loading Agent configuration...",
+    "loadFailed": "Failed to load configuration",
+    "loadConfigFailed": "Failed to load configuration",
+    "retry": "Retry",
+    "total": "{{count}} Agents total",
+    "refresh": "Refresh"
+  },
+  "agentCard": {
+    "edit": "Edit",
+    "editConfig": "Edit config"
+  },
+  "agentNames": {
+    "sisyphus": "Sisyphus",
+    "sisyphus-junior": "Sisyphus Jr.",
+    "hephaestus": "Hephaestus",
+    "oracle": "Oracle",
+    "librarian": "Librarian",
+    "explore": "Explorer",
+    "multimodal-looker": "Multimodal Looker",
+    "prometheus": "Prometheus",
+    "metis": "Metis",
+    "momus": "Momus",
+    "atlas": "Atlas",
+    "build": "Builder",
+    "plan": "Planner",
+    "OpenCode-Builder": "OpenCode Builder",
+    "general": "General Agent",
+    "frontend-ui-ux-engineer": "Frontend Engineer",
+    "document-writer": "Document Writer",
+    "custom": "Custom Agent"
+  },
+  "agentDescriptions": {
+    "sisyphus": "Main executor, responsible for executing tasks in the work plan, continuously pushing until completion",
+    "sisyphus-junior": "Lightweight executor, handles delegated subtasks, suitable for small to medium work",
+    "hephaestus": "Code craftsman, focused on code implementation, building and engineering details",
+    "oracle": "Technical advisor, provides architecture recommendations and deep technical analysis",
+    "librarian": "Knowledge retriever, searches documentation, API references and best practices",
+    "explore": "Code explorer, analyzes code repository structure, finds references and patterns",
+    "multimodal-looker": "Multimodal observer, analyzes images, PDFs and other visual content",
+    "prometheus": "Strategy planner, responsible for requirements analysis and work plan formulation",
+    "metis": "Plan reviewer, checks plan completeness and potential omissions",
+    "momus": "Quality auditor, strictly verifies every detail of the plan",
+    "atlas": "Task scheduler, coordinates multi-task parallel execution and dependency management",
+    "build": "Build agent, handles compilation, packaging and deployment related tasks",
+    "plan": "Plan agent, assists with task planning and decomposition",
+    "OpenCode-Builder": "OpenCode builder, core code generation and modification agent",
+    "general": "General agent, handles unclassified general tasks",
+    "frontend-ui-ux-engineer": "Frontend engineer, focused on UI/UX design and frontend implementation",
+    "document-writer": "Document writer, responsible for technical documentation and instruction writing",
+    "custom": "Custom agent"
+  },
+  "categoryDescriptions": {
+    "visual-engineering": "Visual engineering tasks: frontend, UI/UX, design, styling, animation",
+    "ultrabrain": "High-difficulty logic tasks: complex algorithms, architecture design, deep reasoning",
+    "deep": "Deep research tasks: complex problems requiring thorough understanding before action",
+    "artistry": "Creative tasks: unconventional solutions, innovative design, breakthrough ideas",
+    "quick": "Quick tasks: single file modifications, spelling fixes, simple adjustments",
+    "unspecified-low": "Low complexity unclassified tasks",
+    "unspecified-high": "High complexity unclassified tasks",
+    "writing": "Writing tasks: documentation, technical writing, instruction documents",
+    "visual": "Visual tasks: charts, visualization, interface related",
+    "business-logic": "Business logic tasks: core functionality, data processing, API",
+    "data-analysis": "Data analysis tasks: statistics, reports, data processing",
+     "custom": "Custom category"
+   },
+   "categoryNames": {
+     "visual-engineering": "Visual Engineering",
+     "ultrabrain": "Ultrabrain",
+     "deep": "Deep Research",
+     "artistry": "Artistry",
+     "quick": "Quick Task",
+     "unspecified-low": "Low Complexity",
+     "unspecified-high": "High Complexity",
+     "writing": "Writing",
+     "visual": "Visual",
+     "business-logic": "Business Logic",
+     "data-analysis": "Data Analysis",
+     "custom": "Custom Category"
+   },
+   "modelSelector": {
+    "title": "Edit {{name}}",
+    "intensityLevel": "Intensity Level",
+    "selectModel": "Select Model",
+    "searchPlaceholder": "Search model name or provider...",
+    "noModels": "No matching models found",
+    "currentSelection": "Current Selection",
+    "model": "Model:",
+    "intensity": "Intensity:",
+    "cancel": "Cancel",
+    "save": "Save",
+    "updateSuccess": "Updated {{name}} model configuration",
+    "saveFailed": "Save failed"
+  },
+  "variantOptions": {
+    "max": "max - Maximum intensity",
+    "high": "high - High intensity",
+    "medium": "medium - Medium intensity",
+    "low": "low - Low intensity",
+    "none": "none - No intensity"
+  },
+  "configDashboard": {
+    "title": "Config Status Overview",
+    "description": "View and manage your OMO configuration file status",
+    "configPath": "Config file path",
+    "configPathNotFound": "Config file not found",
+    "lastModified": "Last modified",
+    "fileSize": "File size",
+    "unknown": "Unknown",
+    "totalAgents": "Total Agents",
+    "configuredAgents": "Configured agents",
+    "configuredModels": "Configured Models",
+    "uniqueModels": "Unique models count",
+    "connectedProviders": "Connected Providers",
+    "availableSources": "Available model sources",
+    "configFileInfo": "Config File Info",
+    "agentModelAssignment": "Agent Model Assignment",
+    "totalConfigs": "{{count}} configs total",
+    "tableName": "Name",
+    "tableType": "Type",
+    "tableModel": "Assigned Model",
+    "tableVariant": "Variant",
+    "noAgentConfig": "No Agent configurations",
+    "connectedProvidersList": "Connected Providers",
+    "noProviders": "No connected providers",
+    "connected": "Connected",
+    "configStatus": "Config Status",
+    "valid": "Valid",
+    "invalid": "Invalid",
+    "configFormatCorrect": "Config format is correct",
+    "waitingValidation": "Waiting for validation",
+    "configValidationFailed": "Config validation failed",
+    "cannotReadConfig": "Cannot read config",
+    "loading": "Loading configuration data...",
+    "loadFailed": "Load failed",
+    "loadConfigFailed": "Failed to load configuration data"
+  },
+  "presetManager": {
+    "title": "Preset Manager",
+    "myPresets": "My Presets",
+    "presetCount": "{{count}} preset configs",
+    "categoryCount": "{{count}} categories",
+    "saveCurrentConfig": "Save Current Config",
+    "savePreset": "Save Preset",
+    "presetName": "Preset Name",
+    "presetNamePlaceholder": "e.g., Development Environment Config",
+    "saveDescription": "Will save all current Agent model configurations",
+    "presetNameEmpty": "Preset name cannot be empty",
+    "load": "Load",
+    "delete": "Delete",
+    "confirmDelete": "Delete Preset",
+    "deleteMessage": "Are you sure you want to delete preset \"{{name}}\"? This action cannot be undone.",
+    "deleteSuccess": "Preset deleted",
+    "loadSuccess": "Preset loaded",
+    "saveSuccess": "Preset saved",
+    "saveFailed": "Failed to save preset",
+    "loadFailed": "Failed to load preset",
+    "loadListFailed": "Failed to load preset list",
+    "deleteFailed": "Failed to delete preset",
+    "noPresets": "No presets saved yet",
+    "createFirst": "Click the button above to save current config",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading..."
+  },
+  "modelBrowser": {
+    "title": "Model Library",
+    "searchPlaceholder": "Search model name, description...",
+    "allProviders": "All Providers",
+    "availableModels": "Available Models",
+    "providers": "Providers",
+    "connectedCount": "Connected",
+    "free": "Free",
+    "applyModel": "Apply this model",
+    "noModels": "No matching models found",
+    "noModelsHint": "Try adjusting search terms or filters",
+    "loading": "Loading model data...",
+    "loadFailed": "Load failed",
+    "loadFailedHint": "Please ensure Oh My OpenCode is installed and running",
+    "loadModelsFailed": "Failed to load model data",
+    "description": "Description",
+    "pricing": "Pricing",
+    "input": "Input:",
+    "output": "Output:"
+  },
+  "importExport": {
+    "title": "Import/Export",
+    "export": "Export Config",
+    "exportDescription": "Export current config as JSON",
+    "import": "Import Config",
+    "importDescription": "Import config from JSON file",
+    "exportSuccess": "Config successfully exported to: {{path}}",
+    "importSuccess": "Config successfully imported! Current config has been auto-backed up.",
+    "importFailed": "Import failed",
+    "exportFailed": "Export failed",
+    "preview": "Preview Import Config",
+    "previewHint": "The following config will be imported. Current config will be auto-backed up.",
+    "agentsConfig": "Agents Config",
+    "agentCount": "{{count}} agents",
+    "categoriesConfig": "Categories Config",
+    "categoryCount": "{{count}} categories",
+    "confirm": "Confirm Import",
+    "cancel": "Cancel",
+    "importing": "Importing...",
+    "exporting": "Exporting...",
+    "processing": "Processing...",
+    "selectFileImport": "Select file to import",
+    "backupHistory": "Backup History",
+    "backupHistoryDesc": "View auto-backup records",
+    "noBackups": "No backup records",
+    "error": "Error",
+    "success": "Success"
+  },
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "Select your preferred display language",
+      "selectLabel": "Display Language",
+      "hint": "Language changes take effect immediately and will be remembered for your next visit."
+    },
+    "about": {
+      "title": "About",
+      "description": "Application information and system paths",
+      "appName": "App Name",
+      "version": "Version",
+      "configPath": "Config File Path",
+      "cacheDirectory": "Cache Directory"
+    },
+    "configPathError": "Unable to retrieve config path",
+    "update": {
+      "title": "Software Update",
+      "check": "Check for Updates",
+      "checking": "Checking for updates...",
+      "checkingShort": "Checking...",
+      "view": "View Update",
+      "latest": "Already up to date",
+      "available": "New version v{{version}} available",
+      "failed": "Check failed",
+      "failedWith": "Check failed: {{error}}",
+      "desktopOnly": "Desktop only",
+      "autoNote": "Updates are checked automatically on startup. You'll be notified when a new version is available."
+    }
+  },
+  "versionBadge": {
+    "downloading": "Downloading {{percent}}%",
+    "installing": "Installing update...",
+    "downloaded": "Update downloaded, click to install",
+    "available": "New version v{{version}} available, click to view/install",
+    "check": "Click to check for updates",
+    "checking": "Checking...",
+    "latest": "Up to date",
+    "error": "Check failed",
+    "availableShort": "Update available",
+    "desktopOnly": "Desktop only",
+    "updateProgress": "Updating {{percent}}%",
+    "installingShort": "Installing",
+    "pendingInstall": "Pending install",
+    "version": "v{{version}}",
+    "repoMissing": "GitHub repository not configured"
+  },
+  "updater": {
+    "dismiss": {
+      "background": "Background Download",
+      "later": "Later"
+    },
+    "title": {
+      "checking": "Checking for updates...",
+      "downloading": "Downloading update...",
+      "downloaded": "Update Downloaded",
+      "installing": "Installing update...",
+      "installed": "Update Complete",
+      "error": "Update Failed",
+      "available": "New Version Available"
+    },
+    "newVersion": "New Version",
+    "progress": "Download Progress",
+    "downloadHint": "You can close this window and continue working. The download will continue in the background.",
+    "downloadedHint": "Update package downloaded. Click 'Install and Restart' to complete the update.",
+    "installingHint": "Installing, please do not close the application",
+    "errorFallback": "Update failed, please try again later",
+    "errorExtra": "If you just integrated Updater, please add plugins.updater.pubkey in tauri.conf.json and configure TAURI_SIGNING_PRIVATE_KEY in CI.",
+    "actions": {
+      "download": "Download Update",
+      "install": "Install and Restart",
+      "retry": "Check Again"
+    },
+    "toast": {
+      "checkFailed": "Failed to check for updates",
+      "checkFailedManifest": "Failed to check: latest.json not found",
+      "checkFailedPubkey": "Failed to check: missing public key",
+      "checkFailedNetwork": "Failed to check: network error",
+      "downloadFailed": "Failed to download update",
+      "downloaded": "Update downloaded",
+      "installFailed": "Failed to install update",
+      "installManual": "Update installed, please restart the app manually",
+      "installed": "Update installed"
+    }
+  },
+  "errorBoundary": {
+    "title": "Application Error",
+    "description": "Sorry, the application encountered an unexpected error. You can try refreshing the page or contacting support.",
+    "errorDetails": "Error Details:",
+    "viewStack": "View stack trace",
+    "reload": "Reload",
+    "refreshPage": "Refresh Page",
+    "persistHint": "If the problem persists, try clearing browser cache or contacting support"
+  },
+  "searchInput": {
+    "placeholder": "Search...",
+    "clear": "Clear search"
+  },
+  "select": {
+    "placeholder": "Select..."
+  },
+  "button": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "remove": "Remove",
+    "close": "Close",
+    "submit": "Submit",
+    "reset": "Reset",
+    "loading": "Loading..."
+  },
+  "modal": {
+    "close": "Close",
+    "confirmAction": "Confirm Action",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "toast": {
+    "success": "Success",
+    "error": "Error",
+    "info": "Info",
+    "warning": "Warning"
+  },
+  "errors": {
+    "loadConfigFailed": "Failed to load configuration",
+    "updateFailed": "Update failed",
+    "saveFailed": "Save failed",
+    "deleteFailed": "Delete failed",
+    "importFailed": "Import failed",
+    "exportFailed": "Export failed",
+    "validationFailed": "Validation failed",
+    "networkError": "Network error",
+    "unknownError": "Unknown error"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "search": "Search..."
+  },
+   "errorBoundary": {
+     "title": "Application Error",
+     "description": "Sorry, the application encountered an unexpected error. You can try refreshing the page or contact support.",
+     "details": "Error details:",
+     "viewStack": "View stack trace",
+     "reload": "Reload",
+     "refreshPage": "Refresh Page",
+     "persistHint": "If the problem persists, try clearing your browser cache or contact support"
+   },
+   "versionCheck": {
+     "title": "Version Info",
+     "description": "OpenCode and Oh My OpenCode version status",
+     "currentVersion": "Current Version",
+     "latestVersion": "Latest Version",
+     "upToDate": "Up to date",
+     "updateAvailable": "Update available",
+     "notInstalled": "Not installed",
+     "checkFailed": "Check failed",
+     "loading": "Checking versions...",
+     "updateMethod": "Update Method",
+     "opencode": {
+       "updateHint": "Run 'opencode upgrade' in terminal to update",
+       "updateCommand": "opencode upgrade"
+     },
+     "omo": {
+       "updateHint": "Edit oh-my-opencode@version in ~/.config/opencode/opencode.json and restart opencode",
+       "updateCommand": "Edit opencode.json"
+     },
+      "checkUpdate": "Check for Updates",
+      "updateSteps": "Update Method",
+      "editConfig": "Edit ~/.config/opencode/opencode.json:",
+      "changeVersion": "Change {{from}} to",
+      "thenRestart": "Then restart opencode",
+      "runInTerminal": "Run in terminal:",
+      "copied": "Copied"
+    }
+  }

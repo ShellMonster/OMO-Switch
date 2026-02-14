@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Bookmark, Plus, Trash2, Download, Calendar, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Bookmark, Plus, Trash2, Download } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo } from '../../services/tauri';
@@ -7,51 +8,47 @@ import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo } from
 interface PresetCardProps {
   name: string;
   agentCount: number;
-  createdAt: string;
+  categoryCount: number;
   onLoad: () => void;
   onDelete: () => void;
+  loadLabel: string;
+  deleteLabel: string;
 }
 
-function PresetCard({ name, agentCount, createdAt, onLoad, onDelete }: PresetCardProps) {
+function PresetCard({ name, agentCount, categoryCount, onLoad, onDelete, loadLabel, deleteLabel }: PresetCardProps) {
   return (
-    <div className="group relative bg-white rounded-xl border border-slate-200 p-4 hover:shadow-lg hover:border-indigo-200 transition-all duration-200">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
-            <Bookmark className="w-6 h-6 text-white" />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-800 truncate">{name}</h3>
-            
-            <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                <span>{agentCount} agents</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>{createdAt}</span>
-              </div>
-            </div>
-          </div>
+    <div className="group bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md hover:border-indigo-200 transition-all duration-200">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
+          <Bookmark className="w-5 h-5 text-white" />
         </div>
-
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        
+        <h3 className="font-semibold text-slate-800 truncate flex-1 min-w-0" title={name}>
+          {name}
+        </h3>
+        
+        <div className="flex items-center gap-3 text-sm text-slate-500 flex-shrink-0">
+          <span className="whitespace-nowrap">
+            {agentCount} agents, {categoryCount} categories
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-1 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={onLoad}
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
           >
             <Download className="w-4 h-4" />
-            加载
+            <span className="hidden sm:inline">{loadLabel}</span>
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={onDelete}
             className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+            title={deleteLabel}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -64,10 +61,12 @@ function PresetCard({ name, agentCount, createdAt, onLoad, onDelete }: PresetCar
 interface PresetWithInfo {
   name: string;
   agentCount: number;
+  categoryCount: number;
   createdAt: string;
 }
 
 export function PresetManager() {
+  const { t } = useTranslation();
   const [presets, setPresets] = useState<PresetWithInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -83,15 +82,15 @@ export function PresetManager() {
       
       const presetsWithInfo = await Promise.all(
         names.map(async (name) => {
-          const [agentCount, createdAt] = await getPresetInfo(name);
-          return { name, agentCount, createdAt };
+          const [agentCount, categoryCount, createdAt] = await getPresetInfo(name);
+          return { name, agentCount, categoryCount, createdAt };
         })
       );
       
       setPresets(presetsWithInfo);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载预设列表失败');
+      setError(err instanceof Error ? err.message : t('presetManager.loadListFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +102,7 @@ export function PresetManager() {
 
   const handleSavePreset = async () => {
     if (!newPresetName.trim()) {
-      setError('预设名称不能为空');
+      setError(t('presetManager.presetNameEmpty'));
       return;
     }
 
@@ -115,7 +114,7 @@ export function PresetManager() {
       await loadPresetList();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存预设失败');
+      setError(err instanceof Error ? err.message : t('presetManager.saveFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +126,7 @@ export function PresetManager() {
       await loadPreset(name);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载预设失败');
+      setError(err instanceof Error ? err.message : t('presetManager.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -144,7 +143,7 @@ export function PresetManager() {
       await loadPresetList();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '删除预设失败');
+      setError(err instanceof Error ? err.message : t('presetManager.deleteFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -159,9 +158,9 @@ export function PresetManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">我的预设</h3>
+          <h3 className="text-lg font-semibold text-slate-800">{t('presetManager.myPresets')}</h3>
           <p className="text-sm text-slate-500 mt-1">
-            {presets.length} 个预设配置
+            {t('presetManager.presetCount', { count: presets.length })}
           </p>
         </div>
         <Button
@@ -170,7 +169,7 @@ export function PresetManager() {
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          保存当前配置
+          {t('presetManager.saveCurrentConfig')}
         </Button>
       </div>
 
@@ -183,24 +182,26 @@ export function PresetManager() {
       {isLoading && presets.length === 0 ? (
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="text-slate-500 mt-4">加载中...</p>
+          <p className="text-slate-500 mt-4">{t('presetManager.loading')}</p>
         </div>
       ) : presets.length === 0 ? (
         <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
           <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500">还没有保存任何预设</p>
-          <p className="text-sm text-slate-400 mt-1">点击上方按钮保存当前配置</p>
+          <p className="text-slate-500">{t('presetManager.noPresets')}</p>
+          <p className="text-sm text-slate-400 mt-1">{t('presetManager.createFirst')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-3">
           {presets.map((preset) => (
             <PresetCard
               key={preset.name}
               name={preset.name}
               agentCount={preset.agentCount}
-              createdAt={preset.createdAt}
+              categoryCount={preset.categoryCount}
               onLoad={() => handleLoadPreset(preset.name)}
               onDelete={() => openDeleteModal(preset.name)}
+              loadLabel={t('presetManager.load')}
+              deleteLabel={t('presetManager.delete')}
             />
           ))}
         </div>
@@ -209,15 +210,15 @@ export function PresetManager() {
       <Modal
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
-        title="保存预设"
+        title={t('presetManager.savePreset')}
         size="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowSaveModal(false)}>
-              取消
+              {t('presetManager.cancel')}
             </Button>
             <Button variant="primary" onClick={handleSavePreset} isLoading={isLoading}>
-              保存
+              {t('presetManager.save')}
             </Button>
           </>
         }
@@ -225,19 +226,19 @@ export function PresetManager() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              预设名称
+              {t('presetManager.presetName')}
             </label>
             <input
               type="text"
               value={newPresetName}
               onChange={(e) => setNewPresetName(e.target.value)}
-              placeholder="例如：开发环境配置"
+              placeholder={t('presetManager.presetNamePlaceholder')}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               autoFocus
             />
           </div>
           <p className="text-sm text-slate-500">
-            将保存当前所有 Agent 的模型配置
+            {t('presetManager.saveDescription')}
           </p>
         </div>
       </Modal>
@@ -246,9 +247,9 @@ export function PresetManager() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeletePreset}
-        title="删除预设"
-        message={`确定要删除预设 "${selectedPreset}" 吗？此操作无法撤销。`}
-        confirmText="删除"
+        title={t('presetManager.confirmDelete')}
+        message={t('presetManager.deleteMessage', { name: selectedPreset })}
+        confirmText={t('presetManager.delete')}
         confirmVariant="danger"
         isLoading={isLoading}
       />

@@ -79,7 +79,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <aside
         className={cn(
           'flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out',
-          isSidebarCollapsed ? 'w-16' : 'w-64'
+          isSidebarCollapsed ? 'w-16' : 'w-44'
         )}
       >
         {/* Logo 区域 */}

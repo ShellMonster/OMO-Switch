@@ -1,55 +1,32 @@
-import React, { useState } from 'react';
-import { Edit2, Bot, Cpu, Sparkles, Eye, Search, Hammer, BookOpen, Palette, Brain, Shield, Map, Wrench, FileText, Users } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Edit2, Bot, Cpu, Sparkles, Eye, Search, Hammer, BookOpen, Palette, Brain, Shield, Map, Wrench, FileText, Users, Zap, BarChart3 } from 'lucide-react';
 import { cn } from '../common/cn';
-import { Button } from '../common/Button';
 import type { AgentConfig } from '../../services/tauri';
 
 interface AgentCardProps {
   agentName: string;
   config: AgentConfig;
   onEdit: () => void;
-  index: number;
+  isCategory?: boolean;
 }
 
-const AGENT_DESCRIPTIONS: Record<string, string> = {
-  'sisyphus': '主执行者，负责执行工作计划中的任务，持续推进直到完成',
-  'sisyphus-junior': '轻量执行者，处理被委派的子任务，适合中小型工作',
-  'hephaestus': '代码工匠，专注于代码实现、构建和工程细节',
-  'oracle': '技术顾问，提供架构建议和深度技术分析',
-  'librarian': '知识检索员，搜索文档、API 参考和最佳实践',
-  'explore': '代码探索者，分析代码库结构、查找引用和模式',
-  'multimodal-looker': '多模态观察者，分析图片、PDF 等视觉内容',
-  'prometheus': '战略规划师，负责需求分析和工作计划制定',
-  'metis': '计划审查员，检查计划的完整性和潜在遗漏',
-  'momus': '质量审计员，严格验证计划的每个细节',
-  'atlas': '任务调度器，协调多任务并行执行和依赖管理',
-  'build': '构建代理，处理编译、打包和部署相关任务',
-  'plan': '计划代理，辅助任务规划和分解',
-  'OpenCode-Builder': 'OpenCode 构建器，核心代码生成和修改代理',
-  'general': '通用代理，处理未分类的一般性任务',
-  'frontend-ui-ux-engineer': '前端工程师，专注 UI/UX 设计和前端实现',
-  'document-writer': '文档撰写者，负责技术文档和说明编写',
-};
-
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  'visual-engineering': '视觉工程类任务：前端、UI/UX、设计、样式、动画',
-  'ultrabrain': '高难度逻辑任务：复杂算法、架构设计、深度推理',
-  'deep': '深度研究任务：需要彻底理解后再行动的复杂问题',
-  'artistry': '创意类任务：非常规方案、创新设计、突破性思路',
-  'quick': '快速任务：单文件修改、拼写修复、简单调整',
-  'unspecified-low': '低复杂度未分类任务',
-  'unspecified-high': '高复杂度未分类任务',
-  'writing': '写作类任务：文档、技术写作、说明文档',
-  'visual': '视觉类任务：图表、可视化、界面相关',
-  'business-logic': '业务逻辑类任务：核心功能、数据处理、API',
-  'data-analysis': '数据分析类任务：统计、报表、数据处理',
-};
-
-export function getAgentDescription(name: string, isCategory = false): string {
+export function getAgentDescription(name: string, t: (key: string) => string, isCategory = false): string {
   if (isCategory) {
-    return CATEGORY_DESCRIPTIONS[name] || '自定义分类';
+    const key = `categoryDescriptions.${name}`;
+    const val = t(key);
+    return val !== key ? val : t('categoryDescriptions.custom');
   }
-  return AGENT_DESCRIPTIONS[name] || '自定义代理';
+  const key = `agentDescriptions.${name}`;
+  const val = t(key);
+  return val !== key ? val : t('agentDescriptions.custom');
+}
+
+export function getAgentLocalizedName(name: string, t: (key: string) => string, isCategory = false): string {
+  const prefix = isCategory ? 'categoryNames' : 'agentNames';
+  const key = `${prefix}.${name}`;
+  const val = t(key);
+  return val !== key ? val : name;
 }
 
 function formatAgentName(name: string): string {
@@ -70,8 +47,28 @@ function getVariantStyle(variant?: string): { bg: string; text: string; border: 
   return styles[variant || 'none'] || styles.none;
 }
 
-function getAgentIcon(agentName: string): React.ReactNode {
+function getAgentIcon(agentName: string, isCategory = false): React.ReactNode {
   const iconClass = "w-5 h-5";
+  
+  // Category icon mappings
+  if (isCategory) {
+    const categoryIconMap: Record<string, React.ReactNode> = {
+      'visual-engineering': <Palette className={iconClass} />,
+      'ultrabrain': <Brain className={iconClass} />,
+      'deep': <Search className={iconClass} />,
+      'artistry': <Sparkles className={iconClass} />,
+      'quick': <Zap className={iconClass} />,
+      'unspecified-low': <FileText className={iconClass} />,
+      'unspecified-high': <FileText className={iconClass} />,
+      'writing': <BookOpen className={iconClass} />,
+      'visual': <Eye className={iconClass} />,
+      'business-logic': <Cpu className={iconClass} />,
+      'data-analysis': <BarChart3 className={iconClass} />,
+    };
+    return categoryIconMap[agentName] || <Bot className={iconClass} />;
+  }
+  
+  // Agent icon mappings
   const iconMap: Record<string, React.ReactNode> = {
     'sisyphus': <Hammer className={iconClass} />,
     'sisyphus-junior': <Wrench className={iconClass} />,
@@ -93,87 +90,99 @@ function getAgentIcon(agentName: string): React.ReactNode {
   return iconMap[agentName] || <Bot className={iconClass} />;
 }
 
-export function AgentCard({ agentName, config, onEdit, index }: AgentCardProps) {
-  const [showTooltip, setShowTooltip] = useState(false);
+function getProviderColor(provider: string): { bg: string; text: string } {
+  const colors: Record<string, { bg: string; text: string }> = {
+    'openai': { bg: 'bg-green-100', text: 'text-green-700' },
+    'anthropic': { bg: 'bg-orange-100', text: 'text-orange-700' },
+    'google': { bg: 'bg-blue-100', text: 'text-blue-700' },
+    'deepseek': { bg: 'bg-purple-100', text: 'text-purple-700' },
+    'moonshot': { bg: 'bg-pink-100', text: 'text-pink-700' },
+    'alibaba': { bg: 'bg-red-100', text: 'text-red-700' },
+    'baidu': { bg: 'bg-indigo-100', text: 'text-indigo-700' },
+    'tencent': { bg: 'bg-cyan-100', text: 'text-cyan-700' },
+    'xai': { bg: 'bg-slate-100', text: 'text-slate-700' },
+    'mistral': { bg: 'bg-teal-100', text: 'text-teal-700' },
+    'cohere': { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  };
+  return colors[provider.toLowerCase()] || { bg: 'bg-slate-100', text: 'text-slate-600' };
+}
+
+export function AgentCard({ agentName, config, onEdit, isCategory }: AgentCardProps) {
+  const { t } = useTranslation();
   const variantStyle = getVariantStyle(config.variant);
-  const icon = getAgentIcon(agentName);
+  const icon = getAgentIcon(agentName, isCategory);
   const displayName = formatAgentName(agentName);
-  const description = getAgentDescription(agentName);
+  const localizedName = getAgentLocalizedName(agentName, t, isCategory);
+  const description = getAgentDescription(agentName, t, isCategory);
   const shortModelName = config.model.split('/').pop() || config.model;
+  const provider = config.model.split('/')[0] || 'unknown';
+  const providerColor = getProviderColor(provider);
 
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-4 px-4 py-3 bg-white rounded-xl border transition-all duration-150",
-        "hover:shadow-md hover:border-indigo-300",
+        "group relative flex flex-col p-4 bg-white rounded-xl border transition-all duration-200",
+        "hover:shadow-lg hover:border-indigo-300 hover:-translate-y-0.5",
         "border-slate-200"
       )}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
     >
-      {/* Hover 预览浮层 */}
-      {showTooltip && (
-        <div className="absolute z-30 left-4 right-4 -top-2 -translate-y-full">
-          <div className="bg-slate-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
-            <p className="font-medium mb-0.5">{displayName}</p>
-            <p className="text-slate-300 leading-relaxed">{description}</p>
-            <p className="text-slate-400 mt-1 font-mono text-[10px]">{config.model}</p>
-            <div className="absolute left-8 -bottom-1 w-2 h-2 bg-slate-800 rotate-45" />
-          </div>
-        </div>
-      )}
+      <button
+        onClick={onEdit}
+        className={cn(
+          "absolute top-3 right-3 p-1.5 rounded-lg transition-all duration-200",
+          "bg-slate-50 text-slate-400 opacity-0 group-hover:opacity-100",
+          "hover:bg-indigo-50 hover:text-indigo-600",
+          "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        )}
+        title={t('agentCard.editConfig')}
+      >
+        <Edit2 className="w-4 h-4" />
+      </button>
 
-      {/* 序号 */}
-      <span className="text-xs text-slate-400 w-5 text-right flex-shrink-0 font-mono">
-        {index + 1}
-      </span>
-
-      {/* 图标 */}
       <div className={cn(
-        "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+        "w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors",
         "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
       )}>
         {icon}
       </div>
 
-      {/* 名称 + 描述 */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-slate-800 text-sm leading-tight">
-          {displayName}
+      <div className="mb-2">
+        <h3 className="font-semibold text-slate-800 text-base leading-tight">
+          {displayName} · {localizedName}
         </h3>
-        <p className="text-xs text-slate-400 mt-0.5 truncate">{description}</p>
       </div>
 
-      {/* 模型 */}
-      <div className="flex-shrink-0 text-right hidden sm:block">
+      <p className="text-sm text-slate-500 mb-4 leading-relaxed line-clamp-2 flex-1">
+        {description}
+      </p>
+
+      <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-slate-100">
+        <span className={cn(
+          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+          providerColor.bg,
+          providerColor.text
+        )}>
+          {provider}
+        </span>
+
+        <span className={cn(
+          "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
+          variantStyle.bg,
+          variantStyle.text,
+          variantStyle.border
+        )}>
+          {config.variant || 'none'}
+        </span>
+      </div>
+
+      <div className="mt-2">
         <span
-          className="text-xs font-medium text-slate-600 font-mono"
+          className="text-xs text-slate-400 font-mono truncate block"
           title={config.model}
         >
           {shortModelName}
         </span>
       </div>
-
-      {/* Variant 标签 */}
-      <span className={cn(
-        "flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
-        variantStyle.bg,
-        variantStyle.text,
-        variantStyle.border
-      )}>
-        {config.variant || 'none'}
-      </span>
-
-      {/* 编辑按钮 */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onEdit}
-        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <Edit2 className="w-3.5 h-3.5 mr-1" />
-        编辑
-      </Button>
     </div>
   );
 }

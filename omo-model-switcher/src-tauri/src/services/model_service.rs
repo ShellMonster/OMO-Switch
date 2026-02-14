@@ -1,3 +1,4 @@
+use crate::i18n;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -72,11 +73,11 @@ pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
 
     // 读取文件内容
     let content = fs::read_to_string(&cache_file)
-        .map_err(|e| format!("无法读取模型缓存文件 {:?}: {}", cache_file, e))?;
+        .map_err(|e| format!("{}: {}", i18n::tr_current("read_model_cache_failed"), e))?;
 
     // 解析 JSON
-    let cache: ProviderModelsCache =
-        serde_json::from_str(&content).map_err(|e| format!("解析模型缓存文件失败: {}", e))?;
+    let cache: ProviderModelsCache = serde_json::from_str(&content)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_model_cache_failed"), e))?;
 
     Ok(cache.models)
 }
