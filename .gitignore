@@ -1,0 +1,15 @@
+# Logs
+logs
+*.log
+
+# Tauri
+src-tauri/target
+
+# IDE
+.vscode
+
+# Sisyphus
+.sisyphus/
+
+# Tauri generated
+src-tauri/gen
