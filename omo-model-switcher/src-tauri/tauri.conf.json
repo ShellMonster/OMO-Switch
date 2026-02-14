@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OMO Model Switcher",
+  "productName": "OMO Switch",
   "version": "0.1.0",
   "identifier": "com.omo.model-switcher",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "OMO Model Switcher",
+        "title": "OMO Switch",
         "width": 1000,
         "height": 700,
         "resizable": true,

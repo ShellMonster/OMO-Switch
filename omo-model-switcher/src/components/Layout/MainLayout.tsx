@@ -71,7 +71,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <Bot className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-slate-800">OMO Model</span>
+              <span className="font-semibold text-slate-800">OMO Switch</span>
             </div>
           )}
           <button
