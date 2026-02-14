@@ -203,6 +203,31 @@ export async function getPresetInfo(name: string): Promise<[number, string]> {
   return invoke<[number, string]>('get_preset_info', { name });
 }
 
+// ==================== 导入/导出命令 ====================
+
+export interface BackupInfo {
+  filename: string;
+  path: string;
+  created_at: string;
+  size: number;
+}
+
+export async function exportOmoConfig(path: string): Promise<void> {
+  return invoke<void>('export_omo_config', { path });
+}
+
+export async function importOmoConfig(path: string): Promise<void> {
+  return invoke<void>('import_omo_config', { path });
+}
+
+export async function validateImport(path: string): Promise<OmoConfig> {
+  return invoke<OmoConfig>('validate_import', { path });
+}
+
+export async function getImportExportHistory(): Promise<BackupInfo[]> {
+  return invoke<BackupInfo[]>('get_import_export_history');
+}
+
 // ==================== 默认导出 ====================
 
 const tauriService = {
@@ -228,6 +253,12 @@ const tauriService = {
   listPresets,
   deletePreset,
   getPresetInfo,
+
+  // 导入/导出
+  exportOmoConfig,
+  importOmoConfig,
+  validateImport,
+  getImportExportHistory,
 };
 
 export default tauriService;
