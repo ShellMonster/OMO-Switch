@@ -396,7 +396,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 9. 模型库浏览器
+- [x] 9. 模型库浏览器
 
   **做什么**:
   - 创建 src/components/ModelBrowser/ModelBrowser.tsx

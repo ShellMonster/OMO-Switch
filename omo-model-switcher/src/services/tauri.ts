@@ -62,6 +62,25 @@ export interface ConfigUpdate {
 
 // ==================== 模型相关接口 ====================
 
+/**
+ * 模型定价信息（来自 models.dev API）
+ */
+export interface ModelPricing {
+  prompt?: number;
+  completion?: number;
+  currency?: string;
+}
+
+/**
+ * 模型详细信息（来自 models.dev API）
+ */
+export interface ModelInfo {
+  id: string;
+  name?: string;
+  description?: string;
+  pricing?: ModelPricing;
+}
+
 export interface OllamaModel {
   name: string;
   model: string;
@@ -144,6 +163,30 @@ export async function deleteModel(modelName: string): Promise<void> {
  */
 export async function pullModel(modelName: string): Promise<void> {
   return invoke<void>('pull_model', { modelName });
+}
+
+/**
+ * 获取可用模型列表（按提供商分组）
+ * 从本地缓存 ~/.cache/oh-my-opencode/provider-models.json 读取
+ */
+export async function getAvailableModels(): Promise<Record<string, string[]>> {
+  return invoke<Record<string, string[]>>('get_available_models');
+}
+
+/**
+ * 获取已连接的提供商列表
+ * 从本地缓存 ~/.cache/oh-my-opencode/connected-providers.json 读取
+ */
+export async function getConnectedProviders(): Promise<string[]> {
+  return invoke<string[]>('get_connected_providers');
+}
+
+/**
+ * 从 models.dev API 获取模型详细信息
+ * 包含描述、定价等信息
+ */
+export async function fetchModelsDev(): Promise<ModelInfo[]> {
+  return invoke<ModelInfo[]>('fetch_models_dev');
 }
 
 // ==================== OMO 配置命令 ====================
