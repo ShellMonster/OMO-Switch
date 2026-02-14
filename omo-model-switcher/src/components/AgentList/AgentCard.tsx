@@ -1,5 +1,5 @@
-import React from 'react';
-import { Edit2, Bot, Cpu, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Edit2, Bot, Cpu, Sparkles, Eye, Search, Hammer, BookOpen, Palette, Brain, Shield, Map, Wrench, FileText, Users } from 'lucide-react';
 import { cn } from '../common/cn';
 import { Button } from '../common/Button';
 import type { AgentConfig } from '../../services/tauri';
@@ -11,8 +11,58 @@ interface AgentCardProps {
 }
 
 /**
- * 将 agent 名称转换为可读格式
+ * Agent 描述信息映射
+ * 基于 OMO 系统中各 agent 的实际职责
  */
+const AGENT_DESCRIPTIONS: Record<string, string> = {
+  // 核心 agents
+  'sisyphus': '主执行者，负责执行工作计划中的任务，持续推进直到完成',
+  'sisyphus-junior': '轻量执行者，处理被委派的子任务，适合中小型工作',
+  'hephaestus': '代码工匠，专注于代码实现、构建和工程细节',
+  'oracle': '技术顾问，提供架构建议和深度技术分析',
+  'librarian': '知识检索员，搜索文档、API 参考和最佳实践',
+  'explore': '代码探索者，分析代码库结构、查找引用和模式',
+  'multimodal-looker': '多模态观察者，分析图片、PDF 等视觉内容',
+  'prometheus': '战略规划师，负责需求分析和工作计划制定',
+  'metis': '计划审查员，检查计划的完整性和潜在遗漏',
+  'momus': '质量审计员，严格验证计划的每个细节',
+  'atlas': '任务调度器，协调多任务并行执行和依赖管理',
+  // 通用 agents
+  'build': '构建代理，处理编译、打包和部署相关任务',
+  'plan': '计划代理，辅助任务规划和分解',
+  'OpenCode-Builder': 'OpenCode 构建器，核心代码生成和修改代理',
+  'general': '通用代理，处理未分类的一般性任务',
+  'frontend-ui-ux-engineer': '前端工程师，专注 UI/UX 设计和前端实现',
+  'document-writer': '文档撰写者，负责技术文档和说明编写',
+};
+
+/**
+ * Category 描述信息映射
+ */
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  'visual-engineering': '视觉工程类任务：前端、UI/UX、设计、样式、动画',
+  'ultrabrain': '高难度逻辑任务：复杂算法、架构设计、深度推理',
+  'deep': '深度研究任务：需要彻底理解后再行动的复杂问题',
+  'artistry': '创意类任务：非常规方案、创新设计、突破性思路',
+  'quick': '快速任务：单文件修改、拼写修复、简单调整',
+  'unspecified-low': '低复杂度未分类任务',
+  'unspecified-high': '高复杂度未分类任务',
+  'writing': '写作类任务：文档、技术写作、说明文档',
+  'visual': '视觉类任务：图表、可视化、界面相关',
+  'business-logic': '业务逻辑类任务：核心功能、数据处理、API',
+  'data-analysis': '数据分析类任务：统计、报表、数据处理',
+};
+
+/**
+ * 获取 agent 或 category 的描述
+ */
+export function getAgentDescription(name: string, isCategory = false): string {
+  if (isCategory) {
+    return CATEGORY_DESCRIPTIONS[name] || '自定义分类';
+  }
+  return AGENT_DESCRIPTIONS[name] || '自定义代理';
+}
+
 function formatAgentName(name: string): string {
   return name
     .split('-')
@@ -20,9 +70,6 @@ function formatAgentName(name: string): string {
     .join(' ');
 }
 
-/**
- * 根据 variant 获取对应的颜色样式
- */
 function getVariantStyle(variant?: string): { bg: string; text: string; border: string } {
   const styles: Record<string, { bg: string; text: string; border: string }> = {
     max: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
@@ -34,46 +81,62 @@ function getVariantStyle(variant?: string): { bg: string; text: string; border: 
   return styles[variant || 'none'] || styles.none;
 }
 
-/**
- * 根据 agent 名称获取图标
- */
 function getAgentIcon(agentName: string): React.ReactNode {
   const iconClass = "w-5 h-5";
-  
-  if (agentName.includes('build') || agentName.includes('hephaestus')) {
-    return <Cpu className={iconClass} />;
-  }
-  if (agentName.includes('oracle') || agentName.includes('plan')) {
-    return <Sparkles className={iconClass} />;
-  }
-  return <Bot className={iconClass} />;
+  const iconMap: Record<string, React.ReactNode> = {
+    'sisyphus': <Hammer className={iconClass} />,
+    'sisyphus-junior': <Wrench className={iconClass} />,
+    'hephaestus': <Cpu className={iconClass} />,
+    'oracle': <Brain className={iconClass} />,
+    'librarian': <BookOpen className={iconClass} />,
+    'explore': <Search className={iconClass} />,
+    'multimodal-looker': <Eye className={iconClass} />,
+    'prometheus': <Sparkles className={iconClass} />,
+    'metis': <Shield className={iconClass} />,
+    'momus': <Search className={iconClass} />,
+    'atlas': <Map className={iconClass} />,
+    'build': <Cpu className={iconClass} />,
+    'plan': <Sparkles className={iconClass} />,
+    'frontend-ui-ux-engineer': <Palette className={iconClass} />,
+    'document-writer': <FileText className={iconClass} />,
+    'general': <Users className={iconClass} />,
+  };
+  return iconMap[agentName] || <Bot className={iconClass} />;
 }
 
-/**
- * Agent 卡片组件
- * 
- * 显示单个 agent 的配置信息：
- * - agent 名称（格式化显示）
- * - 当前使用的模型
- * - variant 等级标签
- * - 编辑按钮
- */
 export function AgentCard({ agentName, config, onEdit }: AgentCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const variantStyle = getVariantStyle(config.variant);
   const icon = getAgentIcon(agentName);
   const displayName = formatAgentName(agentName);
-  
-  // 简化模型名称显示（只显示最后一部分）
+  const description = getAgentDescription(agentName);
   const shortModelName = config.model.split('/').pop() || config.model;
 
   return (
-    <div className={cn(
-      "group relative p-5 bg-white rounded-2xl border transition-all duration-200",
-      "hover:shadow-lg hover:border-indigo-300 hover:-translate-y-0.5",
-      "border-slate-200"
-    )}>
+    <div
+      className={cn(
+        "group relative p-5 bg-white rounded-2xl border transition-all duration-200",
+        "hover:shadow-lg hover:border-indigo-300 hover:-translate-y-0.5",
+        "border-slate-200"
+      )}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {/* Hover 预览浮层 */}
+      {showTooltip && (
+        <div className="absolute z-30 left-0 right-0 -top-2 -translate-y-full px-1">
+          <div className="bg-slate-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+            <p className="font-medium mb-0.5">{displayName}</p>
+            <p className="text-slate-300 leading-relaxed">{description}</p>
+            <p className="text-slate-400 mt-1 font-mono text-[10px]">{config.model}</p>
+            {/* 小三角 */}
+            <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-slate-800 rotate-45" />
+          </div>
+        </div>
+      )}
+
       {/* 头部：图标和编辑按钮 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className={cn(
           "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
           "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
@@ -92,22 +155,25 @@ export function AgentCard({ agentName, config, onEdit }: AgentCardProps) {
       </div>
 
       {/* Agent 名称 */}
-      <h3 className="font-semibold text-slate-800 mb-3 text-base">
+      <h3 className="font-semibold text-slate-800 mb-1 text-base">
         {displayName}
       </h3>
+
+      {/* 描述 */}
+      <p className="text-xs text-slate-400 mb-3 line-clamp-1">{description}</p>
 
       {/* 模型信息 */}
       <div className="space-y-2">
         <div className="flex items-center text-sm">
           <span className="text-slate-500 mr-2">模型:</span>
-          <span 
+          <span
             className="font-medium text-slate-700 truncate"
             title={config.model}
           >
             {shortModelName}
           </span>
         </div>
-        
+
         {/* Variant 标签 */}
         <div className="flex items-center text-sm">
           <span className="text-slate-500 mr-2">强度:</span>

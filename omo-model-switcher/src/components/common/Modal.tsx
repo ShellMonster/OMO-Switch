@@ -101,7 +101,7 @@ export function Modal({
         ref={contentRef}
         tabIndex={-1}
         className={cn(
-          'w-full bg-white rounded-2xl shadow-2xl overflow-hidden',
+          'w-full bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col',
           'animate-in zoom-in-95 slide-in-from-bottom-4 duration-200',
           sizeClasses[size]
         )}
@@ -131,11 +131,11 @@ export function Modal({
         )}
 
         {/* 内容区 */}
-        <div className="px-6 py-4">{children}</div>
+        <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0">{children}</div>
 
         {/* 底部按钮区 */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
             {footer}
           </div>
         )}
