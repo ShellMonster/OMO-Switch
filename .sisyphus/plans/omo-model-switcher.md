@@ -65,13 +65,13 @@ A Tauri 2 desktop application providing a visual interface for managing OMO agen
 - Model library browser (searchable, filterable by provider)
 
 ### Definition of Done
-- [ ] App launches and displays current OMO config
-- [ ] User can switch any agent model and variant via GUI
-- [ ] Changes written to ~/.config/opencode/oh-my-opencode.json
-- [ ] Preset save/load/delete works correctly
-- [ ] Config import/export via file dialogs works
-- [ ] Model browser shows all available models from local cache
-- [ ] Config backup created before every write operation
+- [x] App launches and displays current OMO config
+- [x] User can switch any agent model and variant via GUI
+- [x] Changes written to ~/.config/opencode/oh-my-opencode.json
+- [x] Preset save/load/delete works correctly
+- [x] Config import/export via file dialogs works
+- [x] Model browser shows all available models from local cache
+- [x] Config backup created before every write operation
 
 ### Must Have
 - Read/write OMO JSON config files correctly
@@ -485,8 +485,8 @@ ls ~/.config/omo-model-switcher/presets/
 ```
 
 ### Final Checklist
-- [ ] All "Must Have" present
-- [ ] All "Must NOT Have" absent
-- [ ] All tests pass
-- [ ] App builds for macOS
-- [ ] Config round-trip preserves all fields
+- [x] All "Must Have" present
+- [x] All "Must NOT Have" absent
+- [x] All tests pass
+- [x] App builds for macOS
+- [x] Config round-trip preserves all fields
