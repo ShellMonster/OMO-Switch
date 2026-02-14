@@ -271,6 +271,7 @@
     "configPathError": "无法获取配置文件路径",
     "update": {
       "title": "软件更新",
+      "description": "检查并安装 OMO Switch 的最新版本",
       "check": "检查更新",
       "checking": "正在检查更新...",
       "checkingShort": "检查中...",

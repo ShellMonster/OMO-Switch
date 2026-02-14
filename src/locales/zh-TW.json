@@ -271,6 +271,7 @@
     "configPathError": "無法取得設定檔案路徑",
     "update": {
       "title": "軟體更新",
+      "description": "檢查並安裝 OMO Switch 的最新版本",
       "check": "檢查更新",
       "checking": "正在檢查更新...",
       "checkingShort": "檢查中...",

@@ -270,6 +270,7 @@
     "configPathError": "Unable to retrieve config path",
     "update": {
       "title": "Software Update",
+      "description": "Check and install the latest version of OMO Switch",
       "check": "Check for Updates",
       "checking": "Checking for updates...",
       "checkingShort": "Checking...",

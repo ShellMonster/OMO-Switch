@@ -271,6 +271,7 @@
     "configPathError": "設定ファイルパスを取得できません",
     "update": {
       "title": "ソフトウェア更新",
+      "description": "OMO Switchの最新バージョンを確認・インストール",
       "check": "更新を確認",
       "checking": "更新を確認中...",
       "checkingShort": "確認中...",
