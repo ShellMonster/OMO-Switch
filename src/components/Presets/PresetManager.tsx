@@ -1,21 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Plus, Trash2, Download } from 'lucide-react';
+import { Bookmark, Plus, Trash2, Download, CheckCircle2 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
+import { toast } from '../common/Toast';
 import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo } from '../../services/tauri';
+import { usePresetStore } from '../../store/presetStore';
 
 interface PresetCardProps {
   name: string;
   agentCount: number;
   categoryCount: number;
+  isActive?: boolean;  // 是否为当前激活的预设
   onLoad: () => void;
   onDelete: () => void;
   loadLabel: string;
   deleteLabel: string;
 }
 
-function PresetCard({ name, agentCount, categoryCount, onLoad, onDelete, loadLabel, deleteLabel }: PresetCardProps) {
+function PresetCard({ name, agentCount, categoryCount, isActive, onLoad, onDelete, loadLabel, deleteLabel }: PresetCardProps) {
+  const { t } = useTranslation();
+  
   return (
     <div className="group bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md hover:border-indigo-200 transition-all duration-200">
       <div className="flex items-center gap-3">
@@ -31,18 +36,29 @@ function PresetCard({ name, agentCount, categoryCount, onLoad, onDelete, loadLab
           <span className="whitespace-nowrap">
             {agentCount} agents, {categoryCount} categories
           </span>
+          
+          {/* 启用中标签 */}
+          {isActive && (
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              {t('presetCard.active')}
+            </span>
+          )}
         </div>
         
         <div className="flex items-center gap-1 flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLoad}
-            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">{loadLabel}</span>
-          </Button>
+          {/* 只有非激活状态才显示加载按钮 */}
+          {!isActive && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLoad}
+              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">{loadLabel}</span>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -67,6 +83,7 @@ interface PresetWithInfo {
 
 export function PresetManager() {
   const { t } = useTranslation();
+  const { activePreset, setActivePreset, clearActivePreset } = usePresetStore();
   const [presets, setPresets] = useState<PresetWithInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -124,8 +141,11 @@ export function PresetManager() {
     try {
       setIsLoading(true);
       await loadPreset(name);
+      setActivePreset(name);
+      toast.success(t('presetManager.loadSuccess', { name }));
       setError(null);
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('presetManager.loadFailed'));
       setError(err instanceof Error ? err.message : t('presetManager.loadFailed'));
     } finally {
       setIsLoading(false);
@@ -138,11 +158,18 @@ export function PresetManager() {
     try {
       setIsLoading(true);
       await deletePreset(selectedPreset);
+      
+      if (activePreset === selectedPreset) {
+        clearActivePreset();
+      }
+      
+      toast.success(t('presetManager.deleteSuccess', { name: selectedPreset }));
       setShowDeleteModal(false);
       setSelectedPreset(null);
       await loadPresetList();
       setError(null);
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('presetManager.deleteFailed'));
       setError(err instanceof Error ? err.message : t('presetManager.deleteFailed'));
     } finally {
       setIsLoading(false);
@@ -198,6 +225,7 @@ export function PresetManager() {
               name={preset.name}
               agentCount={preset.agentCount}
               categoryCount={preset.categoryCount}
+              isActive={activePreset === preset.name}
               onLoad={() => handleLoadPreset(preset.name)}
               onDelete={() => openDeleteModal(preset.name)}
               loadLabel={t('presetManager.load')}
