@@ -9,6 +9,7 @@ import {
   FileText,
   Folder,
   Package,
+  MonitorSmartphone,
   CheckCircle2,
   AlertCircle,
   Download,
@@ -39,8 +40,9 @@ export function SettingsPage() {
   const [configPath, setConfigPath] = useState<string>(cachedConfigPath ?? '');
   const [isLoadingPath, setIsLoadingPath] = useState(!cachedConfigPath);
 
+  // 初始值设为 false，让页面先渲染，版本区域异步加载时再显示 loading
   const [versions, setVersions] = useState<VersionInfo[]>(cachedVersions ?? []);
-  const [isLoadingVersions, setIsLoadingVersions] = useState(!cachedVersions);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
 
   // 合并应用信息状态，减少 re-render
   const [appInfo, setAppInfo] = useState({
@@ -290,7 +292,7 @@ export function SettingsPage() {
         </div>
 
         <div className="p-6 space-y-4">
-          {isLoadingVersions ? (
+          {isLoadingVersions || versions.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
               <span className="ml-2 text-slate-500">{t('versionCheck.loading')}</span>
@@ -355,7 +357,7 @@ export function SettingsPage() {
             ))
           )}
 
-           {!isLoadingVersions && (
+           {!isLoadingVersions && versions.length > 0 && (
              <button
                onClick={() => loadVersions(true)}
                className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
@@ -449,7 +451,7 @@ export function SettingsPage() {
           {/* 应用信息区域 */}
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-              <Package className="w-7 h-7 text-white" />
+              <MonitorSmartphone className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
