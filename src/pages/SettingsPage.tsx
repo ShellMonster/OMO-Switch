@@ -217,6 +217,24 @@ export function SettingsPage() {
   // 获取当前语言
   const currentLanguage = i18n.language;
 
+  // 版本检测区域骨架屏组件
+  const VersionSkeleton = () => (
+    <div className="space-y-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="py-3 border-b border-slate-100 last:border-0 animate-pulse">
+          <div className="flex items-center justify-between mb-2">
+            <div className="h-5 w-24 bg-slate-200 rounded"></div>
+            <div className="h-4 w-16 bg-slate-200 rounded"></div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-4 w-32 bg-slate-200 rounded"></div>
+            <div className="h-4 w-28 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-6 max-w-3xl">
       {/* 页面标题 */}
@@ -292,11 +310,8 @@ export function SettingsPage() {
         </div>
 
         <div className="p-6 space-y-4">
-          {isLoadingVersions || versions.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
-              <span className="ml-2 text-slate-500">{t('versionCheck.loading')}</span>
-            </div>
+          {isLoadingVersions && versions.length === 0 ? (
+            <VersionSkeleton />
           ) : (
             versions.map((v) => (
               <div key={v.name} className="py-3 border-b border-slate-100 last:border-0">
