@@ -49,7 +49,7 @@ interface AgentModelInfo {
  * 配置状态总览仪表板
  * 
  * 设计理念：
- * - 工业/实用主义美学：深色主题配合霓虹色点缀
+ * - 浅色主题，与 App 整体风格一致
  * - 信息密度高但层次分明
  * - 使用卡片式布局组织不同类型的信息
  * - 表格形式清晰展示Agent模型分配
@@ -252,12 +252,12 @@ export function ConfigDashboard() {
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-slate-700 shadow-xl">
-        <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+      <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-white rounded-2xl border border-slate-200 shadow-xl">
+        <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10">
           <Database className="w-7 h-7 text-white" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">配置状态总览</h2>
+          <h2 className="text-xl font-bold text-slate-800">配置状态总览</h2>
           <p className="text-slate-400 mt-1">查看和管理您的 OMO 配置文件状态</p>
         </div>
       </div>
@@ -296,13 +296,13 @@ export function ConfigDashboard() {
       </div>
 
       {/* 配置文件元数据 */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
-              <FileText className="w-4 h-4 text-cyan-400" />
+              <FileText className="w-4 h-4 text-indigo-600" />
             </div>
-            <h3 className="font-semibold text-white">配置文件信息</h3>
+            <h3 className="font-semibold text-slate-800">配置文件信息</h3>
           </div>
         </div>
         
@@ -313,9 +313,9 @@ export function ConfigDashboard() {
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 配置文件路径
               </label>
-              <div className="flex items-start gap-2 p-3 bg-slate-800 rounded-xl border border-slate-700">
+              <div className="flex items-start gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
                 <FolderOpen className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
-                <code className="text-sm text-cyan-400 font-mono break-all">
+                <code className="text-sm text-indigo-600 font-mono break-all">
                   {configPath || '未找到配置文件'}
                 </code>
               </div>
@@ -326,9 +326,9 @@ export function ConfigDashboard() {
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 最后修改时间
               </label>
-              <div className="flex items-center gap-2 p-3 bg-slate-800 rounded-xl border border-slate-700">
+              <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
                 <Clock className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-200">
+                <span className="text-sm text-slate-700">
                   {configMetadata?.lastModified 
                     ? formatDateTime(configMetadata.lastModified)
                     : '未知'
@@ -342,9 +342,9 @@ export function ConfigDashboard() {
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 文件大小
               </label>
-              <div className="flex items-center gap-2 p-3 bg-slate-800 rounded-xl border border-slate-700">
+              <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
                 <Database className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-200">
+                <span className="text-sm text-slate-700">
                   {configMetadata?.size !== undefined 
                     ? formatFileSize(configMetadata.size)
                     : '未知'
@@ -357,14 +357,14 @@ export function ConfigDashboard() {
       </div>
 
       {/* Agent模型分配表格 */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
-                <Activity className="w-4 h-4 text-violet-400" />
+                <Activity className="w-4 h-4 text-violet-600" />
               </div>
-              <h3 className="font-semibold text-white">Agent 模型分配</h3>
+              <h3 className="font-semibold text-slate-800">Agent 模型分配</h3>
             </div>
             <span className="text-sm text-slate-400">
               共 {agentList.length} 个配置
@@ -375,7 +375,7 @@ export function ConfigDashboard() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-800/30 border-b border-slate-700">
+              <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   名称
                 </th>
@@ -390,12 +390,12 @@ export function ConfigDashboard() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-200">
               {agentList.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center">
+                      <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                         <Users className="w-6 h-6 text-slate-600" />
                       </div>
                       <p className="text-slate-500">暂无 Agent 配置</p>
@@ -406,7 +406,7 @@ export function ConfigDashboard() {
                 agentList.map((agent, index) => (
                   <tr 
                     key={agent.name}
-                    className="hover:bg-slate-800/30 transition-colors"
+                    className="hover:bg-slate-50 transition-colors"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <td className="px-6 py-4">
@@ -414,19 +414,19 @@ export function ConfigDashboard() {
                         <div className={cn(
                           'w-8 h-8 rounded-lg flex items-center justify-center',
                           agent.category === 'agent' 
-                            ? 'bg-cyan-500/10' 
-                            : 'bg-violet-500/10'
+                            ? 'bg-indigo-50' 
+                            : 'bg-violet-50'
                         )}>
                           <span className={cn(
                             'text-xs font-bold',
                             agent.category === 'agent'
-                              ? 'text-cyan-400'
-                              : 'text-violet-400'
+                              ? 'text-indigo-600'
+                              : 'text-violet-600'
                           )}>
                             {agent.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <span className="font-medium text-slate-200">
+                        <span className="font-medium text-slate-700">
                           {agent.name}
                         </span>
                       </div>
@@ -435,14 +435,14 @@ export function ConfigDashboard() {
                       <span className={cn(
                         'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
                         agent.category === 'agent'
-                          ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                          : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
+                          ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                          : 'bg-violet-50 text-violet-600 border border-violet-200'
                       )}>
                         {agent.category === 'agent' ? 'Agent' : '分类'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <code className="text-sm text-emerald-400 font-mono bg-emerald-500/10 px-2 py-1 rounded">
+                      <code className="text-sm text-emerald-600 font-mono bg-emerald-50 px-2 py-1 rounded">
                         {agent.model}
                       </code>
                     </td>
@@ -465,20 +465,20 @@ export function ConfigDashboard() {
       </div>
 
       {/* 已连接提供商 */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
-              <Server className="w-4 h-4 text-emerald-400" />
+              <Server className="w-4 h-4 text-emerald-600" />
             </div>
-            <h3 className="font-semibold text-white">已连接提供商</h3>
+            <h3 className="font-semibold text-slate-800">已连接提供商</h3>
           </div>
         </div>
 
         <div className="p-6">
           {providers.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8">
-              <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                 <Server className="w-6 h-6 text-slate-600" />
               </div>
               <p className="text-slate-500">暂无连接的提供商</p>
@@ -488,19 +488,19 @@ export function ConfigDashboard() {
               {providers.map((provider, index) => (
                 <div
                   key={provider}
-                  className="flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-slate-700 hover:border-emerald-500/30 transition-all group"
+                  className="flex items-center gap-3 p-4 bg-slate-100 rounded-xl border border-slate-200 hover:border-emerald-200 transition-all group"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-200 truncate">
+                    <p className="font-medium text-slate-700 truncate">
                       {provider}
                     </p>
                     <p className="text-xs text-slate-500">已连接</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-600 transition-colors" />
                 </div>
               ))}
             </div>
@@ -524,21 +524,21 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, color, subtitle }: StatCardProps) {
   const colorClasses = {
-    cyan: 'from-cyan-500 to-blue-600 shadow-cyan-500/20',
+    cyan: 'from-cyan-500 to-blue-600 shadow-indigo-500/10',
     violet: 'from-violet-500 to-purple-600 shadow-violet-500/20',
     emerald: 'from-emerald-500 to-teal-600 shadow-emerald-500/20',
     rose: 'from-rose-500 to-pink-600 shadow-rose-500/20',
   };
 
   const textColors = {
-    cyan: 'text-cyan-400',
-    violet: 'text-violet-400',
-    emerald: 'text-emerald-400',
-    rose: 'text-rose-400',
+    cyan: 'text-indigo-600',
+    violet: 'text-violet-600',
+    emerald: 'text-emerald-600',
+    rose: 'text-rose-600',
   };
 
   return (
-    <div className="relative p-6 bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden group hover:border-slate-600 transition-all">
+    <div className="relative p-6 bg-white rounded-2xl border border-slate-200 overflow-hidden group hover:border-indigo-300 transition-all">
       {/* 背景装饰 */}
       <div className={cn(
         'absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2',
@@ -588,16 +588,16 @@ function ValidationCard({ validation }: ValidationCardProps) {
 
   if (validation.valid) {
     return (
-      <div className="relative p-6 bg-gradient-to-br from-emerald-900/20 to-slate-900 rounded-2xl border border-emerald-500/30 overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="relative p-6 bg-gradient-to-br from-emerald-50 to-white rounded-2xl border border-emerald-200 overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative flex items-start justify-between">
           <div>
-            <p className="text-emerald-400/80 text-sm font-medium">配置状态</p>
+            <p className="text-emerald-600/80 text-sm font-medium">配置状态</p>
             <div className="flex items-center gap-2 mt-2">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-              <span className="text-2xl font-bold text-emerald-400">有效</span>
+              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              <span className="text-2xl font-bold text-emerald-600">有效</span>
             </div>
-            <p className="text-emerald-500/60 text-xs mt-1">配置格式正确</p>
+            <p className="text-emerald-600 text-xs mt-1">配置格式正确</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <Shield className="w-6 h-6 text-white" />
@@ -608,18 +608,18 @@ function ValidationCard({ validation }: ValidationCardProps) {
   }
 
   return (
-    <div className="relative p-6 bg-gradient-to-br from-rose-900/20 to-slate-900 rounded-2xl border border-rose-500/30 overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+    <div className="relative p-6 bg-gradient-to-br from-rose-50 to-white rounded-2xl border border-rose-200 overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="relative flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-rose-400/80 text-sm font-medium">配置状态</p>
+          <p className="text-rose-600 text-sm font-medium">配置状态</p>
           <div className="flex items-center gap-2 mt-2">
-            <XCircle className="w-6 h-6 text-rose-400 flex-shrink-0" />
-            <span className="text-2xl font-bold text-rose-400">无效</span>
+            <XCircle className="w-6 h-6 text-rose-600 flex-shrink-0" />
+            <span className="text-2xl font-bold text-rose-600">无效</span>
           </div>
           <div className="mt-2 space-y-1">
             {validation.errors.map((error, i) => (
-              <p key={i} className="text-rose-400/70 text-xs truncate">
+              <p key={i} className="text-rose-500 text-xs truncate">
                 • {error}
               </p>
             ))}
