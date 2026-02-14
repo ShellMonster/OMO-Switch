@@ -202,7 +202,8 @@
     "createFirst": "Click the button above to save current config",
     "cancel": "Cancel",
     "save": "Save",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "defaultPreset": "Default (Current)"
   },
   "presetSelector": {
     "default": "(Default)",

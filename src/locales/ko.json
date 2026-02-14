@@ -202,7 +202,8 @@
     "createFirst": "위 버튼을 클릭하여 현재 설정을 저장하세요",
     "cancel": "취소",
     "save": "저장",
-    "loading": "로딩 중..."
+    "loading": "로딩 중...",
+    "defaultPreset": "기본값 (현재)"
   },
   "presetSelector": {
     "default": "(기본값)",

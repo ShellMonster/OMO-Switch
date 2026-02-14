@@ -202,7 +202,8 @@
     "createFirst": "点击上方按钮保存当前配置",
     "cancel": "取消",
     "save": "保存",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "defaultPreset": "默认配置（当前）"
   },
   "presetSelector": {
     "default": "(默认配置)",
