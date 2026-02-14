@@ -171,6 +171,10 @@ export async function getPresetInfo(name: string): Promise<[number, number, stri
   return invoke<[number, number, string]>('get_preset_info', { name });
 }
 
+export async function updatePreset(name: string): Promise<void> {
+  return invoke<void>('update_preset', { name });
+}
+
 export interface BackupInfo {
   filename: string;
   path: string;
@@ -231,6 +235,7 @@ const tauriService = {
   listPresets,
   deletePreset,
   getPresetInfo,
+  updatePreset,
   exportOmoConfig,
   importOmoConfig,
   validateImport,

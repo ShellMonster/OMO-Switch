@@ -224,6 +224,41 @@ pub fn get_preset_info(name: &str) -> Result<(usize, usize, String), String> {
     Ok((agent_count, category_count, created_at))
 }
 
+/// 更新预设（将当前配置同步到预设文件）
+/// 读取当前 oh-my-opencode.json 配置，覆盖写入到指定的预设文件
+///
+/// 参数：
+/// - name: 预设名称（不含 .json 后缀）
+///
+/// 返回：
+/// - Ok(()) 更新成功
+/// - Err(String) 更新失败，包含错误信息
+pub fn update_preset(name: &str) -> Result<(), String> {
+    // 验证预设名称
+    if name.is_empty() {
+        return Err(i18n::tr_current("preset_name_empty"));
+    }
+
+    // 读取当前配置
+    let config = read_omo_config()?;
+
+    // 获取预设路径
+    let preset_path = get_preset_path(name)?;
+
+    // 检查预设是否存在
+    if !preset_path.exists() {
+        return Err(i18n::tr_current("preset_not_found"));
+    }
+
+    // 写入预设文件
+    let json_string = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
+    fs::write(&preset_path, json_string)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("write_preset_file_failed"), e))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

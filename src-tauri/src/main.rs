@@ -30,6 +30,7 @@ fn main() {
             commands::preset_commands::list_presets,
             commands::preset_commands::delete_preset,
             commands::preset_commands::get_preset_info,
+            commands::preset_commands::update_preset,
             commands::import_export_commands::export_omo_config,
             commands::import_export_commands::import_omo_config,
             commands::import_export_commands::validate_import,
