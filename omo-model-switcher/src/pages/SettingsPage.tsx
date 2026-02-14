@@ -19,8 +19,10 @@ import { cn } from '../components/common/cn';
 import { supportedLanguages } from '../i18n';
 import { checkVersions, VersionInfo } from '../services/tauri';
 
-// 模块级缓存：存储版本信息，实现 stale-while-revalidate 模式
 let cachedVersions: VersionInfo[] | null = null;
+let cachedConfigPath: string | null = null;
+let cachedAppVersion: string | null = null;
+let cachedAppName: string | null = null;
 
 /**
  * 设置页面组件
@@ -31,62 +33,49 @@ let cachedVersions: VersionInfo[] | null = null;
  */
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
-  const [configPath, setConfigPath] = useState<string>('');
-  const [isLoadingPath, setIsLoadingPath] = useState(true);
+  const [configPath, setConfigPath] = useState<string>(cachedConfigPath ?? '');
+  const [isLoadingPath, setIsLoadingPath] = useState(!cachedConfigPath);
 
-  const [versions, setVersions] = useState<VersionInfo[]>([]);
-  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [versions, setVersions] = useState<VersionInfo[]>(cachedVersions ?? []);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(!cachedVersions);
 
-  const [appVersion, setAppVersion] = useState('');
-  const [appName, setAppName] = useState('OMO Switch');
+  const [appVersion, setAppVersion] = useState(cachedAppVersion ?? '');
+  const [appName, setAppName] = useState(cachedAppName ?? 'OMO Switch');
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
-  // 获取应用版本号
   useEffect(() => {
-    const fetchAppVersion = async () => {
-      try {
-        const version = await getVersion();
-        setAppVersion(version);
-      } catch (error) {
-        console.error('Failed to get app version:', error);
-        setAppVersion('0.0.0');
-      }
-    };
-
-    fetchAppVersion();
+    if (cachedAppVersion) {
+      setAppVersion(cachedAppVersion);
+    } else {
+      getVersion().then(v => {
+        cachedAppVersion = v;
+        setAppVersion(v);
+      }).catch(() => setAppVersion('0.0.0'));
+    }
   }, []);
 
-  // 获取应用名称
   useEffect(() => {
-    const fetchAppName = async () => {
-      try {
-        const name = await getName();
-        setAppName(name);
-      } catch (error) {
-        console.error('Failed to get app name:', error);
-        setAppName('OMO Switch');
-      }
-    };
-
-    fetchAppName();
+    if (cachedAppName) {
+      setAppName(cachedAppName);
+    } else {
+      getName().then(n => {
+        cachedAppName = n;
+        setAppName(n);
+      }).catch(() => setAppName('OMO Switch'));
+    }
   }, []);
 
-  // 获取配置文件路径
   useEffect(() => {
-    const fetchConfigPath = async () => {
-      try {
-        setIsLoadingPath(true);
-        const path = await invoke<string>('get_config_path');
+    if (cachedConfigPath) {
+      setConfigPath(cachedConfigPath);
+      setIsLoadingPath(false);
+    } else {
+      setIsLoadingPath(true);
+      invoke<string>('get_config_path').then(path => {
+        cachedConfigPath = path;
         setConfigPath(path);
-      } catch (error) {
-        console.error('Failed to get config path:', error);
-        setConfigPath(t('settings.configPathError'));
-      } finally {
-        setIsLoadingPath(false);
-      }
-    };
-
-    fetchConfigPath();
+      }).catch(() => setConfigPath(t('settings.configPathError'))).finally(() => setIsLoadingPath(false));
+    }
   }, [t]);
 
   useEffect(() => {
