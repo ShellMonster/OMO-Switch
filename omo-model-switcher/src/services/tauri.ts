@@ -1,37 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
 
-/**
- * Tauri 服务层
- * 
- * 封装所有 Tauri invoke 调用，提供类型安全的 API 接口
- * 对应后端的命令模块：
- * - config_commands
- * - model_commands
- * - omo_config_commands
- */
-
-// ==================== Agent 配置相关接口 ====================
-
-/**
- * Agent 配置项
- */
 export interface AgentConfig {
   model: string;
   variant?: 'max' | 'high' | 'medium' | 'low' | 'none';
 }
 
-/**
- * Oh My OpenCode 完整配置结构
- */
 export interface OmoConfig {
   $schema?: string;
   agents: Record<string, AgentConfig>;
   categories: Record<string, AgentConfig>;
 }
 
-/**
- * Agent 更新请求
- */
 export interface AgentUpdateRequest {
   agentName: string;
   model: string;
@@ -60,20 +39,12 @@ export interface ConfigUpdate {
   max_tokens?: number;
 }
 
-// ==================== 模型相关接口 ====================
-
-/**
- * 模型定价信息（来自 models.dev API）
- */
 export interface ModelPricing {
   prompt?: number;
   completion?: number;
   currency?: string;
 }
 
-/**
- * 模型详细信息（来自 models.dev API）
- */
 export interface ModelInfo {
   id: string;
   name?: string;
@@ -112,48 +83,26 @@ export interface ModelDetails {
   };
 }
 
-// ==================== 配置命令 ====================
-
-/**
- * 获取应用配置
- */
 export async function getConfig(): Promise<AppConfig> {
   return invoke<AppConfig>('get_config');
 }
 
-/**
- * 更新应用配置
- */
 export async function updateConfig(config: ConfigUpdate): Promise<AppConfig> {
   return invoke<AppConfig>('update_config', { config });
 }
 
-/**
- * 重置配置为默认值
- */
 export async function resetConfig(): Promise<AppConfig> {
   return invoke<AppConfig>('reset_config');
 }
 
-// ==================== 模型命令 ====================
-
-/**
- * 获取本地模型列表
- */
 export async function listLocalModels(): Promise<OllamaModel[]> {
   return invoke<OllamaModel[]>('list_local_models');
 }
 
-/**
- * 获取模型详情
- */
 export async function getModelDetails(modelName: string): Promise<ModelDetails> {
   return invoke<ModelDetails>('get_model_details', { modelName });
 }
 
-/**
- * 删除本地模型
- */
 export async function deleteModel(modelName: string): Promise<void> {
   return invoke<void>('delete_model', { modelName });
 }
@@ -165,42 +114,22 @@ export async function pullModel(modelName: string): Promise<void> {
   return invoke<void>('pull_model', { modelName });
 }
 
-/**
- * 获取可用模型列表（按提供商分组）
- * 从本地缓存 ~/.cache/oh-my-opencode/provider-models.json 读取
- */
 export async function getAvailableModels(): Promise<Record<string, string[]>> {
   return invoke<Record<string, string[]>>('get_available_models');
 }
 
-/**
- * 获取已连接的提供商列表
- * 从本地缓存 ~/.cache/oh-my-opencode/connected-providers.json 读取
- */
 export async function getConnectedProviders(): Promise<string[]> {
   return invoke<string[]>('get_connected_providers');
 }
 
-/**
- * 从 models.dev API 获取模型详细信息
- * 包含描述、定价等信息
- */
 export async function fetchModelsDev(): Promise<ModelInfo[]> {
   return invoke<ModelInfo[]>('fetch_models_dev');
 }
 
-// ==================== OMO 配置命令 ====================
-
-/**
- * 获取 Oh My OpenCode 配置
- */
 export async function getOmoConfig(): Promise<OmoConfig> {
   return invoke<OmoConfig>('get_omo_config');
 }
 
-/**
- * 更新指定 Agent 的模型配置
- */
 export async function updateAgentModel(
   agentName: string,
   model: string,
@@ -209,16 +138,11 @@ export async function updateAgentModel(
   return invoke<OmoConfig>('update_agent_model', { agentName, model, variant });
 }
 
-/**
- * 批量更新多个 Agent 的模型配置
- */
 export async function updateAgentsBatch(
   updates: AgentUpdateRequest[]
 ): Promise<OmoConfig> {
   return invoke<OmoConfig>('update_agents_batch', { updates });
 }
-
-// ==================== 预设管理命令 ====================
 
 export interface PresetInfo {
   name: string;
@@ -245,8 +169,6 @@ export async function deletePreset(name: string): Promise<void> {
 export async function getPresetInfo(name: string): Promise<[number, string]> {
   return invoke<[number, string]>('get_preset_info', { name });
 }
-
-// ==================== 导入/导出命令 ====================
 
 export interface BackupInfo {
   filename: string;
@@ -284,20 +206,14 @@ const tauriService = {
   getModelDetails,
   deleteModel,
   pullModel,
-
-  // OMO 配置
   getOmoConfig,
   updateAgentModel,
   updateAgentsBatch,
-
-  // 预设管理
   savePreset,
   loadPreset,
   listPresets,
   deletePreset,
   getPresetInfo,
-
-  // 导入/导出
   exportOmoConfig,
   importOmoConfig,
   validateImport,

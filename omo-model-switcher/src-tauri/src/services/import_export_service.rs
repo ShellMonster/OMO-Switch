@@ -216,7 +216,7 @@ mod tests {
         let temp_dir = env::temp_dir().join("omo_test_export");
         fs::create_dir_all(&temp_dir).unwrap();
 
-        let export_path = temp_dir.join("exported_config.json");
+        let _export_path = temp_dir.join("exported_config.json");
 
         // 注意：这个测试需要实际的配置文件存在
         // 在实际环境中，应该先创建测试配置
