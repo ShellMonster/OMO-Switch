@@ -92,6 +92,7 @@ lazy_static! {
 /// 使用 ureq 发送 HTTP GET 请求，获取文件内容
 pub fn fetch_upstream_file(url: &str) -> Result<String, String> {
     let response = ureq::get(url)
+        .timeout(std::time::Duration::from_secs(3))
         .call()
         .map_err(|e| format!("HTTP 请求失败: {}", e))?;
 
