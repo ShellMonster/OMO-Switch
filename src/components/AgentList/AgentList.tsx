@@ -7,12 +7,13 @@ import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { toast } from '../common/Toast';
 import { cn } from '../common/cn';
-import { useConfigStore } from '../../store/configStore';
+import { usePreloadStore } from '../../store/preloadStore';
 import { usePresetStore } from '../../store/presetStore';
 import {
   updateAgentModel,
   updatePreset,
   savePreset,
+  saveConfigSnapshot,
   type AgentConfig,
 } from '../../services/tauri';
 
@@ -58,7 +59,7 @@ export function AgentList({
   extraStats,
 }: AgentListProps) {
   const { t } = useTranslation();
-  const { updateAgentConfig, updateCategoryConfig } = useConfigStore();
+  const { updateAgentInConfig, updateCategoryInConfig } = usePreloadStore();
   const { setActivePreset } = usePresetStore();
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -89,10 +90,13 @@ export function AgentList({
         await updateAgentModel(selectedAgent, model, variant);
         // 根据数据源类型调用不同的 store 方法
         if (dataSource === 'agents') {
-          updateAgentConfig(selectedAgent, { model, variant });
+          updateAgentInConfig(selectedAgent, { model, variant });
         } else {
-          updateCategoryConfig(selectedAgent, { model, variant });
+          updateCategoryInConfig(selectedAgent, { model, variant });
         }
+
+        // 保存配置快照，用于外部修改检测
+        await saveConfigSnapshot();
 
         // 如果有激活预设，同步更新到预设文件
         const activePreset = usePresetStore.getState().activePreset;
@@ -100,14 +104,16 @@ export function AgentList({
           try {
             await updatePreset(activePreset);
           } catch (error) {
-            console.error('Failed to sync preset:', error);
+            if (import.meta.env.DEV) {
+              console.error('Failed to sync preset:', error);
+            }
           }
         }
       } finally {
         setIsSaving(false);
       }
     },
-    [selectedAgent, dataSource, updateAgentConfig, updateCategoryConfig]
+    [selectedAgent, dataSource, updateAgentInConfig, updateCategoryInConfig]
   );
 
   /**
@@ -186,6 +192,19 @@ export function AgentList({
     <>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
+          <span className="text-sm text-slate-500">
+            {dataSource === 'agents'
+              ? t('agentList.total', { count: items.length })
+              : t('agentList.totalCategories', { count: items.length })
+            }
+            {extraStats && dataSource === 'agents' && (
+              <span className="ml-2 text-slate-400">
+                · {extraStats.count} {extraStats.label}
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
           {/* 只在 Agents 区域显示保存按钮 */}
           {dataSource === 'agents' && (
             <Button
@@ -199,22 +218,11 @@ export function AgentList({
               {t('agentList.saveAsTemplate')}
             </Button>
           )}
-          <span className="text-sm text-slate-500">
-            {dataSource === 'agents' 
-              ? t('agentList.total', { count: items.length })
-              : t('agentList.totalCategories', { count: items.length })
-            }
-            {extraStats && dataSource === 'agents' && (
-              <span className="ml-2 text-slate-400">
-                · {extraStats.count} {extraStats.label}
-              </span>
-            )}
-          </span>
+          <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
+            <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
+            {t('agentList.refresh')}
+          </Button>
         </div>
-        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-          {t('agentList.refresh')}
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

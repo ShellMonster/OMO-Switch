@@ -21,6 +21,7 @@ fn main() {
             commands::model_commands::get_connected_providers,
             commands::model_commands::fetch_models_dev,
             commands::config_commands::get_config_path,
+            commands::config_commands::get_omo_cache_dir,
             commands::config_commands::read_omo_config,
             commands::config_commands::write_omo_config,
             commands::config_commands::validate_config,
@@ -31,6 +32,8 @@ fn main() {
             commands::preset_commands::delete_preset,
             commands::preset_commands::get_preset_info,
             commands::preset_commands::update_preset,
+            commands::preset_commands::get_preset_meta,
+            commands::preset_commands::sync_preset_from_config,
             commands::provider_commands::get_provider_status,
             commands::provider_commands::set_provider_api_key,
             commands::provider_commands::delete_provider_auth,
@@ -44,6 +47,15 @@ fn main() {
             commands::i18n_commands::get_locale,
             commands::i18n_commands::set_locale,
             commands::version_commands::check_versions,
+            commands::config_cache_commands::save_config_snapshot,
+            commands::config_cache_commands::ensure_snapshot_exists,
+            commands::config_cache_commands::load_config_snapshot,
+            commands::config_cache_commands::compare_with_snapshot,
+            commands::config_cache_commands::merge_and_save,
+            commands::config_cache_commands::get_config_modification_time,
+            commands::upstream_sync_commands::check_upstream_update,
+            commands::upstream_sync_commands::get_builtin_presets,
+            commands::upstream_sync_commands::apply_builtin_preset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

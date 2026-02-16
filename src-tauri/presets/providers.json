@@ -1,0 +1,68 @@
+[
+  {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "npm": "@ai-sdk/anthropic",
+    "provider_type": "anthropic",
+    "env_prefix": "ANTHROPIC_",
+    "base_url": null,
+    "description": "Claude 系列模型官方 API",
+    "website_url": "https://console.anthropic.com",
+    "icon": "anthropic"
+  },
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "npm": "@ai-sdk/openai",
+    "provider_type": "openai",
+    "env_prefix": "OPENAI_",
+    "base_url": null,
+    "description": "GPT 系列模型官方 API",
+    "website_url": "https://platform.openai.com",
+    "icon": "openai"
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek",
+    "npm": "@ai-sdk/openai-compatible",
+    "provider_type": "anthropic",
+    "env_prefix": "ANTHROPIC_",
+    "base_url": "https://api.deepseek.com/v1",
+    "description": "DeepSeek V3/R1 模型，兼容 Anthropic API",
+    "website_url": "https://platform.deepseek.com",
+    "icon": "deepseek"
+  },
+  {
+    "id": "google",
+    "name": "Google AI",
+    "npm": "@ai-sdk/google",
+    "provider_type": "google",
+    "env_prefix": "GOOGLE_",
+    "base_url": null,
+    "description": "Gemini 系列模型官方 API",
+    "website_url": "https://aistudio.google.com",
+    "icon": "google"
+  },
+  {
+    "id": "openrouter",
+    "name": "OpenRouter",
+    "npm": "@openrouter/ai-sdk-provider",
+    "provider_type": "openrouter",
+    "env_prefix": "OPENROUTER_",
+    "base_url": null,
+    "description": "多模型聚合平台",
+    "website_url": "https://openrouter.ai",
+    "icon": "openrouter"
+  },
+  {
+    "id": "groq",
+    "name": "Groq",
+    "npm": "@ai-sdk/groq",
+    "provider_type": "groq",
+    "env_prefix": "GROQ_",
+    "base_url": null,
+    "description": "高速推理平台",
+    "website_url": "https://console.groq.com",
+    "icon": "groq"
+  }
+]

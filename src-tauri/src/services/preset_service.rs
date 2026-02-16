@@ -1,9 +1,68 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::config_service::{read_omo_config, write_omo_config};
 use crate::i18n;
+
+/// 预设元数据结构体
+/// 用于记录预设的创建时间、更新时间和版本信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresetMeta {
+    /// 创建时间 - Unix 时间戳（毫秒）
+    pub created_at: u64,
+    /// 更新时间 - Unix 时间戳（毫秒）
+    pub updated_at: u64,
+    /// 元数据版本号，当前为 1
+    pub version: u32,
+}
+
+impl PresetMeta {
+    /// 创建新的预设元数据
+    /// created_at 和 updated_at 都设置为当前时间
+    pub fn new() -> Self {
+        let now = current_timestamp_ms();
+        Self {
+            created_at: now,
+            updated_at: now,
+            version: 1,
+        }
+    }
+
+    /// 更新元数据（保留原始创建时间）
+    pub fn update(&mut self) {
+        self.updated_at = current_timestamp_ms();
+    }
+
+    /// 从 JSON 值解析元数据
+    pub fn from_value(value: &Value) -> Option<Self> {
+        serde_json::from_value(value.clone()).ok()
+    }
+
+    /// 转换为 JSON 值
+    pub fn to_value(&self) -> Value {
+        serde_json::to_value(self).unwrap_or(Value::Null)
+    }
+}
+
+impl Default for PresetMeta {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// 获取当前 Unix 时间戳（毫秒）
+fn current_timestamp_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// 元数据字段名称
+const META_FIELD: &str = "__meta__";
 
 /// 获取预设目录路径
 /// 返回 ~/.config/OMO-Switch/presets/ 的完整路径
@@ -28,15 +87,8 @@ pub fn get_preset_path(name: &str) -> Result<PathBuf, String> {
 
 /// 保存预设
 /// 将当前 OMO 配置保存为预设到 ~/.config/OMO-Switch/presets/{name}.json
-///
-/// 参数：
-/// - name: 预设名称（不含 .json 后缀）
-///
-/// 返回：
-/// - Ok(()) 保存成功
-/// - Err(String) 保存失败，包含错误信息
+/// 自动添加/更新 __meta__ 元数据字段
 pub fn save_preset(name: &str) -> Result<(), String> {
-    // 验证预设名称（不能为空，不能包含路径分隔符）
     if name.is_empty() {
         return Err(i18n::tr_current("preset_name_empty"));
     }
@@ -44,60 +96,84 @@ pub fn save_preset(name: &str) -> Result<(), String> {
         return Err(i18n::tr_current("preset_name_invalid_path"));
     }
 
-    // 读取当前 OMO 配置
     let config = read_omo_config()?;
 
-    // 确保预设目录存在
     let presets_dir = get_presets_dir()?;
     fs::create_dir_all(&presets_dir)
         .map_err(|e| format!("{}: {}", i18n::tr_current("create_preset_dir_failed"), e))?;
 
-    // 获取预设文件路径
     let preset_path = get_preset_path(name)?;
 
-    // 格式化 JSON（带缩进，便于人类阅读）
-    let json_string = serde_json::to_string_pretty(&config)
+    let preset_with_meta = build_preset_with_meta(&config, &preset_path)?;
+
+    let json_string = serde_json::to_string_pretty(&preset_with_meta)
         .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
 
-    // 写入预设文件
     fs::write(&preset_path, json_string)
         .map_err(|e| format!("{}: {}", i18n::tr_current("write_preset_file_failed"), e))?;
 
     Ok(())
 }
 
-/// 加载预设
-/// 读取预设并应用到 OMO 配置（先备份当前配置）
-///
-/// 参数：
-/// - name: 预设名称（不含 .json 后缀）
-///
-/// 返回：
-/// - Ok(()) 加载成功
-/// - Err(String) 加载失败，包含错误信息
+fn build_preset_with_meta(config: &Value, preset_path: &PathBuf) -> Result<Value, String> {
+    let mut preset = config.clone();
+
+    let meta = if preset_path.exists() {
+        let existing_meta = read_preset_meta_from_file(preset_path)?;
+        let mut meta = existing_meta.unwrap_or_else(PresetMeta::new);
+        meta.update();
+        meta
+    } else {
+        PresetMeta::new()
+    };
+
+    if let Some(obj) = preset.as_object_mut() {
+        obj.insert(META_FIELD.to_string(), meta.to_value());
+    }
+
+    Ok(preset)
+}
+
+fn read_preset_meta_from_file(preset_path: &PathBuf) -> Result<Option<PresetMeta>, String> {
+    if !preset_path.exists() {
+        return Ok(None);
+    }
+
+    let content =
+        fs::read_to_string(preset_path).map_err(|e| format!("读取预设文件失败: {}", e))?;
+
+    let preset: Value =
+        serde_json::from_str(&content).map_err(|e| format!("解析预设 JSON 失败: {}", e))?;
+
+    if let Some(meta_value) = preset.get(META_FIELD) {
+        Ok(PresetMeta::from_value(meta_value))
+    } else {
+        Ok(None)
+    }
+}
+
+/// 加载预设 - 读取预设并应用到 OMO 配置（过滤 __meta__ 字段）
 pub fn load_preset(name: &str) -> Result<(), String> {
-    // 验证预设名称
     if name.is_empty() {
         return Err(i18n::tr_current("preset_name_empty"));
     }
 
-    // 获取预设文件路径
     let preset_path = get_preset_path(name)?;
 
-    // 检查预设文件是否存在
     if !preset_path.exists() {
         return Err(i18n::tr_current("preset_not_found"));
     }
 
-    // 读取预设文件内容
     let content = fs::read_to_string(&preset_path)
         .map_err(|e| format!("{}: {}", i18n::tr_current("read_preset_file_failed"), e))?;
 
-    // 解析 JSON
-    let preset_config: Value = serde_json::from_str(&content)
+    let mut preset_config: Value = serde_json::from_str(&content)
         .map_err(|e| format!("{}: {}", i18n::tr_current("parse_preset_file_failed"), e))?;
 
-    // 写入 OMO 配置（write_omo_config 会自动创建备份）
+    if let Some(obj) = preset_config.as_object_mut() {
+        obj.remove(META_FIELD);
+    }
+
     write_omo_config(&preset_config)?;
 
     Ok(())
@@ -224,39 +300,48 @@ pub fn get_preset_info(name: &str) -> Result<(usize, usize, String), String> {
     Ok((agent_count, category_count, created_at))
 }
 
-/// 更新预设（将当前配置同步到预设文件）
-/// 读取当前 oh-my-opencode.json 配置，覆盖写入到指定的预设文件
-///
-/// 参数：
-/// - name: 预设名称（不含 .json 后缀）
-///
-/// 返回：
-/// - Ok(()) 更新成功
-/// - Err(String) 更新失败，包含错误信息
+/// 更新预设 - 将当前配置同步到预设文件（保留并更新 __meta__）
 pub fn update_preset(name: &str) -> Result<(), String> {
-    // 验证预设名称
     if name.is_empty() {
         return Err(i18n::tr_current("preset_name_empty"));
     }
 
-    // 读取当前配置
     let config = read_omo_config()?;
 
-    // 获取预设路径
     let preset_path = get_preset_path(name)?;
 
-    // 检查预设是否存在
     if !preset_path.exists() {
         return Err(i18n::tr_current("preset_not_found"));
     }
 
-    // 写入预设文件
-    let json_string = serde_json::to_string_pretty(&config)
+    let preset_with_meta = build_preset_with_meta(&config, &preset_path)?;
+
+    let json_string = serde_json::to_string_pretty(&preset_with_meta)
         .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
     fs::write(&preset_path, json_string)
         .map_err(|e| format!("{}: {}", i18n::tr_current("write_preset_file_failed"), e))?;
 
     Ok(())
+}
+
+/// 获取预设元数据
+pub fn get_preset_meta(name: &str) -> Result<PresetMeta, String> {
+    if name.is_empty() {
+        return Err(i18n::tr_current("preset_name_empty"));
+    }
+
+    let preset_path = get_preset_path(name)?;
+
+    if !preset_path.exists() {
+        return Err(i18n::tr_current("preset_not_found"));
+    }
+
+    read_preset_meta_from_file(&preset_path)?.ok_or_else(|| "预设缺少元数据".to_string())
+}
+
+/// 同步预设从当前配置 - 用于"忽略"时同步元数据
+pub fn sync_preset_from_config(name: &str) -> Result<(), String> {
+    update_preset(name)
 }
 
 #[cfg(test)]

@@ -223,7 +223,11 @@
     "cancel": "取消",
     "save": "儲存",
     "loading": "載入中...",
-    "defaultPreset": "預設配置（當前）"
+    "defaultPreset": "預設配置（當前）",
+    "builtinPresets": "內建預設",
+    "builtinPresetsDescription": "快速套用官方推薦的配置方案",
+    "builtin": "內建",
+    "apply": "套用"
   },
   "presetSelector": {
     "default": "(預設配置)",
@@ -235,7 +239,9 @@
     "saveFailed": "儲存預設失敗"
   },
   "presetCard": {
-    "active": "啟用中"
+    "active": "啟用中",
+    "lastUpdated": "最後更新",
+    "unknown": "未知"
   },
   "modelBrowser": {
     "title": "模型庫",
@@ -371,6 +377,29 @@
       "installManual": "更新已安裝，請手動重啟應用",
       "installed": "更新已安裝"
     }
+  },
+  "configChange": {
+    "title": "配置文件已被外部修改",
+    "description": "檢測到 {{count}} 處配置變更：",
+    "added": "新增",
+    "removed": "刪除",
+    "modified": "修改",
+    "moreChanges": "還有 {{count}} 項變更...",
+    "viewDetails": "查看詳情",
+    "hideDetails": "隱藏詳情",
+    "restoreFromCache": "從緩存恢復",
+    "restoreFromPreset": "從預設恢復",
+    "ignore": "忽略",
+    "restoreSuccess": "已從緩存恢復配置",
+    "restoreFailed": "恢復配置失敗",
+    "restoreFromPresetSuccess": "已從預設恢復配置",
+    "restoreFromPresetFailed": "從預設恢復失敗",
+    "ignored": "已忽略變更",
+    "summaryAdded": "新增 {{path}}",
+    "summaryRemoved": "刪除 {{path}}",
+    "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
+    "moreItems": "還有 {{count}} 項變更...",
+    "details": "變更詳情"
   },
   "errorBoundary": {
     "title": "應用程式遇到錯誤",

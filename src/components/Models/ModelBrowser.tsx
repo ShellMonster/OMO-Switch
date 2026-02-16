@@ -465,7 +465,7 @@ export function ModelBrowser({
           {models.error}
         </p>
         <button
-          onClick={() => refreshModels(true)}
+          onClick={() => refreshModels()}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           {t('modelBrowser.retry')}

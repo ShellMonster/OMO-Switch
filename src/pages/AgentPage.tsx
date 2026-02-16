@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, RefreshCw, ChevronDown, AlertCircle } from 'lucide-react';
 import { usePreloadStore } from '../store/preloadStore';
-import { getOmoConfig } from '../services/tauri';
+import { usePresetStore } from '../store/presetStore';
+import { getOmoConfig, mergeAndSave, updatePreset } from '../services/tauri';
 import { AgentList } from '../components/AgentList';
 import { PresetSelector } from '../components/Presets';
+import { ConfigChangeAlert } from '../components/ConfigChangeAlert';
 import { Button } from '../components/common/Button';
 import { SearchInput } from '../components/common/SearchInput';
 import { cn } from '../components/common/cn';
+import { useConfigChangeDetection } from '../hooks/useConfigChangeDetection';
 
 /**
  * 错误状态组件 - 显示加载失败信息和重试按钮
@@ -100,29 +103,69 @@ function LoadingSkeleton() {
 
 export function AgentPage() {
   const { t } = useTranslation();
-  const { omoConfig, models, loadOmoConfig, refreshModels } = usePreloadStore();
+  const { omoConfig, models, loadOmoConfig, refreshModels, softRefreshAll } = usePreloadStore();
 
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showChangeAlert, setShowChangeAlert] = useState(false);
+
+  const {
+    hasChanges,
+    changes,
+    checkChanges,
+    ignoreChanges,
+  } = useConfigChangeDetection();
 
   /**
-   * 组件挂载时确保数据已加载
-   * 只在数据不存在且无错误时加载配置
-   * preloadStore 已在 MainLayout 启动时预加载数据，不需要重复调用 refreshModels
+   * 组件挂载时刷新数据（乐观更新模式）
+   * 已有数据时静默后台刷新，首次加载时显示 loading
+   * 同时检测配置变更
    */
   useEffect(() => {
-    if (!omoConfig.data && !omoConfig.loading && !omoConfig.error) {
-      loadOmoConfig();
+    softRefreshAll();
+    checkChanges();
+  }, [softRefreshAll, checkChanges]);
+
+  useEffect(() => {
+    if (hasChanges && !showChangeAlert) {
+      setShowChangeAlert(true);
     }
-  }, [omoConfig.data, omoConfig.loading, omoConfig.error, loadOmoConfig]);
+  }, [hasChanges, showChangeAlert]);
+
+  const handleRestoreFromCache = useCallback(async () => {
+    await mergeAndSave();
+    loadOmoConfig();
+  }, [loadOmoConfig]);
+
+  const handleRestoreFromPreset = useCallback(() => {
+    setShowChangeAlert(false);
+  }, []);
+
+  const handleIgnoreChanges = useCallback(async () => {
+    await ignoreChanges();
+    const currentPreset = usePresetStore.getState().activePreset;
+    if (currentPreset) {
+      try {
+        await updatePreset(currentPreset);
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('同步预设失败:', err);
+        }
+      }
+    }
+  }, [ignoreChanges]);
+
+  const handleCloseAlert = useCallback(() => {
+    setShowChangeAlert(false);
+  }, []);
 
   /**
    * 统一刷新处理函数
    */
   const handleRefresh = useCallback(() => {
-    loadOmoConfig(true);
-    refreshModels(true);
+    loadOmoConfig();
+    refreshModels();
   }, [loadOmoConfig, refreshModels]);
 
   /**
@@ -130,7 +173,7 @@ export function AgentPage() {
    */
   const handlePresetLoad = useCallback(async () => {
     const config = await getOmoConfig();
-    loadOmoConfig(true);
+    loadOmoConfig();
     return config;
   }, [loadOmoConfig]);
 
@@ -144,7 +187,7 @@ export function AgentPage() {
     return (
       <ErrorState
         error={omoConfig.error || '配置文件不存在'}
-        onRetry={() => loadOmoConfig(true)}
+        onRetry={() => loadOmoConfig()}
       />
     );
   }
@@ -159,6 +202,16 @@ export function AgentPage() {
 
   return (
     <div className="space-y-6">
+      {showChangeAlert && changes.length > 0 && (
+        <ConfigChangeAlert
+          changes={changes}
+          onRestore={handleRestoreFromCache}
+          onRestoreFromPreset={handleRestoreFromPreset}
+          onIgnore={handleIgnoreChanges}
+          onClose={handleCloseAlert}
+        />
+      )}
+
       {/* 页面头部 */}
       <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
         <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">

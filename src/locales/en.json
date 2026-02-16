@@ -291,7 +291,11 @@
     "cancel": "Cancel",
     "save": "Save",
     "loading": "Loading...",
-    "defaultPreset": "Default (Current)"
+    "defaultPreset": "Default (Current)",
+    "builtinPresets": "Built-in Presets",
+    "builtinPresetsDescription": "Quickly apply official recommended configurations",
+    "builtin": "Built-in",
+    "apply": "Apply"
   },
   "presetSelector": {
     "default": "(Default)",
@@ -303,7 +307,9 @@
     "saveFailed": "Failed to save preset"
   },
   "presetCard": {
-    "active": "Active"
+    "active": "Active",
+    "lastUpdated": "Last Updated",
+    "unknown": "Unknown"
   },
   "modelBrowser": {
     "title": "Model Library",
@@ -354,6 +360,29 @@
     "noHistory": "No backup history",
     "error": "Error",
     "success": "Success"
+  },
+  "configChange": {
+    "title": "Configuration file has been externally modified",
+    "description": "Detected {{count}} configuration changes:",
+    "added": "Added",
+    "removed": "Removed",
+    "modified": "Modified",
+    "moreChanges": "{{count}} more changes...",
+    "viewDetails": "View Details",
+    "hideDetails": "Hide Details",
+    "restoreFromCache": "Restore from Cache",
+    "restoreFromPreset": "Restore from Preset",
+    "ignore": "Ignore",
+    "restoreSuccess": "Configuration restored from cache",
+    "restoreFailed": "Failed to restore configuration",
+    "restoreFromPresetSuccess": "Configuration restored from preset",
+    "restoreFromPresetFailed": "Failed to restore from preset",
+    "ignored": "Changes ignored",
+    "summaryAdded": "Added {{path}}",
+    "summaryRemoved": "Removed {{path}}",
+    "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
+    "moreItems": "{{count}} more changes...",
+    "details": "Change Details"
   },
   "settings": {
     "language": {

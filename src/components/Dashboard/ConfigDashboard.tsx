@@ -313,7 +313,7 @@ export function ConfigDashboard() {
             <p className="text-slate-500 text-sm">{omoConfig.error || t('configDashboard.configNotFound')}</p>
           </div>
           <button
-            onClick={() => loadOmoConfig(true)}
+            onClick={() => loadOmoConfig()}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />

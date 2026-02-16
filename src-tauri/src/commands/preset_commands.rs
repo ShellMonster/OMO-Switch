@@ -1,4 +1,5 @@
 use crate::services::preset_service;
+use crate::services::preset_service::PresetMeta;
 
 #[tauri::command]
 pub fn save_preset(name: String) -> Result<(), String> {
@@ -28,4 +29,16 @@ pub fn get_preset_info(name: String) -> Result<(usize, usize, String), String> {
 #[tauri::command]
 pub fn update_preset(name: String) -> Result<(), String> {
     preset_service::update_preset(&name)
+}
+
+/// 获取预设元数据（供 UI 显示更新时间）
+#[tauri::command]
+pub fn get_preset_meta(name: String) -> Result<PresetMeta, String> {
+    preset_service::get_preset_meta(&name)
+}
+
+/// 用当前配置同步到预设（用于"忽略"操作）
+#[tauri::command]
+pub fn sync_preset_from_config(name: String) -> Result<(), String> {
+    preset_service::sync_preset_from_config(&name)
 }

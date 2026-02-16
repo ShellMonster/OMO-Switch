@@ -61,6 +61,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     toggleSidebar 
   } = useUIStore();
   const startPreload = usePreloadStore(s => s.startPreload);
+  const checkUpstreamUpdate = usePreloadStore(s => s.checkUpstreamUpdate);
   
   // 从 Tauri API 动态读取应用名称
   const [appName, setAppName] = useState('OMO Switch');
@@ -77,12 +78,14 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // App 启动时延迟预加载数据（等待首屏渲染完成）
   // 优化启动体验：先显示 UI，500ms 后再开始加载数据
+  // 同时后台静默检查上游配置更新（不阻塞、不弹窗）
   useEffect(() => {
     const timer = setTimeout(() => {
       startPreload();
+      checkUpstreamUpdate();
     }, 500);
     return () => clearTimeout(timer);
-  }, [startPreload]);
+  }, [startPreload, checkUpstreamUpdate]);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -118,10 +121,10 @@ export function MainLayout({ children }: MainLayoutProps) {
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                  'w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-200',
                   'focus:outline-none focus:ring-2 focus:ring-indigo-500/20',
-                  'whitespace-nowrap', // 防止文字换行
-                  isSidebarCollapsed && 'justify-center',
+                  'whitespace-nowrap',
+                  isSidebarCollapsed ? 'gap-0 justify-center' : 'gap-3',
                   isActive
                     ? 'bg-indigo-50 text-indigo-700 font-medium'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -161,7 +164,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         onClick={toggleSidebar}
         className={cn(
           'absolute top-1/2 -translate-y-1/2 z-10',
-          'w-5 h-10 flex items-center justify-center',
+          'w-4 h-14 flex items-center justify-center',
           'bg-white border border-slate-200 border-l-0 rounded-r-lg shadow-sm',
           'text-slate-400 hover:text-slate-600 hover:bg-slate-50 hover:shadow',
           'transition-all duration-300',

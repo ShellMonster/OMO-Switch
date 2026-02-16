@@ -130,6 +130,10 @@ export async function getOmoConfig(): Promise<OmoConfig> {
   return invoke<OmoConfig>('read_omo_config');
 }
 
+export async function getOmoCacheDir(): Promise<string> {
+  return invoke<string>('get_omo_cache_dir');
+}
+
 export async function updateAgentModel(
   agentName: string,
   model: string,
@@ -149,6 +153,29 @@ export interface PresetInfo {
   agentCount: number;
   categoryCount: number;
   createdAt: string;
+}
+
+// ==================== 内置预设相关接口 ====================
+
+/**
+ * 内置预设信息
+ */
+export interface BuiltinPresetInfo {
+  id: string;          // 预设 ID（如 "official-default", "economy", "high-performance"）
+  name: string;        // 显示名称
+  description: string; // 描述
+  icon?: string;       // 图标名称（可选）
+}
+
+/**
+ * 内置预设详细数据
+ */
+export interface BuiltinPresetData {
+  id: string;
+  name: string;
+  description: string;
+  agents: Record<string, AgentConfig>;     // Agent 配置
+  categories: Record<string, AgentConfig>; // Category 配置
 }
 
 export async function savePreset(name: string): Promise<void> {
@@ -171,8 +198,76 @@ export async function getPresetInfo(name: string): Promise<[number, number, stri
   return invoke<[number, number, string]>('get_preset_info', { name });
 }
 
+/**
+ * 获取预设元数据（创建时间、更新时间、版本）
+ */
+export interface PresetMeta {
+  created_at: number;
+  updated_at: number;
+  version: number;
+}
+
+export async function getPresetMeta(name: string): Promise<PresetMeta> {
+  return invoke<PresetMeta>('get_preset_meta', { name });
+}
+
 export async function updatePreset(name: string): Promise<void> {
   return invoke<void>('update_preset', { name });
+}
+
+/**
+ * 获取内置预设列表
+ * 返回三套内置预设：官方默认、经济模式、高性能模式
+ */
+export async function getBuiltinPresets(): Promise<BuiltinPresetInfo[]> {
+  return invoke<BuiltinPresetInfo[]>('get_builtin_presets');
+}
+
+/**
+ * 应用指定内置预设到配置文件
+ * @param presetId 预设ID (official-default/economy/high-performance)
+ */
+export async function applyBuiltinPreset(presetId: string): Promise<void> {
+  return invoke<void>('apply_builtin_preset', { presetId });
+}
+
+// ==================== 上游配置同步接口 ====================
+
+/**
+ * Category 默认配置
+ * 对应上游配置中的 DEFAULT_CATEGORIES
+ */
+export interface CategoryDefault {
+  model: string;
+  variant?: string;
+}
+
+/**
+ * Fallback 条目
+ * 对应上游配置中的 FallbackEntry
+ */
+export interface FallbackEntry {
+  providers: string[];
+  model: string;
+  variant?: string;
+}
+
+/**
+ * 上游同步结果
+ */
+export interface UpstreamSyncResult {
+  has_update: boolean;
+  categories: Record<string, CategoryDefault>;
+  agent_requirements: Record<string, FallbackEntry[]>;
+  content_hash: string;
+}
+
+/**
+ * 检查上游配置是否有更新
+ * 从 GitHub Raw 获取最新配置并对比哈希
+ */
+export async function checkUpstreamUpdate(): Promise<UpstreamSyncResult> {
+  return invoke<UpstreamSyncResult>('check_upstream_update');
 }
 
 export interface BackupInfo {
@@ -196,6 +291,25 @@ export async function validateImport(path: string): Promise<OmoConfig> {
 
 export async function getImportExportHistory(): Promise<BackupInfo[]> {
   return invoke<BackupInfo[]>('get_import_export_history');
+}
+
+// ==================== 配置快照相关接口 ====================
+
+/**
+ * 保存当前配置到缓存快照
+ * 用于在外部修改检测时创建基线
+ * 注意：后端会自己读取配置文件，无需前端传递
+ */
+export async function saveConfigSnapshot(): Promise<void> {
+  return invoke<void>('save_config_snapshot');
+}
+
+/**
+ * 合并缓存快照与当前配置并保存
+ * 用于"从缓存恢复"功能
+ */
+export async function mergeAndSave(): Promise<void> {
+  return invoke<void>('merge_and_save');
 }
 
 // ==================== 版本检查接口 ====================
@@ -240,6 +354,14 @@ const tauriService = {
   importOmoConfig,
   validateImport,
   getImportExportHistory,
+
+  // 配置快照
+  saveConfigSnapshot,
+  mergeAndSave,
+
+  // 内置预设
+  getBuiltinPresets,
+  applyBuiltinPreset,
 };
 
 export default tauriService;

@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion, getName } from '@tauri-apps/api/app';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import {
   Globe,
   FileText,
@@ -20,11 +21,8 @@ import { toast } from '../components/common/Toast';
 import { supportedLanguages } from '../i18n';
 import { usePreloadStore } from '../store/preloadStore';
 import { useUpdaterStore } from '../store/updaterStore';
+import { UpstreamSyncPanel } from '../components/UpstreamSync/UpstreamSyncPanel';
 import appLogo from '../assets/logo.png';
-
-let cachedConfigPath: string | null = null;
-let cachedAppVersion: string | null = null;
-let cachedAppName: string | null = null;
 
 /**
  * 设置页面组件
@@ -35,13 +33,21 @@ let cachedAppName: string | null = null;
  */
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
-  const [configPath, setConfigPath] = useState<string>(cachedConfigPath ?? '');
-  const [isLoadingPath, setIsLoadingPath] = useState(!cachedConfigPath);
+  
+  // configPath 和 cacheDir 每次挂载都重新获取，不使用缓存
+  const [configPath, setConfigPath] = useState<string>('');
+  const [isLoadingPath, setIsLoadingPath] = useState(true);
+  const [cacheDir, setCacheDir] = useState<string>('');
+  const [isLoadingCacheDir, setIsLoadingCacheDir] = useState(true);
 
-  // 合并应用信息状态，减少 re-render
-  const [appInfo, setAppInfo] = useState({
-    version: cachedAppVersion ?? '',
-    name: cachedAppName ?? 'OMO Switch'
+  // 应用信息使用 useRef 缓存（运行期间不会变），但不是模块级变量
+  const appInfoCache = useRef<{ version: string; name: string } | null>(null);
+  const [appInfo, setAppInfo] = useState(() => {
+    // 初始化时检查 ref 缓存
+    if (appInfoCache.current) {
+      return appInfoCache.current;
+    }
+    return { version: '', name: 'OMO Switch' };
   });
 
 
@@ -57,41 +63,45 @@ export function SettingsPage() {
   const isLoadingVersions = versionsData.loading;
   const versions = versionsData.data || [];
 
-  // 合并 appVersion 和 appName 的加载逻辑，减少 useEffect 数量
+  // 获取应用信息，使用 useRef 缓存（运行期间不会变）
   useEffect(() => {
-    // 如果缓存都存在，直接使用
-    if (cachedAppVersion && cachedAppName) {
+    if (appInfoCache.current) {
+      setAppInfo(appInfoCache.current);
       return;
     }
     
-    // 并行获取应用信息，减少等待时间
-    Promise.all([
-      cachedAppVersion ? Promise.resolve(cachedAppVersion) : getVersion(),
-      cachedAppName ? Promise.resolve(cachedAppName) : getName()
-    ]).then(([version, name]) => {
-      cachedAppVersion = version;
-      cachedAppName = name;
-      setAppInfo({ version, name });
-    }).catch(() => {
-      setAppInfo({ version: '0.0.0', name: 'OMO Switch' });
-    });
+    Promise.all([getVersion(), getName()])
+      .then(([version, name]) => {
+        appInfoCache.current = { version, name };
+        setAppInfo({ version, name });
+      })
+      .catch(() => {
+        setAppInfo({ version: '0.0.0', name: 'OMO Switch' });
+      });
   }, []);
 
+  // 页面进入时刷新版本信息（乐观更新模式）
   useEffect(() => {
-    if (cachedConfigPath) {
-      setConfigPath(cachedConfigPath);
-      setIsLoadingPath(false);
-    } else {
-      setIsLoadingPath(true);
-      invoke<string>('get_config_path').then(path => {
-        cachedConfigPath = path;
-        setConfigPath(path);
-      }).catch(() => setConfigPath(t('settings.configPathError'))).finally(() => setIsLoadingPath(false));
-    }
+    refreshVersions();
+  }, [refreshVersions]);
+
+  useEffect(() => {
+    setIsLoadingPath(true);
+    invoke<string>('get_config_path')
+      .then(path => setConfigPath(path))
+      .catch(() => setConfigPath(t('settings.configPathError')))
+      .finally(() => setIsLoadingPath(false));
   }, [t]);
 
+  useEffect(() => {
+    setIsLoadingCacheDir(true);
+    invoke<string>('get_omo_cache_dir').then(dir => {
+      setCacheDir(dir);
+    }).catch(() => setCacheDir('')).finally(() => setIsLoadingCacheDir(false));
+  }, []);
+
   const handleRefreshVersions = () => {
-    refreshVersions(true);
+    refreshVersions();
   };
 
   // 处理语言切换
@@ -402,9 +412,22 @@ export function SettingsPage() {
                   <span className="text-sm">{t('common.loading')}</span>
                 </div>
               ) : (
-                <code className="block px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600 font-mono break-all">
-                  {configPath}
-                </code>
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg",
+                    configPath && "cursor-pointer hover:bg-slate-200 transition-colors"
+                  )}
+                  onClick={() => {
+                    if (configPath) {
+                      revealItemInDir(configPath).catch(() => {});
+                    }
+                  }}
+                  title={configPath ? "点击在文件管理器中打开" : undefined}
+                >
+                  <code className="text-sm text-slate-600 font-mono break-all">
+                    {configPath}
+                  </code>
+                </div>
               )}
             </div>
           </div>
@@ -416,13 +439,37 @@ export function SettingsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-slate-800 mb-1">{t('settings.about.cacheDirectory')}</p>
-              <code className="block px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600 font-mono break-all">
-                {configPath ? configPath.replace(/config\.json$/, 'cache/') : t('settings.configPathError')}
-              </code>
+              {isLoadingCacheDir ? (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin" />
+                  <span className="text-sm">{t('common.loading')}</span>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg",
+                    cacheDir && "cursor-pointer hover:bg-slate-200 transition-colors"
+                  )}
+                  onClick={() => {
+                    if (cacheDir) {
+                      const expandedPath = cacheDir.replace(/^~/, process.env.HOME || '~');
+                      revealItemInDir(expandedPath).catch(() => {});
+                    }
+                  }}
+                  title={cacheDir ? "点击在文件管理器中打开" : undefined}
+                >
+                  <code className="text-sm text-slate-600 font-mono break-all">
+                    {cacheDir || t('settings.configPathError')}
+                  </code>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* 上游配置同步卡片 */}
+      <UpstreamSyncPanel />
 
       {/* 软件更新卡片 */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

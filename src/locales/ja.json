@@ -223,7 +223,11 @@
     "cancel": "キャンセル",
     "save": "保存",
     "loading": "読み込み中...",
-    "defaultPreset": "デフォルト（現在）"
+    "defaultPreset": "デフォルト（現在）",
+    "builtinPresets": "内蔵プリセット",
+    "builtinPresetsDescription": "公式推奨の構成を素早く適用",
+    "builtin": "内蔵",
+    "apply": "適用"
   },
   "presetSelector": {
     "default": "(デフォルト)",
@@ -235,7 +239,9 @@
     "saveFailed": "プリセットの保存に失敗"
   },
   "presetCard": {
-    "active": "使用中"
+    "active": "使用中",
+    "lastUpdated": "最終更新",
+    "unknown": "不明"
   },
   "modelBrowser": {
     "title": "モデルライブラリ",
@@ -371,6 +377,29 @@
       "installManual": "更新をインストールしました。手動でアプリを再起動してください",
       "installed": "更新をインストールしました"
     }
+  },
+  "configChange": {
+    "title": "設定ファイルが外部から変更されました",
+    "description": "{{count}} 件の設定変更を検出：",
+    "added": "追加",
+    "removed": "削除",
+    "modified": "変更",
+    "moreChanges": "あと {{count}} 件の変更...",
+    "viewDetails": "詳細を表示",
+    "hideDetails": "詳細を非表示",
+    "restoreFromCache": "キャッシュから復元",
+    "restoreFromPreset": "プリセットから復元",
+    "ignore": "無視",
+    "restoreSuccess": "キャッシュから設定を復元しました",
+    "restoreFailed": "設定の復元に失敗しました",
+    "restoreFromPresetSuccess": "プリセットから設定を復元しました",
+    "restoreFromPresetFailed": "プリセットからの復元に失敗しました",
+    "ignored": "変更を無視しました",
+    "summaryAdded": "{{path}} を追加",
+    "summaryRemoved": "{{path}} を削除",
+    "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
+    "moreItems": "あと {{count}} 件の変更...",
+    "details": "変更の詳細"
   },
   "errorBoundary": {
     "title": "アプリケーションでエラーが発生しました",

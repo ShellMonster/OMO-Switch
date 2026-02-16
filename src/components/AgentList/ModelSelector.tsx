@@ -20,7 +20,6 @@ interface ModelSelectorProps {
 }
 
 const VARIANT_OPTIONS_KEYS = ['max', 'high', 'medium', 'low', 'none'] as const;
-const LAST_VARIANT_KEY = 'omo-switch-last-variant';
 
 function extractProvider(model: string): string {
   const slashIndex = model.indexOf('/');
@@ -57,8 +56,8 @@ export function ModelSelector({
       const provider = extractProvider(currentConfig.model);
       setSelectedProvider(provider);
       setSelectedModelName(extractModelName(currentConfig.model));
-      const savedVariant = localStorage.getItem(LAST_VARIANT_KEY);
-      setSelectedVariant(savedVariant as AgentConfig['variant'] || currentConfig.variant || 'none');
+      // variant 只从配置文件读取，不使用 localStorage
+      setSelectedVariant(currentConfig.variant || 'none');
     }
   }, [isOpen, currentConfig]);
 
@@ -97,7 +96,6 @@ export function ModelSelector({
     if (!fullModelPath) return;
     try {
       const variantToSave = selectedVariant || 'none';
-      localStorage.setItem(LAST_VARIANT_KEY, variantToSave);
       await onSave(fullModelPath, variantToSave);
       toast.success(t('modelSelector.updateSuccess', { name: agentName }));
       onClose();

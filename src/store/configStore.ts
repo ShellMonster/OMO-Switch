@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { OmoConfig, AgentConfig } from '../services/tauri';
 
 /**
  * 配置状态管理 Store
@@ -9,7 +8,6 @@ import type { OmoConfig, AgentConfig } from '../services/tauri';
  * - Ollama 连接配置
  * - 默认模型设置
  * - 系统参数配置
- * - OMO Agent 配置（来自 oh-my-opencode.json）
  */
 export interface ConfigState {
   // Ollama 连接配置
@@ -31,16 +29,6 @@ export interface ConfigState {
   setTemperature: (temp: number) => void;
   setTopP: (topP: number) => void;
   setMaxTokens: (tokens: number) => void;
-
-  // OMO Agent 配置
-  omoConfig: OmoConfig | null;
-  isLoadingOmoConfig: boolean;
-  omoConfigError: string | null;
-  setOmoConfig: (config: OmoConfig) => void;
-  updateAgentConfig: (agentName: string, config: AgentConfig) => void;
-  updateCategoryConfig: (categoryName: string, config: AgentConfig) => void;
-  setOmoConfigLoading: (loading: boolean) => void;
-  setOmoConfigError: (error: string | null) => void;
 
   // 重置配置
   reset: () => void;
@@ -73,38 +61,6 @@ export const useConfigStore = create<ConfigState>()(
       setTemperature: (temperature) => set({ temperature }),
       setTopP: (topP) => set({ topP }),
       setMaxTokens: (maxTokens) => set({ maxTokens }),
-
-      // OMO Agent 配置
-      omoConfig: null,
-      isLoadingOmoConfig: false,
-      omoConfigError: null,
-      setOmoConfig: (omoConfig) => set({ omoConfig }),
-       updateAgentConfig: (agentName, config) =>
-         set((state) => ({
-           omoConfig: state.omoConfig
-             ? {
-                 ...state.omoConfig,
-                 agents: {
-                   ...state.omoConfig.agents,
-                   [agentName]: config,
-                 },
-               }
-             : null,
-         })),
-       updateCategoryConfig: (categoryName, config) =>
-         set((state) => ({
-           omoConfig: state.omoConfig
-             ? {
-                 ...state.omoConfig,
-                 categories: {
-                   ...state.omoConfig.categories,
-                   [categoryName]: config,
-                 },
-               }
-             : null,
-         })),
-      setOmoConfigLoading: (isLoadingOmoConfig) => set({ isLoadingOmoConfig }),
-      setOmoConfigError: (omoConfigError) => set({ omoConfigError }),
 
       // 重置配置
       reset: () => set(defaultConfig),

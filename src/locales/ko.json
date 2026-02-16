@@ -223,7 +223,11 @@
     "cancel": "취소",
     "save": "저장",
     "loading": "로딩 중...",
-    "defaultPreset": "기본값 (현재)"
+    "defaultPreset": "기본값 (현재)",
+    "builtinPresets": "내장 프리셋",
+    "builtinPresetsDescription": "공식 추천 구성을 빠르게 적용",
+    "builtin": "내장",
+    "apply": "적용"
   },
   "presetSelector": {
     "default": "(기본값)",
@@ -235,7 +239,9 @@
     "saveFailed": "프리셋 저장 실패"
   },
   "presetCard": {
-    "active": "활성"
+    "active": "활성",
+    "lastUpdated": "마지막 업데이트",
+    "unknown": "알 수 없음"
   },
   "modelBrowser": {
     "title": "모델 라이브러리",
@@ -371,6 +377,29 @@
       "installManual": "업데이트 설치됨, 앱을 수동으로 재시작하세요",
       "installed": "업데이트 설치 완료"
     }
+  },
+  "configChange": {
+    "title": "구성 파일이 외부에서 수정되었습니다",
+    "description": "{{count}}개의 구성 변경 감지됨:",
+    "added": "추가됨",
+    "removed": "제거됨",
+    "modified": "수정됨",
+    "moreChanges": "{{count}}개의 추가 변경...",
+    "viewDetails": "자세히 보기",
+    "hideDetails": "숨기기",
+    "restoreFromCache": "캐시에서 복원",
+    "restoreFromPreset": "프리셋에서 복원",
+    "ignore": "무시",
+    "restoreSuccess": "캐시에서 구성 복원됨",
+    "restoreFailed": "구성 복원 실패",
+    "restoreFromPresetSuccess": "프리셋에서 구성 복원됨",
+    "restoreFromPresetFailed": "프리셋에서 복원 실패",
+    "ignored": "변경 무시됨",
+    "summaryAdded": "{{path}} 추가",
+    "summaryRemoved": "{{path}} 제거",
+    "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
+    "moreItems": "{{count}}개의 추가 변경...",
+    "details": "변경 세부정보"
   },
   "errorBoundary": {
     "title": "애플리케이션 오류 발생",

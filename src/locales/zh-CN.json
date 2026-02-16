@@ -292,7 +292,11 @@
     "cancel": "取消",
     "save": "保存",
     "loading": "加载中...",
-    "defaultPreset": "默认配置（当前）"
+    "defaultPreset": "默认配置（当前）",
+    "builtinPresets": "内置预设",
+    "builtinPresetsDescription": "快速应用官方推荐的配置方案",
+    "builtin": "内置",
+    "apply": "应用"
   },
   "presetSelector": {
     "default": "(默认配置)",
@@ -304,7 +308,9 @@
     "saveFailed": "保存预设失败"
   },
   "presetCard": {
-    "active": "启用中"
+    "active": "启用中",
+    "lastUpdated": "最后更新",
+    "unknown": "未知"
   },
   "modelBrowser": {
     "title": "模型库",
@@ -356,6 +362,29 @@
     "noHistory": "暂无备份记录",
     "error": "错误",
     "success": "成功"
+  },
+  "configChange": {
+    "title": "配置文件已被外部修改",
+    "description": "检测到 {{count}} 处配置变更：",
+    "added": "新增",
+    "removed": "删除",
+    "modified": "修改",
+    "moreChanges": "还有 {{count}} 项变更...",
+    "viewDetails": "查看详情",
+    "hideDetails": "隐藏详情",
+    "restoreFromCache": "从缓存恢复",
+    "restoreFromPreset": "从预设恢复",
+    "ignore": "忽略",
+    "restoreSuccess": "已从缓存恢复配置",
+    "restoreFailed": "恢复配置失败",
+    "restoreFromPresetSuccess": "已从预设恢复配置",
+    "restoreFromPresetFailed": "从预设恢复失败",
+    "ignored": "已忽略变更",
+    "summaryAdded": "新增 {{path}}",
+    "summaryRemoved": "删除 {{path}}",
+    "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
+    "moreItems": "还有 {{count}} 项变更...",
+    "details": "变更详情"
   },
   "settings": {
     "language": {
