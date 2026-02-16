@@ -7,7 +7,7 @@
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-FFC131.svg?style=flat-square)
 ![Rust](https://img.shields.io/badge/Rust-1.75-000000.svg?style=flat-square)
 
-[English](README_EN.md) | [简体中文](README.md) | [日本語](README_JP.md) | [한국어](README_KR.md)
+[English](README_EN.md) | [简体中文](README.md) | [繁體中文](README_TW.md) | [日本語](README_JP.md) | [한국어](README_KR.md)
 
 **OMO Switch** 是一款专为 [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode) 打造的桌面端模型配置管理工具。基于 **Tauri 2.0** 构建，支持可视化切换 AI 模型、管理预设配置、浏览模型库，并提供自动更新功能。
 
@@ -18,6 +18,7 @@
 > 💡 **核心功能**：
 > - **🤖 Agent 模型切换**：可视化管理所有 Agent 的模型配置
 > - **📊 配置总览**：实时查看配置状态、已连接提供商、模型分配
+> - **🔑 Provider 管理**：配置和管理 API Key 及模型提供商
 > - **💾 预设管理**：保存和加载不同的模型配置预设
 > - **🌐 模型库浏览**：查看可用模型、定价和能力信息
 > - **📥 导入导出**：备份和恢复配置文件
@@ -52,7 +53,12 @@
 - **模型分配表**：一览所有 Agent 的模型分配情况
 - **配置验证**：自动验证配置格式正确性
 
-### 3. 预设管理
+### 3. Provider 管理
+- **API Key 配置**：可视化管理各提供商的 API Key
+- **自定义提供商**：添加和配置自定义模型提供商
+- **连接状态**：实时检测提供商连接状态
+
+### 4. 预设管理
 - **快速保存**：一键保存当前配置为预设
 - **多预设切换**：支持创建多个预设，适应不同工作场景
 - **预设统计**：显示预设包含的 Agent 和 Category 数量
@@ -207,8 +213,8 @@ npm run tauri:build
 ### 5. 自动化构建 (GitHub Actions)
 推送带有版本号的标签即可触发自动构建：
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 ---

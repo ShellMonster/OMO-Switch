@@ -18,6 +18,7 @@
 > 💡 **Core Features**:
 > - **🤖 Agent Model Switching**: Visual management of all Agent model configurations
 > - **📊 Config Overview**: Real-time view of config status, connected providers, model assignments
+> - **🔑 Provider Management**: Configure and manage API Keys and model providers
 > - **💾 Preset Management**: Save and load different model configuration presets
 > - **🌐 Model Library**: Browse available models, pricing, and capabilities
 > - **📥 Import/Export**: Backup and restore configuration files
@@ -52,7 +53,12 @@
 - **Model Assignment Table**: Overview of all Agent model assignments
 - **Config Validation**: Automatic validation of configuration format
 
-### 3. Preset Management
+### 3. Provider Management
+- **API Key Configuration**: Visual management of API Keys for each provider
+- **Custom Providers**: Add and configure custom model providers
+- **Connection Status**: Real-time detection of provider connection status
+
+### 4. Preset Management
 - **Quick Save**: One-click save current configuration as preset
 - **Multiple Presets**: Support creating multiple presets for different work scenarios
 - **Preset Statistics**: Display Agent and Category counts in presets
