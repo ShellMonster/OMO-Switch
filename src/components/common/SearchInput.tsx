@@ -98,7 +98,7 @@ export function SearchInput({
         disabled={disabled}
         autoFocus={autoFocus}
         className={cn(
-          'w-full pl-10 pr-10 py-2.5',
+          'w-full pl-10 pr-10 py-2.5 h-11',
           'bg-white border rounded-xl',
           'text-sm text-slate-900 placeholder:text-slate-400',
           'transition-all duration-200',

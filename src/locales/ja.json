@@ -16,7 +16,8 @@
     "agentsSection": "agents",
     "categoriesSection": "categories",
     "agentsCount": "全 {{count}} エージェント",
-    "categoriesCount": "全 {{count}} カテゴリ"
+    "categoriesCount": "全 {{count}} カテゴリ",
+    "searchPlaceholder": "Agent名またはモデルを検索..."
   },
   "configPage": {
     "title": "設定ステータス概要",
@@ -29,7 +30,26 @@
   "modelsPage": {
     "title": "モデルライブラリ",
     "description": "AI モデルの閲覧・管理、プロバイダー・料金・機能情報の確認",
-    "currentSelection": "現在の選択"
+    "currentSelection": "現在の選択",
+    "tabs": {
+      "models": "モデル一覧",
+      "providers": "プロバイダー状態"
+    }
+  },
+  "providerStatus": {
+    "title": "プロバイダー状態",
+    "description": "すべてのプロバイダーの接続状態とモデル数を表示",
+    "loading": "プロバイダー情報を読み込み中...",
+    "loadFailed": "プロバイダー情報の読み込みに失敗しました",
+    "connected": "接続済み",
+    "notConnected": "未接続",
+    "models": "モデル",
+    "totalProviders": "プロバイダー合計",
+    "totalModels": "モデル合計",
+    "connectedProviders": "接続済みプロバイダー",
+    "notConnectedProviders": "未接続プロバイダー",
+    "noConnectedProviders": "接続済みプロバイダーがありません",
+    "noNotConnectedProviders": "未接続プロバイダーがありません"
   },
   "importExportPage": {
     "title": "インポート/エクスポート",
@@ -415,7 +435,8 @@
     "no": "いいえ",
     "ok": "OK",
     "cancel": "キャンセル",
-    "search": "検索..."
+    "search": "検索...",
+    "disabled": "無効"
   },
    "errorBoundary": {
      "title": "アプリケーションエラー",
@@ -446,6 +467,7 @@
        "updateCommand": "opencode.json を編集"
      },
       "checkUpdate": "更新を確認",
+      "checking": "確認中...",
       "updateSteps": "更新方法",
       "editConfig": "~/.config/opencode/opencode.json を編集:",
       "changeVersion": "{{from}} を変更",

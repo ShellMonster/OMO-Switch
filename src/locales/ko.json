@@ -16,7 +16,8 @@
     "agentsSection": "agents",
     "categoriesSection": "categories",
     "agentsCount": "총 {{count}}개 에이전트",
-    "categoriesCount": "총 {{count}}개 카테고리"
+    "categoriesCount": "총 {{count}}개 카테고리",
+    "searchPlaceholder": "Agent 이름 또는 모델 검색..."
   },
   "configPage": {
     "title": "설정 상태 개요",
@@ -29,7 +30,26 @@
   "modelsPage": {
     "title": "모델 라이브러리",
     "description": "AI 모델 탐색 및 관리, 제공업체·가격·기능 정보 확인",
-    "currentSelection": "현재 선택"
+    "currentSelection": "현재 선택",
+    "tabs": {
+      "models": "모델 목록",
+      "providers": "제공업체 상태"
+    }
+  },
+  "providerStatus": {
+    "title": "제공업체 상태",
+    "description": "모든 제공업체의 연결 상태와 모델 수량 확인",
+    "loading": "제공업체 데이터 로딩 중...",
+    "loadFailed": "제공업체 데이터 로딩 실패",
+    "connected": "연결됨",
+    "notConnected": "연결 안 됨",
+    "models": "모델",
+    "totalProviders": "총 제공업체",
+    "totalModels": "총 모델",
+    "connectedProviders": "연결된 제공업체",
+    "notConnectedProviders": "연결되지 않은 제공업체",
+    "noConnectedProviders": "연결된 제공업체가 없습니다",
+    "noNotConnectedProviders": "연결되지 않은 제공업체가 없습니다"
   },
   "importExportPage": {
     "title": "가져오기/남겨내기",
@@ -415,7 +435,8 @@
     "no": "아니오",
     "ok": "확인",
     "cancel": "취소",
-    "search": "검색..."
+    "search": "검색...",
+    "disabled": "비활성화됨"
   },
    "errorBoundary": {
      "title": "애플리케이션 오류",
@@ -446,6 +467,7 @@
        "updateCommand": "opencode.json 편집"
      },
       "checkUpdate": "업데이트 확인",
+      "checking": "확인 중...",
       "updateSteps": "업데이트 방법",
       "editConfig": "~/.config/opencode/opencode.json 편집:",
       "changeVersion": "{{from}} 변경",

@@ -15,11 +15,12 @@ import {
   Shield,
   Activity,
   ChevronRight,
-  FolderOpen
+  FolderOpen,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '../common/cn';
 import { getAgentLocalizedName } from '../AgentList/AgentCard';
-import type { OmoConfig } from '../../services/tauri';
+import { usePreloadStore } from '../../store/preloadStore';
 
 /**
  * 配置元数据接口
@@ -66,112 +67,89 @@ interface AgentModelInfo {
  */
 export function ConfigDashboard() {
   const { t } = useTranslation();
-  // 状态管理
+  
+  // 使用全局状态
+  const { omoConfig, models, loadOmoConfig } = usePreloadStore();
+  
+  // 仅保留元数据相关的本地状态（不在 preloadStore 中）
   const [configPath, setConfigPath] = useState<string>('');
-  const [omoConfig, setOmoConfig] = useState<OmoConfig | null>(null);
   const [configMetadata, setConfigMetadata] = useState<ConfigMetadata | null>(null);
-  const [providers, setProviders] = useState<string[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // 从全局状态获取 providers
+  const providers = models.providers || [];
 
   /**
-   * 加载所有配置相关数据
+   * 加载元数据（配置路径、文件信息、验证）
+   * 这些数据不在 preloadStore 中，需要单独加载
    */
   useEffect(() => {
-    const loadConfigData = async () => {
-      setIsLoading(true);
-      setError(null);
-
+    const loadMetadata = async () => {
+      // 加载配置文件路径
       try {
-        // 并行加载所有数据
-        const [pathResult, configResult, providersResult] = await Promise.allSettled([
-          invoke<string>('get_config_path'),
-          invoke<OmoConfig>('read_omo_config'),
-          invoke<string[]>('get_connected_providers'),
-        ]);
-
-        // 处理配置文件路径
-        if (pathResult.status === 'fulfilled') {
-          setConfigPath(pathResult.value);
-          
-          // 尝试获取文件元数据
-          try {
-            const metadata = await invoke<ConfigMetadata>('get_config_metadata');
-            setConfigMetadata(metadata);
-          } catch {
-            // 如果后端没有实现，使用模拟数据
-            setConfigMetadata({
-              path: pathResult.value,
-              lastModified: new Date().toISOString(),
-              size: 0,
-            });
-          }
-        }
-
-        // 处理配置数据
-        if (configResult.status === 'fulfilled') {
-          setOmoConfig(configResult.value);
-          
-          // 验证配置
-          try {
-            await invoke('validate_config', { config: configResult.value });
-            setValidation({ valid: true, errors: [] });
-          } catch (err) {
-            setValidation({ 
-              valid: false, 
-              errors: [err instanceof Error ? err.message : t('configDashboard.configValidationFailed')] 
-            });
-          }
-        } else {
-          setValidation({ 
-            valid: false, 
-            errors: [configResult.reason instanceof Error ? configResult.reason.message : t('configDashboard.cannotReadConfig')] 
+        const path = await invoke<string>('get_config_path');
+        setConfigPath(path);
+        
+        // 尝试获取文件元数据
+        try {
+          const metadata = await invoke<ConfigMetadata>('get_config_metadata');
+          setConfigMetadata(metadata);
+        } catch {
+          setConfigMetadata({
+            path: path,
+            lastModified: new Date().toISOString(),
+            size: 0,
           });
         }
-
-        // 处理提供商数据
-        if (providersResult.status === 'fulfilled') {
-          setProviders(providersResult.value);
+      } catch {
+        // 路径获取失败，忽略
+      }
+      
+      // 验证配置
+      if (omoConfig.data) {
+        try {
+          await invoke('validate_config', { config: omoConfig.data });
+          setValidation({ valid: true, errors: [] });
+        } catch (err) {
+          setValidation({ 
+            valid: false, 
+            errors: [err instanceof Error ? err.message : t('configDashboard.configValidationFailed')] 
+          });
         }
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t('configDashboard.loadConfigFailed'));
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    loadConfigData();
-  }, []);
+    loadMetadata();
+  }, [omoConfig.data, t]);
 
   /**
    * 获取Agent模型分配列表
    */
   const getAgentModelList = (): AgentModelInfo[] => {
-    if (!omoConfig) return [];
+    const config = omoConfig.data;
+    if (!config) return [];
 
     const agents: AgentModelInfo[] = [];
 
     // 处理agents
-    if (omoConfig.agents) {
-      Object.entries(omoConfig.agents).forEach(([name, config]) => {
+    if (config.agents) {
+      Object.entries(config.agents).forEach(([name, configItem]) => {
         agents.push({
           name,
-          model: config.model,
-          variant: config.variant,
+          model: configItem.model,
+          variant: configItem.variant,
           category: 'agent',
         });
       });
     }
 
     // 处理categories
-    if (omoConfig.categories) {
-      Object.entries(omoConfig.categories).forEach(([name, config]) => {
+    if (config.categories) {
+      Object.entries(config.categories).forEach(([name, configItem]) => {
         agents.push({
           name,
-          model: config.model,
-          variant: config.variant,
+          model: configItem.model,
+          variant: configItem.variant,
           category: 'category',
         });
       });
@@ -184,13 +162,14 @@ export function ConfigDashboard() {
    * 获取已配置的模型数量（去重）
    */
   const getUniqueModelCount = (): number => {
-    if (!omoConfig) return 0;
-    const models = new Set<string>();
+    const config = omoConfig.data;
+    if (!config) return 0;
+    const modelSet = new Set<string>();
     
-    Object.values(omoConfig.agents || {}).forEach(agent => models.add(agent.model));
-    Object.values(omoConfig.categories || {}).forEach(cat => models.add(cat.model));
+    Object.values(config.agents || {}).forEach((agent) => modelSet.add(agent.model));
+    Object.values(config.categories || {}).forEach((cat) => modelSet.add(cat.model));
     
-    return models.size;
+    return modelSet.size;
   };
 
   /**
@@ -218,23 +197,111 @@ export function ConfigDashboard() {
     });
   };
 
-  // 加载状态
-  if (isLoading) {
+  // 加载中状态
+  if (omoConfig.loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-12 h-12">
-            <div className="absolute inset-0 border-4 border-slate-200 rounded-full" />
-            <div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-white rounded-2xl border border-slate-200">
+          <div className="w-14 h-14 bg-slate-200 rounded-xl animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
+            <div className="h-4 w-48 bg-slate-200 rounded animate-pulse" />
           </div>
-          <p className="text-slate-500 text-sm">{t('configDashboard.loading')}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="p-6 bg-white rounded-2xl border border-slate-200">
+              <div className="flex items-start justify-between">
+                <div className="space-y-3">
+                  <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-8 w-12 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
+                </div>
+                <div className="w-12 h-12 bg-slate-200 rounded-xl animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
+              <div className="h-5 w-24 bg-slate-200 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
+              <div className="h-12 w-full bg-slate-100 rounded-xl border border-slate-200 animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
+                <div className="h-12 w-full bg-slate-100 rounded-xl border border-slate-200 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
+                <div className="h-12 w-full bg-slate-100 rounded-xl border border-slate-200 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
+                <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
+              </div>
+              <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                  <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
+                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
+              <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 p-4 bg-slate-100 rounded-xl border border-slate-200">
+                  <div className="w-10 h-10 bg-slate-200 rounded-lg animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                    <div className="h-3 w-12 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                  <div className="w-4 h-4 bg-slate-200 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // 错误状态
-  if (error) {
+  // 错误状态 - 带重试按钮
+  if (omoConfig.error || !omoConfig.data) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4 text-center max-w-md">
@@ -243,8 +310,15 @@ export function ConfigDashboard() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('configDashboard.loadFailed')}</h3>
-            <p className="text-slate-500 text-sm">{error}</p>
+            <p className="text-slate-500 text-sm">{omoConfig.error || t('configDashboard.configNotFound')}</p>
           </div>
+          <button
+            onClick={() => loadOmoConfig(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t('common.retry')}
+          </button>
         </div>
       </div>
     );

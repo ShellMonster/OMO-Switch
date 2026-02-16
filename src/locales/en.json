@@ -3,6 +3,7 @@
     "agent": "Agent Switch",
     "config": "Config Overview",
     "preset": "Preset Manager",
+    "provider": "Provider",
     "models": "Model Library",
     "importExport": "Import/Export",
     "settings": "Settings"
@@ -16,7 +17,9 @@
     "agentsSection": "agents",
     "categoriesSection": "categories",
     "agentsCount": "{{count}} Agents total",
-    "categoriesCount": "{{count}} Categories total"
+    "categoriesCount": "{{count}} Categories total",
+    "categoriesCountShort": "categories",
+    "searchPlaceholder": "Search Agent name or model..."
   },
   "configPage": {
     "title": "Config Status Overview",
@@ -26,10 +29,92 @@
     "title": "Preset Manager",
     "description": "Create and manage your model preset configurations"
   },
+  "provider": {
+    "title": "Provider Management",
+    "description": "Manage OpenCode provider configurations",
+    "configuration": "Configuration",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter API Key",
+    "apiKeyHint": "Get your API Key from {{website}}",
+    "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "API endpoint",
+    "baseUrlHint": "Leave empty to use default endpoint for official API",
+    "save": "Save Configuration",
+    "saveSuccess": "Configuration saved",
+    "saveFailed": "Failed to save configuration",
+    "clear": "Clear Configuration",
+    "clearSuccess": "Configuration cleared",
+    "clearFailed": "Failed to clear configuration",
+    "active": "Active",
+    "currentProvider": "Current Provider: {{name}}",
+    "loadFailed": "Failed to load provider data",
+    "visitWebsite": "Visit Website",
+    "tabs": {
+      "status": "Connection Status",
+      "config": "Provider Config"
+    },
+    "saveAndTest": "Save & Test",
+    "testing": "Testing...",
+    "testSuccess": "Connection successful! API Key is valid",
+    "testFailed": "Connection failed, please check your API Key",
+    "testConnection": "Test Connection",
+    "modelsAutoHint": "Model list will be fetched automatically from provider, no manual config needed",
+    "configured": "Configured",
+    "builtin": "Builtin Providers",
+    "builtinTag": "Builtin",
+    "customTag": "Custom",
+    "addCustom": "Add Custom Provider",
+    "addCustomDesc": "Add your own provider configuration",
+    "addCustomSuccess": "Custom provider added successfully",
+    "addCustomFailed": "Failed to add custom provider",
+    "customName": "Provider Name",
+    "customNamePlaceholder": "e.g., aicodewith",
+    "customNameRequired": "Please enter provider name",
+    "apiKeyRequired": "Please enter API Key",
+    "baseUrlRequired": "Please enter Base URL",
+    "noConfigured": "No configured providers",
+    "noBuiltin": "All builtin providers are configured",
+    "edit": "Edit",
+    "deleteConfirm": "Are you sure you want to delete the authorization for provider \"{{name}}\"?",
+    "confirmDelete": "Confirm Delete",
+    "confirmDeleteMessage": "Are you sure you want to delete the authorization for \"{{name}}\"?",
+    "confirmDeleteHint": "You will need to reconfigure the API Key after deletion",
+    "deleteSuccess": "Provider authorization deleted",
+    "deleteFailed": "Failed to delete provider authorization",
+    "delete": "Delete",
+    "configure": "Configure",
+    "setApiKey": "Set API Key",
+    "setApiKeyDesc": "Set API Key for {{name}} to enable this provider",
+    "presets": {
+      "anthropicDesc": "Official Claude series model API",
+      "openaiDesc": "Official GPT series model API",
+      "deepseekDesc": "DeepSeek V3/R1 models, Anthropic API compatible",
+      "googleDesc": "Official Gemini series model API"
+    }
+  },
   "modelsPage": {
     "title": "Model Library",
     "description": "Browse and manage your AI models, view provider, pricing and capability info",
-    "currentSelection": "Current Selection"
+    "currentSelection": "Current Selection",
+    "tabs": {
+      "models": "Model List",
+      "providers": "Provider Status"
+    }
+  },
+  "providerStatus": {
+    "title": "Provider Status",
+    "description": "View connection status and model count for all providers",
+    "loading": "Loading provider data...",
+    "loadFailed": "Failed to load provider data",
+    "connected": "Connected",
+    "notConnected": "Not Connected",
+    "models": "models",
+    "totalProviders": "Total Providers",
+    "totalModels": "Total Models",
+    "connectedProviders": "Connected Providers",
+    "notConnectedProviders": "Not Connected Providers",
+    "noConnectedProviders": "No connected providers",
+    "noNotConnectedProviders": "No unconnected providers"
   },
   "importExportPage": {
     "title": "Import/Export",
@@ -45,7 +130,9 @@
     "loadConfigFailed": "Failed to load configuration",
     "retry": "Retry",
     "total": "{{count}} Agents total",
-    "refresh": "Refresh"
+    "totalCategories": "{{count}} categories",
+    "refresh": "Refresh",
+    "saveAsTemplate": "Save as Template"
   },
   "agentCard": {
     "edit": "Edit",
@@ -119,20 +206,21 @@
      "data-analysis": "Data Analysis",
      "custom": "Custom Category"
    },
-   "modelSelector": {
-    "title": "Edit {{name}}",
-    "intensityLevel": "Intensity Level",
-    "selectModel": "Select Model",
-    "searchPlaceholder": "Search model name or provider...",
-    "noModels": "No matching models found",
-    "currentSelection": "Current Selection",
-    "model": "Model:",
-    "intensity": "Intensity:",
-    "cancel": "Cancel",
-    "save": "Save",
-    "updateSuccess": "Updated {{name}} model configuration",
-    "saveFailed": "Save failed"
-  },
+    "modelSelector": {
+     "title": "Edit {{name}}",
+     "intensityLevel": "Intensity Level",
+     "selectModel": "Select Model",
+     "searchPlaceholder": "Search model name or provider...",
+     "noModels": "No matching models found",
+     "currentSelection": "Current Selection",
+     "model": "Model:",
+     "intensity": "Intensity:",
+     "provider": "Provider",
+     "cancel": "Cancel",
+     "save": "Save",
+     "updateSuccess": "Updated {{name}} model configuration",
+     "saveFailed": "Save failed"
+   },
   "variantOptions": {
     "max": "max - Maximum intensity",
     "high": "high - High intensity",
@@ -187,7 +275,7 @@
     "presetNamePlaceholder": "e.g., Development Environment Config",
     "saveDescription": "Will save all current Agent model configurations",
     "presetNameEmpty": "Preset name cannot be empty",
-    "load": "Load",
+    "load": "Activate",
     "delete": "Delete",
     "confirmDelete": "Delete Preset",
     "deleteMessage": "Are you sure you want to delete preset \"{{name}}\"? This action cannot be undone.",
@@ -261,7 +349,9 @@
     "selectFileImport": "Select file to import",
     "backupHistory": "Backup History",
     "backupHistoryDesc": "View auto-backup records",
+    "viewBackups": "View backup history",
     "noBackups": "No backup records",
+    "noHistory": "No backup history",
     "error": "Error",
     "success": "Success"
   },
@@ -414,7 +504,8 @@
     "no": "No",
     "ok": "OK",
     "cancel": "Cancel",
-    "search": "Search..."
+    "search": "Search...",
+    "disabled": "Disabled"
   },
    "errorBoundary": {
      "title": "Application Error",
@@ -445,6 +536,7 @@
        "updateCommand": "Edit opencode.json"
      },
       "checkUpdate": "Check for Updates",
+      "checking": "Checking...",
       "updateSteps": "Update Method",
       "editConfig": "Edit ~/.config/opencode/opencode.json:",
       "changeVersion": "Change {{from}} to",

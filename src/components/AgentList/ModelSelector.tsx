@@ -20,6 +20,7 @@ interface ModelSelectorProps {
 }
 
 const VARIANT_OPTIONS_KEYS = ['max', 'high', 'medium', 'low', 'none'] as const;
+const LAST_VARIANT_KEY = 'omo-switch-last-variant';
 
 function extractProvider(model: string): string {
   const slashIndex = model.indexOf('/');
@@ -56,7 +57,8 @@ export function ModelSelector({
       const provider = extractProvider(currentConfig.model);
       setSelectedProvider(provider);
       setSelectedModelName(extractModelName(currentConfig.model));
-      setSelectedVariant(currentConfig.variant || 'none');
+      const savedVariant = localStorage.getItem(LAST_VARIANT_KEY);
+      setSelectedVariant(savedVariant as AgentConfig['variant'] || currentConfig.variant || 'none');
     }
   }, [isOpen, currentConfig]);
 
@@ -94,7 +96,9 @@ export function ModelSelector({
   const handleSave = async () => {
     if (!fullModelPath) return;
     try {
-      await onSave(fullModelPath, selectedVariant);
+      const variantToSave = selectedVariant || 'none';
+      localStorage.setItem(LAST_VARIANT_KEY, variantToSave);
+      await onSave(fullModelPath, variantToSave);
       toast.success(t('modelSelector.updateSuccess', { name: agentName }));
       onClose();
     } catch (error) {
@@ -191,7 +195,7 @@ export function ModelSelector({
           </div>
           <div className="space-y-1 text-sm">
             <div className="flex">
-              <span className="text-slate-500 w-20">Provider:</span>
+              <span className="text-slate-500 w-20">{t('modelSelector.provider')}:</span>
               <span className="font-medium text-slate-700">{selectedProvider || '-'}</span>
             </div>
             <div className="flex">

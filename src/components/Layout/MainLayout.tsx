@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getVersion, getName } from '@tauri-apps/api/app';
+import { getName, getVersion } from '@tauri-apps/api/app';
 import { cn } from '../common/cn';
 import { 
   Bot, 
@@ -10,9 +10,12 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  Cog
+  Cog,
+  KeyRound
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
+import { usePreloadStore } from '../../store/preloadStore';
+import appLogo from '../../assets/logo.png';
 
 interface NavItem {
   id: string;
@@ -24,6 +27,7 @@ const navItems: NavItem[] = [
   { id: 'agent', labelKey: 'nav.agent', icon: Bot },
   { id: 'config', labelKey: 'nav.config', icon: Settings },
   { id: 'preset', labelKey: 'nav.preset', icon: Bookmark },
+  { id: 'provider', labelKey: 'nav.provider', icon: KeyRound },
   { id: 'models', labelKey: 'nav.models', icon: Database },
   { id: 'import-export', labelKey: 'nav.importExport', icon: Download },
   { id: 'settings', labelKey: 'nav.settings', icon: Cog },
@@ -56,22 +60,29 @@ export function MainLayout({ children }: MainLayoutProps) {
     isSidebarCollapsed, 
     toggleSidebar 
   } = useUIStore();
-  
-  // 从 Tauri API 动态读取应用版本号
-  const [appVersion, setAppVersion] = useState('');
-  const [appName, setAppName] = useState('OMO Switch');
-  useEffect(() => {
-    getVersion()
-      .then(v => setAppVersion(v))
-      .catch(() => setAppVersion('0.0.0'));
-  }, []);
+  const startPreload = usePreloadStore(s => s.startPreload);
   
   // 从 Tauri API 动态读取应用名称
+  const [appName, setAppName] = useState('OMO Switch');
+  const [appVersion, setAppVersion] = useState('0.1.0');
+
   useEffect(() => {
     getName()
       .then(n => setAppName(n))
       .catch(() => setAppName('OMO Switch'));
+    getVersion()
+      .then(v => setAppVersion(v))
+      .catch(() => setAppVersion('0.1.0'));
   }, []);
+
+  // App 启动时延迟预加载数据（等待首屏渲染完成）
+  // 优化启动体验：先显示 UI，500ms 后再开始加载数据
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startPreload();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [startPreload]);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -82,33 +93,22 @@ export function MainLayout({ children }: MainLayoutProps) {
           isSidebarCollapsed ? 'w-16' : 'w-44'
         )}
       >
-        {/* Logo 区域 */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100">
+        {/* Logo 区域 - 展开时显示应用名称 */}
+        <div className="flex items-center h-16 px-4 border-b border-slate-100">
+          <img 
+            src={appLogo} 
+            alt={appName}
+            className="w-8 h-8 rounded-lg object-contain flex-shrink-0"
+          />
           {!isSidebarCollapsed && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-semibold text-slate-800">{appName}</span>
-            </div>
+            <span className="ml-3 font-semibold text-slate-800 truncate">
+              {appName}
+            </span>
           )}
-          <button
-            onClick={toggleSidebar}
-            className={cn(
-              'p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors',
-              isSidebarCollapsed && 'mx-auto'
-            )}
-          >
-            {isSidebarCollapsed ? (
-              <ChevronRight className="w-5 h-5" />
-            ) : (
-              <ChevronLeft className="w-5 h-5" />
-            )}
-          </button>
         </div>
 
-        {/* 导航菜单 */}
-        <nav className="flex-1 py-4 px-2 space-y-1">
+        {/* 导航菜单 - 添加 overflow-hidden 防止文字溢出 */}
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-hidden">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
@@ -120,6 +120,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
                   'focus:outline-none focus:ring-2 focus:ring-indigo-500/20',
+                  'whitespace-nowrap', // 防止文字换行
                   isSidebarCollapsed && 'justify-center',
                   isActive
                     ? 'bg-indigo-50 text-indigo-700 font-medium'
@@ -131,21 +132,48 @@ export function MainLayout({ children }: MainLayoutProps) {
                   'w-5 h-5 flex-shrink-0',
                   isActive ? 'text-indigo-600' : 'text-slate-400'
                 )} />
-                {!isSidebarCollapsed && <span>{t(item.labelKey)}</span>}
+                {/* 使用 opacity 过渡而不是条件渲染，避免布局跳动 */}
+                <span className={cn(
+                  'flex-1 text-left text-base font-medium truncate transition-opacity duration-200',
+                  isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+                )}>
+                  {t(item.labelKey)}
+                </span>
               </button>
             );
           })}
         </nav>
 
-        {/* 底部信息 */}
-        {!isSidebarCollapsed && (
-          <div className="p-4 border-t border-slate-100">
-            <div className="text-xs text-slate-400 text-center">
-              v{appVersion}
-            </div>
+        {/* 底部版本号 */}
+        <div className="p-3 border-t border-slate-100">
+          <div className="text-center">
+            {!isSidebarCollapsed && (
+              <span className="text-xs text-slate-400">
+                v{appVersion}
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </aside>
+
+      {/* 折叠按钮 - 垂直居中，矩形贴着侧边栏 */}
+      <button
+        onClick={toggleSidebar}
+        className={cn(
+          'absolute top-1/2 -translate-y-1/2 z-10',
+          'w-5 h-10 flex items-center justify-center',
+          'bg-white border border-slate-200 border-l-0 rounded-r-lg shadow-sm',
+          'text-slate-400 hover:text-slate-600 hover:bg-slate-50 hover:shadow',
+          'transition-all duration-300',
+          isSidebarCollapsed ? 'left-16' : 'left-44'
+        )}
+      >
+        {isSidebarCollapsed ? (
+          <ChevronRight className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronLeft className="w-3.5 h-3.5" />
+        )}
+      </button>
 
       {/* 主内容区 */}
       <main className="flex-1 flex flex-col overflow-hidden">

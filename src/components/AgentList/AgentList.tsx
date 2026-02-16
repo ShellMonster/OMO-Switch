@@ -1,15 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Save } from 'lucide-react';
 import { AgentCard } from './AgentCard';
 import { ModelSelector } from './ModelSelector';
 import { Button } from '../common/Button';
+import { Modal } from '../common/Modal';
+import { toast } from '../common/Toast';
 import { cn } from '../common/cn';
 import { useConfigStore } from '../../store/configStore';
 import { usePresetStore } from '../../store/presetStore';
 import {
   updateAgentModel,
   updatePreset,
+  savePreset,
   type AgentConfig,
 } from '../../services/tauri';
 
@@ -29,12 +32,18 @@ interface AgentListProps {
   providerModels: Record<string, string[]>;
   // 已连接的提供商列表
   connectedProviders: string[];
+  // 搜索关键词
+  searchQuery?: string;
   // 是否加载中
   isLoading?: boolean;
   // 错误信息
   error?: string | null;
   // 刷新回调
   onRefresh?: () => void;
+  extraStats?: {
+    count: number;
+    label: string;
+  };
 }
 
 export function AgentList({
@@ -42,16 +51,24 @@ export function AgentList({
   data,
   providerModels,
   connectedProviders,
+  searchQuery = '',
   isLoading = false,
   error = null,
   onRefresh,
+  extraStats,
 }: AgentListProps) {
   const { t } = useTranslation();
   const { updateAgentConfig, updateCategoryConfig } = useConfigStore();
+  const { setActivePreset } = usePresetStore();
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 保存预设相关状态
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   const handleEdit = useCallback((agentName: string) => {
     setSelectedAgent(agentName);
@@ -93,6 +110,28 @@ export function AgentList({
     [selectedAgent, dataSource, updateAgentConfig, updateCategoryConfig]
   );
 
+  /**
+   * 处理保存预设
+   */
+  const handleSavePreset = useCallback(async () => {
+    if (!newPresetName.trim()) return;
+
+    const name = newPresetName.trim();
+    setIsSavingPreset(true);
+
+    try {
+      await savePreset(name);
+      setActivePreset(name);
+      setShowSaveModal(false);
+      setNewPresetName('');
+      toast.success(t('presetSelector.saveSuccess', { name }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('presetSelector.saveFailed'));
+    } finally {
+      setIsSavingPreset(false);
+    }
+  }, [newPresetName, setActivePreset, t]);
+
   const selectedAgentConfig = selectedAgent ? data[selectedAgent] : undefined;
 
   if (isLoading) {
@@ -124,13 +163,53 @@ export function AgentList({
     );
   }
 
-  const items = Object.entries(data);
+  const items = useMemo(() => {
+    const allItems = Object.entries(data);
+    if (!searchQuery.trim()) return allItems;
+    
+    const query = searchQuery.toLowerCase();
+    return allItems.filter(([name, config]) => {
+      // 检查原名
+      const nameMatch = name.toLowerCase().includes(query);
+      // 检查模型名称
+      const modelMatch = config.model?.toLowerCase().includes(query);
+      // 检查 i18n 名称（agentNames 或 categoryNames）
+      const i18nKey = dataSource === 'agents' ? 'agentNames' : 'categoryNames';
+      const i18nName = t(`${i18nKey}.${name}`);
+      const i18nMatch = i18nName.toLowerCase().includes(query);
+      
+      return nameMatch || modelMatch || i18nMatch;
+    });
+  }, [data, searchQuery, t, dataSource]);
 
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <div className="text-sm text-slate-500">
-          {t('agentList.total', { count: items.length })}
+        <div className="flex items-center gap-3">
+          {/* 只在 Agents 区域显示保存按钮 */}
+          {dataSource === 'agents' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSaveModal(true)}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {t('agentList.saveAsTemplate')}
+            </Button>
+          )}
+          <span className="text-sm text-slate-500">
+            {dataSource === 'agents' 
+              ? t('agentList.total', { count: items.length })
+              : t('agentList.totalCategories', { count: items.length })
+            }
+            {extraStats && dataSource === 'agents' && (
+              <span className="ml-2 text-slate-400">
+                · {extraStats.count} {extraStats.label}
+              </span>
+            )}
+          </span>
         </div>
         <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
           <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
@@ -162,6 +241,63 @@ export function AgentList({
           isSaving={isSaving}
         />
       )}
+
+      {/* 保存预设弹窗 */}
+      <Modal
+        isOpen={showSaveModal}
+        onClose={() => {
+          setShowSaveModal(false);
+          setNewPresetName('');
+        }}
+        title={t('agentList.saveAsTemplate')}
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowSaveModal(false);
+                setNewPresetName('');
+              }}
+              disabled={isSavingPreset}
+            >
+              {t('button.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSavePreset}
+              isLoading={isSavingPreset}
+              disabled={!newPresetName.trim()}
+            >
+              {t('button.save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('presetManager.presetName')}
+            </label>
+            <input
+              type="text"
+              value={newPresetName}
+              onChange={(e) => setNewPresetName(e.target.value)}
+              placeholder={t('presetManager.presetNamePlaceholder')}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newPresetName.trim() && !isSavingPreset) {
+                  handleSavePreset();
+                }
+              }}
+            />
+          </div>
+          <p className="text-sm text-slate-500">
+            {t('presetManager.saveDescription')}
+          </p>
+        </div>
+      </Modal>
     </>
   );
 }

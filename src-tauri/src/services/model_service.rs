@@ -180,7 +180,7 @@ pub fn fetch_models_dev() -> Result<Vec<ModelInfo>, String> {
 
     // 2. 缓存未命中，请求 API
     let response = ureq::get("https://models.dev/api.json")
-        .timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(2))
         .call();
 
     match response {

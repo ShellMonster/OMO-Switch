@@ -8,27 +8,15 @@ import {
   Zap,
   DollarSign,
   Info,
-  CheckCircle2,
-  Loader2
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '../common/cn';
 import { SearchInput } from '../common/SearchInput';
 import { Select } from '../common/Select';
-import { 
-  getAvailableModels, 
-  getConnectedProviders, 
-  fetchModelsDev,
-  ModelInfo 
+import {
+  ModelInfo
 } from '../../services/tauri';
-
-// ==================== 模块级缓存 ====================
-// 避免标签页切换时重复的IPC调用
-let cachedGroupedModels: GroupedModels[] | null = null;
-let cachedConnectedProviders: string[] | null = null;
-let cachedModelInfos: Record<string, ModelInfo> | null = null;
-
-// localStorage 持久化缓存的 key
-const CACHE_KEY = 'omo-model-browser-cache';
+import { usePreloadStore } from '../../store/preloadStore';
 
 // ==================== 类型定义 ====================
 
@@ -91,6 +79,47 @@ function getProviderColor(provider: string): string {
 }
 
 // ==================== 子组件 ====================
+
+/**
+ * 模型库骨架屏组件
+ */
+function ModelBrowserSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* 统计卡片骨架 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl p-4 h-24" />
+        ))}
+      </div>
+
+      {/* 搜索栏骨架 */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 h-10 bg-slate-200 rounded-lg" />
+        <div className="w-full sm:w-48 h-10 bg-slate-200 rounded-lg" />
+      </div>
+
+      {/* 提供商分组骨架 */}
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
+            {/* 提供商标题栏骨架 */}
+            <div className="flex items-center justify-between p-4 bg-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-slate-300 rounded-full" />
+                <div className="h-5 w-24 bg-slate-300 rounded" />
+                <div className="h-5 w-8 bg-slate-300 rounded-full" />
+              </div>
+              <div className="w-5 h-5 bg-slate-300 rounded" />
+            </div>
+            
+            {/* 模型卡片骨架 - 默认收起状态 */}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
  * 模型卡片组件
@@ -328,122 +357,25 @@ export function ModelBrowser({
   showApplyButton = false,
 }: ModelBrowserProps) {
   const { t } = useTranslation();
-  // 状态
-  const [groupedModels, setGroupedModels] = useState<GroupedModels[]>([]);
-  const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
-  const [modelInfos, setModelInfos] = useState<Record<string, ModelInfo>>({});
+  const models = usePreloadStore(s => s.models);
+  const refreshModels = usePreloadStore(s => s.refreshModels);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // 加载数据
+  const groupedModels: GroupedModels[] = models.grouped || [];
+  const connectedProviders: string[] = models.providers || [];
+  const modelInfos: Record<string, ModelInfo> = models.infos || {};
+
   useEffect(() => {
-    async function loadData() {
-      try {
-        // 检查缓存 - 如果所有数据都已缓存，直接使用
-        if (cachedGroupedModels && cachedConnectedProviders && cachedModelInfos) {
-          setGroupedModels(cachedGroupedModels);
-          setConnectedProviders(cachedConnectedProviders);
-          setModelInfos(cachedModelInfos);
-          
-          // 默认展开前3个提供商
-          const topProviders = new Set(cachedGroupedModels.slice(0, 3).map(g => g.provider));
-          setExpandedProviders(topProviders);
-          
-          setLoading(false);
-          return;
-        }
-        
-        // 尝试从 localStorage 恢复
-        if (!cachedGroupedModels) {
-          try {
-            const stored = localStorage.getItem(CACHE_KEY);
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              if (parsed.groupedModels && parsed.connectedProviders && parsed.modelInfos) {
-                cachedGroupedModels = parsed.groupedModels as GroupedModels[];
-                cachedConnectedProviders = parsed.connectedProviders as string[];
-                cachedModelInfos = parsed.modelInfos as Record<string, ModelInfo>;
-
-                // 立即显示缓存数据
-                setGroupedModels(cachedGroupedModels);
-                setConnectedProviders(cachedConnectedProviders);
-                setModelInfos(cachedModelInfos);
-
-                const topProviders = new Set(cachedGroupedModels.slice(0, 3).map(g => g.provider));
-                setExpandedProviders(topProviders);
-
-                setLoading(false);
-                // 继续执行下面的网络请求以获取最新数据
-              }
-            }
-          } catch {
-            // localStorage 解析失败，忽略
-          }
-        }
-        
-        setLoading(true);
-        setError(null);
-        
-        // 并行加载所有数据
-        const [modelsData, providersData, modelDetails] = await Promise.all([
-          getAvailableModels(),
-          getConnectedProviders(),
-          fetchModelsDev(),
-        ]);
-        
-        // 转换模型数据为分组格式
-        const grouped: GroupedModels[] = Object.entries(modelsData).map(
-          ([provider, models]) => ({
-            provider,
-            models,
-          })
-        );
-        
-        // 按模型数量排序
-        grouped.sort((a, b) => b.models.length - a.models.length);
-        
-        setGroupedModels(grouped);
-        setConnectedProviders(providersData);
-        
-        // 构建模型信息映射表
-        const infoMap: Record<string, ModelInfo> = {};
-        modelDetails.forEach((info) => {
-          infoMap[info.id] = info;
-        });
-        setModelInfos(infoMap);
-        
-        // 默认展开前3个提供商
-        const topProviders = new Set(grouped.slice(0, 3).map(g => g.provider));
-        setExpandedProviders(topProviders);
-        
-         // 写入缓存
-         cachedGroupedModels = grouped;
-         cachedConnectedProviders = providersData;
-         cachedModelInfos = infoMap;
-
-         // 写入 localStorage
-         try {
-           localStorage.setItem(CACHE_KEY, JSON.stringify({
-             groupedModels: grouped,
-             connectedProviders: providersData,
-             modelInfos: infoMap,
-             timestamp: Date.now()
-           }));
-         } catch {
-           // localStorage 写入失败，忽略
-         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t('modelBrowser.loadModelsFailed'));
-      } finally {
-        setLoading(false);
-      }
+    // 只设置默认展开的提供商，不重复加载数据
+    // preloadStore 已在 MainLayout 启动时预加载数据
+    if (groupedModels.length > 0 && expandedProviders.size === 0) {
+      const topProviders = new Set(groupedModels.slice(0, 3).map(g => g.provider));
+      setExpandedProviders(topProviders);
     }
-    
-    loadData();
-  }, []);
+  }, [groupedModels, expandedProviders.size]);
 
   // 过滤模型
   const filteredGroups = useMemo(() => {
@@ -514,16 +446,13 @@ export function ModelBrowser({
     onSelectModel?.(modelId, provider);
   }, [onSelectModel]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-500">{t('modelBrowser.loading')}</p>
-      </div>
-    );
+  // 首次加载中（无数据）显示骨架屏
+  if (models.loading && !models.grouped) {
+    return <ModelBrowserSkeleton />;
   }
 
-  if (error) {
+  // 加载失败且无数据时显示错误
+  if (models.error && !models.grouped) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
@@ -533,11 +462,14 @@ export function ModelBrowser({
           {t('modelBrowser.loadFailed')}
         </h3>
         <p className="text-slate-500 text-center max-w-md mb-4">
-          {error}
+          {models.error}
         </p>
-        <p className="text-sm text-slate-400 text-center">
-          {t('modelBrowser.loadFailedHint')}
-        </p>
+        <button
+          onClick={() => refreshModels(true)}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          {t('modelBrowser.retry')}
+        </button>
       </div>
     );
   }

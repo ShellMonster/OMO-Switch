@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Save } from 'lucide-react';
 import { Select } from '../common/Select';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
@@ -28,33 +27,46 @@ interface PresetSelectorProps {
 export function PresetSelector({ onLoadPreset }: PresetSelectorProps) {
   const { t } = useTranslation();
 
-  // 从状态管理获取当前激活的预设
-  const { activePreset, setActivePreset, clearActivePreset } = usePresetStore();
+  // 从状态管理获取当前激活的预设和预设列表缓存
+  const {
+    activePreset,
+    setActivePreset,
+    clearActivePreset,
+    presetList,
+    setPresetList,
+    isLoadingPresetList,
+    setIsLoadingPresetList,
+  } = usePresetStore();
 
   // 本地状态
-  const [presets, setPresets] = useState<string[]>([]); // 预设名称列表
-  const [isLoading, setIsLoading] = useState(false); // 加载状态
-  const [showSaveModal, setShowSaveModal] = useState(false); // 保存弹窗显示状态
-  const [newPresetName, setNewPresetName] = useState(''); // 新预设名称输入
-  const [isSaving, setIsSaving] = useState(false); // 保存中状态
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   /**
-   * 加载预设列表
-   * 从后端获取所有预设名称
+   * 加载预设列表（仅当缓存为空时才调用 API）
    */
-  const loadPresetList = async () => {
+  const loadPresetListIfNeeded = async () => {
+    // 如果已有缓存且不在加载中，直接返回
+    if (presetList.length > 0 || isLoadingPresetList) {
+      return;
+    }
+
+    setIsLoadingPresetList(true);
     try {
       const names = await listPresets();
-      setPresets(names);
+      setPresetList(names);
     } catch (err) {
-      // 静默处理列表加载失败，不影响主功能
       console.error('Failed to load preset list:', err);
+    } finally {
+      setIsLoadingPresetList(false);
     }
   };
 
-  // 组件挂载时加载预设列表
+  // 组件挂载时加载预设列表（有缓存则跳过）
   useEffect(() => {
-    loadPresetList();
+    loadPresetListIfNeeded();
   }, []);
 
   /**
@@ -107,8 +119,9 @@ export function PresetSelector({ onLoadPreset }: PresetSelectorProps) {
       await savePreset(name);
       // 设置为当前激活预设
       setActivePreset(name);
-      // 刷新预设列表
-      await loadPresetList();
+      // 刷新预设列表缓存
+      const names = await listPresets();
+      setPresetList(names);
       // 关闭弹窗
       setShowSaveModal(false);
       setNewPresetName('');
@@ -128,7 +141,7 @@ export function PresetSelector({ onLoadPreset }: PresetSelectorProps) {
    */
   const selectOptions = [
     { value: '', label: t('presetSelector.default') },
-    ...presets.map((name) => ({ value: name, label: name })),
+    ...presetList.map((name: string) => ({ value: name, label: name })),
   ];
 
   // 当前选中的值（null 转换为空字符串以匹配默认选项）
@@ -136,41 +149,13 @@ export function PresetSelector({ onLoadPreset }: PresetSelectorProps) {
 
   return (
     <>
-      {/* 主容器：使用渐变背景和圆角边框，与 AgentPage 头部风格一致 */}
-      <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-        {/* 图标区域 */}
-        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-          <Bookmark className="w-5 h-5 text-white" />
-        </div>
-
-        {/* 下拉选择器区域 */}
-        <div className="flex-1 min-w-0">
-          <label className="block text-xs font-medium text-slate-500 mb-1">
-            {t('presetSelector.currentPreset')}
-          </label>
-          <Select
-            value={currentValue}
-            onChange={handleSelectChange}
-            options={selectOptions}
-            disabled={isLoading}
-            placeholder={t('select.placeholder')}
-          />
-        </div>
-
-        {/* "另存为"按钮 */}
-        <div className="flex-shrink-0 pt-5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowSaveModal(true)}
-            disabled={isLoading}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Save className="w-4 h-4" />
-            {t('presetSelector.saveAs')}
-          </Button>
-        </div>
-      </div>
+      <Select
+        value={currentValue}
+        onChange={handleSelectChange}
+        options={selectOptions}
+        disabled={isLoading}
+        placeholder={t('select.placeholder')}
+      />
 
       {/* 另存为弹窗 */}
       <Modal

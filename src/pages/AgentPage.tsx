@@ -1,92 +1,161 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
-import { useConfigStore } from '../store/configStore';
-import { getOmoConfig, getAvailableModels, getConnectedProviders } from '../services/tauri';
+import { Bot, RefreshCw, ChevronDown, AlertCircle } from 'lucide-react';
+import { usePreloadStore } from '../store/preloadStore';
+import { getOmoConfig } from '../services/tauri';
 import { AgentList } from '../components/AgentList';
 import { PresetSelector } from '../components/Presets';
 import { Button } from '../components/common/Button';
-import { toast } from '../components/common/Toast';
+import { SearchInput } from '../components/common/SearchInput';
 import { cn } from '../components/common/cn';
+
+/**
+ * 错误状态组件 - 显示加载失败信息和重试按钮
+ */
+function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center">
+      <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+      <p className="text-slate-600 mb-4">{error}</p>
+      <Button variant="primary" onClick={onRetry}>
+        <RefreshCw className="w-4 h-4 mr-2" />
+        重试
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * 骨架屏组件 - 加载中显示
+ */
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 rounded-2xl border border-indigo-100/50">
+        <div className="w-12 h-12 bg-slate-200 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <div className="h-6 bg-slate-200 rounded w-48" />
+          <div className="h-4 bg-slate-200 rounded w-96" />
+        </div>
+        <div className="h-8 w-20 bg-slate-200 rounded-lg" />
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="w-full sm:w-2/3 h-10 bg-slate-200 rounded-lg" />
+        <div className="w-full sm:w-1/3 h-10 bg-slate-200 rounded-lg" />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-slate-200 rounded" />
+            <div className="h-6 bg-slate-200 rounded w-24" />
+          </div>
+          <div className="h-4 bg-slate-200 rounded w-16" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-200 rounded-lg" />
+                <div className="flex-1 space-y-1">
+                  <div className="h-4 bg-slate-200 rounded w-20" />
+                  <div className="h-3 bg-slate-200 rounded w-16" />
+                </div>
+              </div>
+              <div className="h-9 bg-slate-200 rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 my-8" />
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-slate-200 rounded" />
+            <div className="h-6 bg-slate-200 rounded w-24" />
+          </div>
+          <div className="h-4 bg-slate-200 rounded w-16" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-200 rounded-lg" />
+                <div className="flex-1 space-y-1">
+                  <div className="h-4 bg-slate-200 rounded w-24" />
+                  <div className="h-3 bg-slate-200 rounded w-12" />
+                </div>
+              </div>
+              <div className="h-9 bg-slate-200 rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function AgentPage() {
   const { t } = useTranslation();
-  const { 
-    omoConfig, 
-    setOmoConfig, 
-    setOmoConfigLoading, 
-    setOmoConfigError 
-  } = useConfigStore();
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [providerModels, setProviderModels] = useState<Record<string, string[]>>({});
-  const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
+  const { omoConfig, models, loadOmoConfig, refreshModels } = usePreloadStore();
+
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   /**
-   * 加载 OMO 配置文件
+   * 组件挂载时确保数据已加载
+   * 只在数据不存在且无错误时加载配置
+   * preloadStore 已在 MainLayout 启动时预加载数据，不需要重复调用 refreshModels
    */
-  const loadConfig = useCallback(async () => {
-    setIsLoading(true);
-    setOmoConfigLoading(true);
-    try {
-      const config = await getOmoConfig();
-      setOmoConfig(config);
-      setOmoConfigError(null);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : t('agentList.loadConfigFailed');
-      setOmoConfigError(msg);
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-      setOmoConfigLoading(false);
+  useEffect(() => {
+    if (!omoConfig.data && !omoConfig.loading && !omoConfig.error) {
+      loadOmoConfig();
     }
-  }, [setOmoConfig, setOmoConfigLoading, setOmoConfigError, t]);
-
-  /**
-   * 加载模型元数据（提供商模型列表和已连接提供商）
-   */
-  const loadModelMeta = useCallback(async () => {
-    try {
-      const [models, providers] = await Promise.all([
-        getAvailableModels(),
-        getConnectedProviders(),
-      ]);
-      setProviderModels(models);
-      setConnectedProviders(providers);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : t('agentList.loadConfigFailed');
-      toast.error(msg);
-    }
-  }, [t]);
+  }, [omoConfig.data, omoConfig.loading, omoConfig.error, loadOmoConfig]);
 
   /**
    * 统一刷新处理函数
    */
   const handleRefresh = useCallback(() => {
-    loadConfig();
-    loadModelMeta();
-  }, [loadConfig, loadModelMeta]);
+    loadOmoConfig(true);
+    refreshModels(true);
+  }, [loadOmoConfig, refreshModels]);
 
-  // 组件挂载时加载数据
-  useEffect(() => {
-    loadConfig();
-    loadModelMeta();
-  }, [loadConfig, loadModelMeta]);
+  /**
+   * 预设加载回调
+   */
+  const handlePresetLoad = useCallback(async () => {
+    const config = await getOmoConfig();
+    loadOmoConfig(true);
+    return config;
+  }, [loadOmoConfig]);
 
   // 加载中状态
-  if (isLoading || !omoConfig) {
+  if (omoConfig.loading) {
+    return <LoadingSkeleton />;
+  }
+
+  // 加载失败状态
+  if (omoConfig.error || !omoConfig.data) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-        <span className="ml-3 text-slate-600">{t('agentList.loading')}</span>
-      </div>
+      <ErrorState
+        error={omoConfig.error || '配置文件不存在'}
+        onRetry={() => loadOmoConfig(true)}
+      />
     );
   }
 
-  const agentsCount = Object.keys(omoConfig.agents).length;
-  const categoriesCount = Object.keys(omoConfig.categories).length;
+  const config = omoConfig.data;
+  const agentsCount = Object.keys(config.agents).length;
+  const categoriesCount = Object.keys(config.categories).length;
+  const providerModels: Record<string, string[]> = models.grouped
+    ? Object.fromEntries(models.grouped.map(g => [g.provider, g.models]))
+    : {};
+  const connectedProviders = models.providers || [];
 
   return (
     <div className="space-y-6">
@@ -99,15 +168,24 @@ export function AgentPage() {
           <h2 className="text-xl font-semibold text-slate-800">{t('agentPage.title')}</h2>
           <p className="text-slate-600 mt-1">{t('agentPage.description')}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isLoading}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
+        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={omoConfig.loading}>
+          <RefreshCw className={cn('w-4 h-4 mr-2', omoConfig.loading && 'animate-spin')} />
           {t('agentList.refresh')}
         </Button>
       </div>
 
-      {/* 预设选择器 */}
-      <div className="mb-6">
-        <PresetSelector onLoadPreset={loadConfig} />
+      {/* 预设选择器和搜索框 */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="w-full sm:w-2/3">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder={t('agentPage.searchPlaceholder')}
+          />
+        </div>
+        <div className="w-full sm:w-1/3">
+          <PresetSelector onLoadPreset={handlePresetLoad} />
+        </div>
       </div>
 
       {/* Agents 区域 */}
@@ -130,9 +208,11 @@ export function AgentPage() {
         {agentsExpanded && (
           <AgentList
             dataSource="agents"
-            data={omoConfig.agents}
+            data={config.agents}
             providerModels={providerModels}
             connectedProviders={connectedProviders}
+            searchQuery={searchQuery}
+            extraStats={{ count: categoriesCount, label: 'categories' }}
           />
         )}
       </div>
@@ -160,9 +240,10 @@ export function AgentPage() {
         {categoriesExpanded && (
           <AgentList
             dataSource="categories"
-            data={omoConfig.categories}
+            data={config.categories}
             providerModels={providerModels}
             connectedProviders={connectedProviders}
+            searchQuery={searchQuery}
           />
         )}
       </div>

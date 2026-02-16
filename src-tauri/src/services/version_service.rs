@@ -49,7 +49,7 @@ pub fn get_omo_current_version() -> Option<String> {
 /// Get oh-my-opencode latest version from npm registry
 pub fn get_omo_latest_version() -> Option<String> {
     let resp = ureq::get("https://registry.npmjs.org/oh-my-opencode/latest")
-        .timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(2))
         .call()
         .ok()?;
     let json: serde_json::Value = resp.into_json().ok()?;

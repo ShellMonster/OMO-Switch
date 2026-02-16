@@ -3,6 +3,7 @@
     "agent": "Agent 切换",
     "config": "配置总览",
     "preset": "预设管理",
+    "provider": "供应商",
     "models": "模型库",
     "importExport": "导入导出",
     "settings": "设置"
@@ -16,7 +17,9 @@
     "agentsSection": "agents",
     "categoriesSection": "categories",
     "agentsCount": "共 {{count}} 个 Agent",
-    "categoriesCount": "共 {{count}} 个分类"
+    "categoriesCount": "共 {{count}} 个分类",
+    "categoriesCountShort": "分类",
+    "searchPlaceholder": "搜索 Agent 名称或模型..."
   },
   "configPage": {
     "title": "配置状态总览",
@@ -26,10 +29,92 @@
     "title": "预设管理",
     "description": "创建和管理您的模型预设配置"
   },
+  "provider": {
+    "title": "供应商管理",
+    "description": "管理 OpenCode 供应商配置",
+    "configuration": "配置",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "输入 API Key",
+    "apiKeyHint": "请在 {{website}} 获取 API Key",
+    "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "API 端点地址",
+    "baseUrlHint": "如果使用官方 API，可留空使用默认地址",
+    "save": "保存配置",
+    "saveSuccess": "配置已保存",
+    "saveFailed": "保存失败",
+    "clear": "清除配置",
+    "clearSuccess": "配置已清除",
+    "clearFailed": "清除失败",
+    "active": "当前使用",
+    "currentProvider": "当前供应商：{{name}}",
+    "loadFailed": "加载供应商数据失败",
+    "visitWebsite": "访问官网",
+    "tabs": {
+      "status": "连接状态",
+      "config": "供应商配置"
+    },
+    "saveAndTest": "保存并测试",
+    "testing": "测试中...",
+    "testSuccess": "连接成功！API Key 有效",
+    "testFailed": "连接失败，请检查 API Key",
+    "testConnection": "测试连接",
+    "modelsAutoHint": "模型列表将自动从供应商获取，无需手动配置",
+    "configured": "已配置",
+    "builtin": "内置供应商",
+    "builtinTag": "内置",
+    "customTag": "自定义",
+    "addCustom": "添加自定义供应商",
+    "addCustomDesc": "添加您自己的供应商配置",
+    "addCustomSuccess": "自定义供应商添加成功",
+    "addCustomFailed": "添加自定义供应商失败",
+    "customName": "供应商名称",
+    "customNamePlaceholder": "例如：aicodewith",
+    "customNameRequired": "请输入供应商名称",
+    "apiKeyRequired": "请输入 API Key",
+    "baseUrlRequired": "请输入 Base URL",
+    "noConfigured": "暂无已配置的供应商",
+    "noBuiltin": "所有内置供应商已配置",
+    "edit": "编辑",
+    "deleteConfirm": "确定要删除供应商「{{name}}」的授权吗？",
+    "confirmDelete": "确认删除",
+    "confirmDeleteMessage": "确定要删除供应商「{{name}}」的授权吗？",
+    "confirmDeleteHint": "删除后需要重新配置 API Key",
+    "deleteSuccess": "已删除供应商授权",
+    "deleteFailed": "删除供应商授权失败",
+    "delete": "删除",
+    "configure": "配置",
+    "setApiKey": "设置 API Key",
+    "setApiKeyDesc": "为 {{name}} 设置 API Key 以启用此供应商",
+    "presets": {
+      "anthropicDesc": "Claude 系列模型官方 API",
+      "openaiDesc": "GPT 系列模型官方 API",
+      "deepseekDesc": "DeepSeek V3/R1 模型，兼容 Anthropic API",
+      "googleDesc": "Gemini 系列模型官方 API"
+    }
+  },
   "modelsPage": {
     "title": "模型库",
     "description": "浏览和管理您的 AI 模型，查看提供商、定价和能力信息",
-    "currentSelection": "当前选择"
+    "currentSelection": "当前选择",
+    "tabs": {
+      "models": "模型列表",
+      "providers": "供应商状态"
+    }
+  },
+  "providerStatus": {
+    "title": "供应商状态",
+    "description": "查看所有模型供应商的连接状态和模型数量",
+    "loading": "正在加载供应商数据...",
+    "loadFailed": "加载供应商数据失败",
+    "connected": "已连接",
+    "notConnected": "未连接",
+    "models": "模型",
+    "totalProviders": "供应商总数",
+    "totalModels": "模型总数",
+    "connectedProviders": "已连接供应商",
+    "notConnectedProviders": "未连接供应商",
+    "noConnectedProviders": "暂无已连接的供应商",
+    "noNotConnectedProviders": "暂无未连接的供应商"
   },
   "importExportPage": {
     "title": "导入导出",
@@ -45,7 +130,9 @@
     "loadConfigFailed": "加载配置失败",
     "retry": "重试",
     "total": "共 {{count}} 个 Agent",
-    "refresh": "刷新"
+    "totalCategories": "共 {{count}} 个 categories",
+    "refresh": "刷新",
+    "saveAsTemplate": "另存模板"
   },
   "agentCard": {
     "edit": "编辑",
@@ -128,6 +215,7 @@
     "currentSelection": "当前选择",
     "model": "模型:",
     "intensity": "强度:",
+    "provider": "供应商",
     "cancel": "取消",
     "save": "保存",
     "updateSuccess": "已更新 {{name}} 的模型配置",
@@ -187,7 +275,7 @@
     "presetNamePlaceholder": "例如：开发环境配置",
     "saveDescription": "将保存当前所有 Agent 的模型配置",
     "presetNameEmpty": "预设名称不能为空",
-    "load": "加载",
+    "load": "启用",
     "delete": "删除",
     "confirmDelete": "删除预设",
     "deleteMessage": "确定要删除预设 \"{{name}}\" 吗？此操作无法撤销。",
@@ -198,6 +286,7 @@
     "loadFailed": "加载预设失败",
     "loadListFailed": "加载预设列表失败",
     "deleteFailed": "删除预设失败",
+    "deleteDisabledHint": "使用中的预设不能删除",
     "noPresets": "还没有保存任何预设",
     "createFirst": "点击上方按钮保存当前配置",
     "cancel": "取消",
@@ -262,7 +351,9 @@
     "exportConfig": "导出配置",
     "backupHistory": "备份历史",
     "backupDescription": "查看自动备份记录",
+    "viewBackups": "查看历史备份记录",
     "noBackups": "暂无备份记录",
+    "noHistory": "暂无备份记录",
     "error": "错误",
     "success": "成功"
   },
@@ -415,7 +506,8 @@
     "no": "否",
     "ok": "确定",
     "cancel": "取消",
-    "search": "搜索..."
+    "search": "搜索...",
+    "disabled": "已禁用"
   },
    "errorBoundary": {
      "title": "应用程序遇到错误",
@@ -446,6 +538,7 @@
        "updateCommand": "编辑 opencode.json"
      },
       "checkUpdate": "检查更新",
+      "checking": "检查中...",
       "updateSteps": "更新方式",
       "editConfig": "编辑 ~/.config/opencode/opencode.json:",
       "changeVersion": "将 {{from}} 改为",

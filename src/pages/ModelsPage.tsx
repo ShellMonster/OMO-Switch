@@ -14,6 +14,7 @@ export function ModelsPage() {
 
   return (
     <div className="space-y-6">
+      {/* 页面标题 */}
       <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
         <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
           <Database className="w-6 h-6 text-white" />
@@ -34,7 +35,7 @@ export function ModelsPage() {
         )}
       </div>
 
-      <ModelBrowser 
+      <ModelBrowser
         onSelectModel={handleSelectModel}
         selectedModel={selectedModel}
         showApplyButton={true}

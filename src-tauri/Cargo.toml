@@ -1,6 +1,6 @@
 [package]
 name = "omo-model-switcher"
-version = "0.1.0"
+version = "1.0.0"
 description = "OMO Model Switcher Desktop Application"
 authors = ["OMO Team"]
 edition = "2021"

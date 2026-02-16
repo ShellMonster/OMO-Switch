@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion, getName } from '@tauri-apps/api/app';
 import {
-  Settings,
   Globe,
-  Info,
   FileText,
   Folder,
   Package,
@@ -15,15 +13,15 @@ import {
   Download,
   Loader2,
   Copy,
-  Github,
   RefreshCw
 } from 'lucide-react';
 import { cn } from '../components/common/cn';
+import { toast } from '../components/common/Toast';
 import { supportedLanguages } from '../i18n';
-import { checkVersions, VersionInfo } from '../services/tauri';
+import { usePreloadStore } from '../store/preloadStore';
 import { useUpdaterStore } from '../store/updaterStore';
+import appLogo from '../assets/logo.png';
 
-let cachedVersions: VersionInfo[] | null = null;
 let cachedConfigPath: string | null = null;
 let cachedAppVersion: string | null = null;
 let cachedAppName: string | null = null;
@@ -40,24 +38,24 @@ export function SettingsPage() {
   const [configPath, setConfigPath] = useState<string>(cachedConfigPath ?? '');
   const [isLoadingPath, setIsLoadingPath] = useState(!cachedConfigPath);
 
-  // 初始值设为 false，让页面先渲染，版本区域异步加载时再显示 loading
-  const [versions, setVersions] = useState<VersionInfo[]>(cachedVersions ?? []);
-  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
-
   // 合并应用信息状态，减少 re-render
   const [appInfo, setAppInfo] = useState({
     version: cachedAppVersion ?? '',
     name: cachedAppName ?? 'OMO Switch'
   });
-  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+
 
   // 从 updaterStore 获取更新相关状态和方法
   const updaterStatus = useUpdaterStore((s) => s.status);
   const update = useUpdaterStore((s) => s.update);
   const checkForUpdates = useUpdaterStore((s) => s.checkForUpdates);
   const openUpdater = useUpdaterStore((s) => s.open);
+  const versionsData = usePreloadStore((s) => s.versions);
+  const refreshVersions = usePreloadStore((s) => s.refreshVersions);
   const [isChecking, setIsChecking] = useState(false);
   const [updateHint, setUpdateHint] = useState<{ type: 'checking' | 'latest' | 'available' | 'error'; message: string } | null>(null);
+  const isLoadingVersions = versionsData.loading;
+  const versions = versionsData.data || [];
 
   // 合并 appVersion 和 appName 的加载逻辑，减少 useEffect 数量
   useEffect(() => {
@@ -92,40 +90,8 @@ export function SettingsPage() {
     }
   }, [t]);
 
-  // 延迟加载版本检测，避免阻塞首次渲染
-  useEffect(() => {
-    const timer = setTimeout(() => loadVersions(), 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const loadVersions = async (forceRefresh = false) => {
-    // 有缓存且非强制刷新: 先显示缓存，后台更新
-    if (cachedVersions && !forceRefresh) {
-      setVersions(cachedVersions);
-      setIsLoadingVersions(false);
-
-      // 后台静默获取最新版本信息
-      try {
-        const v = await checkVersions();
-        cachedVersions = v;
-        setVersions(v);
-      } catch (error) {
-        console.error('Failed to refresh versions:', error);
-      }
-      return;
-    }
-
-    // 无缓存或强制刷新: 显示 loading 状态
-    setIsLoadingVersions(true);
-    try {
-      const v = await checkVersions();
-      cachedVersions = v;
-      setVersions(v);
-    } catch (error) {
-      console.error('Failed to check versions:', error);
-    } finally {
-      setIsLoadingVersions(false);
-    }
+  const handleRefreshVersions = () => {
+    refreshVersions(true);
   };
 
   // 处理语言切换
@@ -239,11 +205,15 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-3xl">
       {/* 页面标题 */}
       <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-        <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-          <Settings className="w-6 h-6 text-white" />
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 overflow-hidden bg-white">
+          <img
+            src={appLogo}
+            alt={appInfo.name}
+            className="w-10 h-10 object-contain"
+          />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-slate-800">{t('settingsPage.title')}</h2>
+          <h2 className="text-xl font-semibold text-slate-800">{appInfo.name}</h2>
           <p className="text-slate-600 mt-1">{t('settingsPage.description')}</p>
         </div>
       </div>
@@ -357,11 +327,10 @@ export function SettingsPage() {
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(v.update_command);
-                          setCopiedCommand(v.name);
-                          setTimeout(() => setCopiedCommand(null), 2000);
+                          toast.success(t('versionCheck.copied'));
                         }}
                         className="p-2 text-amber-700 hover:bg-amber-200 rounded transition-colors flex-shrink-0"
-                        title={copiedCommand === v.name ? '已复制' : '复制'}
+                        title={t('versionCheck.copied')}
                       >
                         <Copy className="w-4 h-4" />
                       </button>
@@ -372,13 +341,18 @@ export function SettingsPage() {
             ))
           )}
 
-           {!isLoadingVersions && versions.length > 0 && (
-             <button
-               onClick={() => loadVersions(true)}
-               className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
-             >
-               <Download className="w-4 h-4" />
-               {t('versionCheck.checkUpdate')}
+            {versions.length > 0 && (
+              <button
+                onClick={handleRefreshVersions}
+                disabled={isLoadingVersions}
+                className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isLoadingVersions ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {isLoadingVersions ? t('versionCheck.checking') : t('versionCheck.checkUpdate')}
              </button>
            )}
         </div>
@@ -387,9 +361,11 @@ export function SettingsPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Info className="w-4 h-4 text-purple-600" />
-            </div>
+            <img 
+              src={appLogo} 
+              alt="App Logo"
+              className="w-8 h-8 rounded-lg object-contain"
+            />
             <div>
               <h3 className="font-semibold text-slate-800">{t('settings.about.title')}</h3>
               <p className="text-sm text-slate-500">{t('settings.about.description')}</p>
@@ -479,7 +455,11 @@ export function SettingsPage() {
                   onClick={handleOpenRepo}
                   className="mt-1 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 hover:underline underline-offset-2"
                 >
-                  <Github className="w-4 h-4" />
+                  <img
+                    src={appLogo}
+                    alt="GitHub"
+                    className="w-4 h-4 rounded object-contain"
+                  />
                   <span className="truncate">{repoUrl}</span>
                 </button>
               )}

@@ -5,6 +5,7 @@ import { VersionBadge } from './components/common/VersionBadge';
 import { AgentPage } from './pages/AgentPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { PresetPage } from './pages/PresetPage';
+import { ProviderPage } from './pages/ProviderPage';
 import { ModelsPage } from './pages/ModelsPage';
 import { ImportExportPage } from './pages/ImportExportPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -21,6 +22,8 @@ function App() {
         return <ConfigPage />;
       case 'preset':
         return <PresetPage />;
+      case 'provider':
+        return <ProviderPage />;
       case 'models':
         return <ModelsPage />;
       case 'import-export':
