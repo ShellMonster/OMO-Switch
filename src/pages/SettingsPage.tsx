@@ -80,10 +80,13 @@ export function SettingsPage() {
       });
   }, []);
 
-  // 页面进入时刷新版本信息（乐观更新模式）
+  // 页面进入时刷新版本信息（仅在数据为空时刷新）
   useEffect(() => {
-    refreshVersions();
-  }, [refreshVersions]);
+    const { versions } = usePreloadStore.getState();
+    if (!versions.data) {
+      refreshVersions();
+    }
+  }, []);
 
   useEffect(() => {
     setIsLoadingPath(true);

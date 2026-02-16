@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   getAvailableModels,
   getConnectedProviders,
@@ -62,7 +63,9 @@ interface PreloadState {
   updateCategoryInConfig: (categoryName: string, config: AgentConfig) => void;
 }
 
-export const usePreloadStore = create<PreloadState>((set, get) => ({
+export const usePreloadStore = create<PreloadState>()(
+  persist(
+    (set, get) => ({
   // OMO 配置状态
   omoConfig: {
     data: null,
@@ -110,7 +113,8 @@ export const usePreloadStore = create<PreloadState>((set, get) => ({
     set({ isPreloading: true });
 
     // 使用 allSettled 保证部分失败不影响其他数据可用性。
-    Promise.allSettled([get().loadOmoConfig(), get().refreshModels(), get().refreshVersions()]).finally(() => {
+    // refreshVersions 移到 Settings 页面按需加载
+    Promise.allSettled([get().loadOmoConfig(), get().refreshModels()]).finally(() => {
       set({ isPreloading: false, preloadComplete: true });
     });
   },
@@ -355,6 +359,25 @@ updateCategoryInConfig: (categoryName: string, config: AgentConfig) => {
     };
   });
 },
-}));
+}),
+// persist 配置
+{
+  name: 'omo-preload-storage',
+  storage: createJSONStorage(() => localStorage),
+  // 只缓存数据字段，不缓存 loading/error 状态和私有刷新状态
+  partialize: (state) => ({
+    omoConfig: { data: state.omoConfig.data, loading: false, error: null },
+    models: {
+      grouped: state.models.grouped,
+      providers: state.models.providers,
+      infos: state.models.infos,
+      loading: false,
+      error: null,
+    },
+    versions: { data: state.versions.data, loading: false, error: null },
+  }),
+}
+  )
+);
 
 export type { GroupedModels, PreloadState };

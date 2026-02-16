@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Plus, Trash2, Power, CheckCircle2, Settings, Star, Zap, Coins } from 'lucide-react';
+import { Bookmark, Plus, Trash2, Power, CheckCircle2, Settings, Star, Zap, Coins, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
 import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
+import { usePreloadStore } from '../../store/preloadStore';
 import type { BuiltinPresetInfo } from '../../services/tauri';
 
 interface PresetCardProps {
@@ -242,6 +243,8 @@ function BuiltinPresetCard({ preset, agentCount, categoryCount, isActive, isLoad
 export function PresetManager() {
   const { t } = useTranslation();
   const { activePreset, setActivePreset, clearActivePreset } = usePresetStore();
+  // 从 preloadStore 获取已缓存的 omoConfig 数据
+  const cachedOmoConfig = usePreloadStore(s => s.omoConfig.data);
   const [presets, setPresets] = useState<PresetWithInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -256,6 +259,8 @@ export function PresetManager() {
   const [builtinPresets, setBuiltinPresets] = useState<BuiltinPresetInfo[]>([]);
   const [activeBuiltinPreset, setActiveBuiltinPreset] = useState<string | null>(null);
   const [builtinPresetStats, setBuiltinPresetStats] = useState<Record<string, { agentCount: number; categoryCount: number }>>({});
+  const [builtinExpanded, setBuiltinExpanded] = useState(true);
+  const [myPresetsExpanded, setMyPresetsExpanded] = useState(true);
 
   const loadPresetList = async () => {
     try {
@@ -287,7 +292,8 @@ export function PresetManager() {
 
   const loadDefaultPresetInfo = async () => {
     try {
-      const config = await getOmoConfig();
+      // 优先使用缓存数据，避免重复请求
+      const config = cachedOmoConfig || await getOmoConfig();
       setDefaultPresetInfo({
         agentCount: Object.keys(config.agents || {}).length,
         categoryCount: Object.keys(config.categories || {}).length
@@ -304,8 +310,8 @@ export function PresetManager() {
       const presets = await getBuiltinPresets();
       setBuiltinPresets(presets);
 
-      // 获取当前配置用于计算内置预设的统计信息
-      const config = await getOmoConfig();
+      // 优先使用缓存数据，避免重复请求
+      const config = cachedOmoConfig || await getOmoConfig();
       const currentAgentCount = Object.keys(config.agents || {}).length;
       const currentCategoryCount = Object.keys(config.categories || {}).length;
 
@@ -438,26 +444,38 @@ export function PresetManager() {
     <div className="space-y-6">
       {/* 内置预设区域 */}
       <div>
-        <div className="mb-3">
-          <h3 className="text-lg font-semibold text-slate-800">{t('presetManager.builtinPresets')}</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            {t('presetManager.builtinPresetsDescription')}
-          </p>
-        </div>
-        <div className="flex flex-col gap-3">
-          {builtinPresets.map((preset) => (
-            <BuiltinPresetCard
-              key={preset.id}
-              preset={preset}
-              agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
-              categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
-              isActive={activeBuiltinPreset === preset.id}
-              isLoading={isLoading}
-              onApply={() => handleApplyBuiltinPreset(preset.id)}
-              applyLabel={t('presetManager.apply')}
-            />
-          ))}
-        </div>
+        <button
+          onClick={() => setBuiltinExpanded(!builtinExpanded)}
+          className="flex items-center gap-2 w-full text-left py-2 hover:bg-slate-50 rounded-lg transition-colors mb-3"
+        >
+          {builtinExpanded ? (
+            <ChevronDown className="w-5 h-5 text-slate-500" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-slate-500" />
+          )}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">{t('presetManager.builtinPresets')}</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {t('presetManager.builtinPresetsDescription')}
+            </p>
+          </div>
+        </button>
+        {builtinExpanded && (
+          <div className="flex flex-col gap-3">
+            {builtinPresets.map((preset) => (
+              <BuiltinPresetCard
+                key={preset.id}
+                preset={preset}
+                agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
+                categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
+                isActive={activeBuiltinPreset === preset.id}
+                isLoading={isLoading}
+                onApply={() => handleApplyBuiltinPreset(preset.id)}
+                applyLabel={t('presetManager.apply')}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 分隔线 */}
@@ -465,12 +483,22 @@ export function PresetManager() {
 
       {/* 我的预设区域 */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800">{t('presetManager.myPresets')}</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            {t('presetManager.presetCount', { count: presets.length })}
-          </p>
-        </div>
+        <button
+          onClick={() => setMyPresetsExpanded(!myPresetsExpanded)}
+          className="flex items-center gap-2 text-left py-2 hover:bg-slate-50 rounded-lg transition-colors"
+        >
+          {myPresetsExpanded ? (
+            <ChevronDown className="w-5 h-5 text-slate-500" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-slate-500" />
+          )}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">{t('presetManager.myPresets')}</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {t('presetManager.presetCount', { count: presets.length })}
+            </p>
+          </div>
+        </button>
         <Button
           variant="primary"
           onClick={() => setShowSaveModal(true)}
@@ -487,39 +515,43 @@ export function PresetManager() {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="text-slate-500 mt-4">{t('presetManager.loading')}</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <DefaultPresetCard
-            isActive={activePreset === null}
-            agentCount={defaultPresetInfo.agentCount}
-            categoryCount={defaultPresetInfo.categoryCount}
-            onLoad={handleLoadDefault}
-            loadLabel={t('presetManager.load')}
-          />
-          {presets.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">{t('presetManager.noPresets')}</div>
+      {myPresetsExpanded && (
+        <>
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+              <p className="text-slate-500 mt-4">{t('presetManager.loading')}</p>
+            </div>
           ) : (
-            presets.map((preset) => (
-              <PresetCard
-                key={preset.name}
-                name={preset.name}
-                agentCount={preset.agentCount}
-                categoryCount={preset.categoryCount}
-                updatedAt={preset.updatedAt}
-                isActive={activePreset === preset.name}
-                onLoad={() => handleLoadPreset(preset.name)}
-                onDelete={() => openDeleteModal(preset.name)}
+            <div className="flex flex-col gap-3">
+              <DefaultPresetCard
+                isActive={activePreset === null}
+                agentCount={defaultPresetInfo.agentCount}
+                categoryCount={defaultPresetInfo.categoryCount}
+                onLoad={handleLoadDefault}
                 loadLabel={t('presetManager.load')}
-                deleteLabel={t('presetManager.delete')}
               />
-            ))
+              {presets.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">{t('presetManager.noPresets')}</div>
+              ) : (
+                presets.map((preset) => (
+                  <PresetCard
+                    key={preset.name}
+                    name={preset.name}
+                    agentCount={preset.agentCount}
+                    categoryCount={preset.categoryCount}
+                    updatedAt={preset.updatedAt}
+                    isActive={activePreset === preset.name}
+                    onLoad={() => handleLoadPreset(preset.name)}
+                    onDelete={() => openDeleteModal(preset.name)}
+                    loadLabel={t('presetManager.load')}
+                    deleteLabel={t('presetManager.delete')}
+                  />
+                ))
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       <Modal
