@@ -452,8 +452,7 @@ export function SettingsPage() {
                   )}
                   onClick={() => {
                     if (cacheDir) {
-                      const expandedPath = cacheDir.replace(/^~/, process.env.HOME || '~');
-                      revealItemInDir(expandedPath).catch(() => {});
+                      revealItemInDir(cacheDir).catch(() => {});
                     }
                   }}
                   title={cacheDir ? "点击在文件管理器中打开" : undefined}
