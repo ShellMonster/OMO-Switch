@@ -12,7 +12,7 @@
 **OMO Switch** 是專為 [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode) 打造的桌面端模型配置管理工具。基於 **Tauri 2.0** 構建，支援可視化切換 AI 模型、管理預設配置、瀏覽模型庫，並提供自動更新功能。
 
 <p align="center">
-  <img src="assets/preview.png" alt="OMO Switch 預覽" width="800">
+  <img src="assets/demo_1.png" alt="OMO Switch 預覽" width="800">
 </p>
 
 > 💡 **核心功能**：

@@ -12,7 +12,7 @@
 **OMO Switch** is a desktop model configuration management tool designed for [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode). Built with **Tauri 2.0**, it provides visual AI model switching, preset management, model library browsing, and automatic updates.
 
 <p align="center">
-  <img src="assets/preview.png" alt="OMO Switch Preview" width="800">
+  <img src="assets/demo_1.png" alt="OMO Switch Preview" width="800">
 </p>
 
 > 💡 **Core Features**:
