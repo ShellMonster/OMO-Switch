@@ -227,7 +227,9 @@
     "builtinPresets": "内蔵プリセット",
     "builtinPresetsDescription": "公式推奨の構成を素早く適用",
     "builtin": "内蔵",
-    "apply": "適用"
+    "apply": "適用",
+    "lastSync": "最終同期",
+    "notSynced": "未同期"
   },
   "presetSelector": {
     "default": "(デフォルト)",

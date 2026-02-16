@@ -295,7 +295,9 @@
     "builtinPresets": "Built-in Presets",
     "builtinPresetsDescription": "Quickly apply official recommended configurations",
     "builtin": "Built-in",
-    "apply": "Apply"
+    "apply": "Apply",
+    "lastSync": "Last Sync",
+    "notSynced": "Not Synced"
   },
   "presetSelector": {
     "default": "(Default)",

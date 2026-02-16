@@ -305,6 +305,14 @@ export async function saveConfigSnapshot(): Promise<void> {
 }
 
 /**
+ * 获取配置文件的修改时间
+ * 返回 Unix 时间戳（毫秒）
+ */
+export async function getConfigModificationTime(): Promise<number | null> {
+  return invoke<number | null>('get_config_modification_time');
+}
+
+/**
  * 合并缓存快照与当前配置并保存
  * 用于"从缓存恢复"功能
  */

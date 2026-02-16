@@ -296,7 +296,9 @@
     "builtinPresets": "内置预设",
     "builtinPresetsDescription": "快速应用官方推荐的配置方案",
     "builtin": "内置",
-    "apply": "应用"
+    "apply": "应用",
+    "lastSync": "上次同步",
+    "notSynced": "未同步"
   },
   "presetSelector": {
     "default": "(默认配置)",

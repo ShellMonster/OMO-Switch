@@ -227,7 +227,9 @@
     "builtinPresets": "내장 프리셋",
     "builtinPresetsDescription": "공식 추천 구성을 빠르게 적용",
     "builtin": "내장",
-    "apply": "적용"
+    "apply": "적용",
+    "lastSync": "마지막 동기화",
+    "notSynced": "동기화되지 않음"
   },
   "presetSelector": {
     "default": "(기본값)",

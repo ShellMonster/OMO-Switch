@@ -227,7 +227,9 @@
     "builtinPresets": "內建預設",
     "builtinPresetsDescription": "快速套用官方推薦的配置方案",
     "builtin": "內建",
-    "apply": "套用"
+    "apply": "套用",
+    "lastSync": "上次同步",
+    "notSynced": "未同步"
   },
   "presetSelector": {
     "default": "(預設配置)",

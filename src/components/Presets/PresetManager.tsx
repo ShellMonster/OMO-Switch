@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Plus, Trash2, Power, CheckCircle2, Settings, Star, Zap, Coins, ChevronDown, ChevronRight } from 'lucide-react';
+import { Bookmark, Plus, Trash2, Power, CheckCircle2, Settings, Star, Zap, Coins, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset } from '../../services/tauri';
+import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, getConfigModificationTime } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 import { usePreloadStore } from '../../store/preloadStore';
 import type { BuiltinPresetInfo } from '../../services/tauri';
@@ -105,12 +105,25 @@ interface DefaultPresetCardProps {
   isActive: boolean;
   agentCount: number;
   categoryCount: number;
+  modifiedTime: number | null;
   onLoad?: () => void;
   loadLabel?: string;
 }
 
-function DefaultPresetCard({ isActive, agentCount, categoryCount, onLoad, loadLabel }: DefaultPresetCardProps) {
+function DefaultPresetCard({ isActive, agentCount, categoryCount, modifiedTime, onLoad, loadLabel }: DefaultPresetCardProps) {
   const { t } = useTranslation();
+
+  const formatModifiedTime = (timestamp: number | null): string => {
+    if (!timestamp) return t('presetCard.unknown');
+    const date = new Date(timestamp);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).replace(/\//g, '-');
+  };
 
   return (
     <div 
@@ -124,10 +137,13 @@ function DefaultPresetCard({ isActive, agentCount, categoryCount, onLoad, loadLa
         <h3 className="font-semibold text-slate-800 truncate flex-1 min-w-0">
           {t('presetManager.defaultPreset')}
         </h3>
-        <div className="flex items-center gap-3 text-sm text-slate-500 flex-shrink-0">
-          <span className="whitespace-nowrap">
+        <div className="flex flex-col items-end gap-1">
+          <span className="whitespace-nowrap text-sm text-slate-500">
             {agentCount} agents, {categoryCount} categories
           </span>
+          <p className="text-xs text-slate-400">
+            {t('presetCard.lastUpdated')}: {formatModifiedTime(modifiedTime)}
+          </p>
         </div>
         {isActive ? (
           <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full flex items-center gap-1">
@@ -245,6 +261,11 @@ export function PresetManager() {
   const { activePreset, setActivePreset, clearActivePreset } = usePresetStore();
   // 从 preloadStore 获取已缓存的 omoConfig 数据
   const cachedOmoConfig = usePreloadStore(s => s.omoConfig.data);
+  const lastSyncTime = usePreloadStore(s => s.upstreamUpdateStatus.lastChecked);
+  // 获取版本信息，检测 Oh My OpenCode 是否已安装
+  const versions = usePreloadStore(s => s.versions.data);
+  const omoInfo = versions?.find(v => v.name === 'Oh My OpenCode');
+  const omoInstalled = omoInfo?.installed ?? true;  // 默认假设已安装，避免闪烁
   const [presets, setPresets] = useState<PresetWithInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -256,6 +277,7 @@ export function PresetManager() {
     agentCount: 0,
     categoryCount: 0
   });
+  const [configModifiedTime, setConfigModifiedTime] = useState<number | null>(null);
   const [builtinPresets, setBuiltinPresets] = useState<BuiltinPresetInfo[]>([]);
   const [activeBuiltinPreset, setActiveBuiltinPreset] = useState<string | null>(null);
   const [builtinPresetStats, setBuiltinPresetStats] = useState<Record<string, { agentCount: number; categoryCount: number }>>({});
@@ -298,6 +320,8 @@ export function PresetManager() {
         agentCount: Object.keys(config.agents || {}).length,
         categoryCount: Object.keys(config.categories || {}).length
       });
+      const modifiedTime = await getConfigModificationTime();
+      setConfigModifiedTime(modifiedTime);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load default preset info:', error);
@@ -442,6 +466,22 @@ export function PresetManager() {
 
   return (
     <div className="space-y-6">
+      {omoInstalled === false && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-medium text-amber-800">预设功能需要 Oh My OpenCode</h4>
+              <p className="text-sm text-amber-700 mt-1">
+                请先安装 Oh My OpenCode 插件后再使用预设功能。
+              </p>
+              <code className="mt-2 inline-block text-xs bg-amber-100 px-2 py-1 rounded text-amber-900">
+                bunx oh-my-opencode install
+              </code>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 内置预设区域 */}
       <div>
         <button
@@ -461,20 +501,33 @@ export function PresetManager() {
           </div>
         </button>
         {builtinExpanded && (
-          <div className="flex flex-col gap-3">
-            {builtinPresets.map((preset) => (
-              <BuiltinPresetCard
-                key={preset.id}
-                preset={preset}
-                agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
-                categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
-                isActive={activeBuiltinPreset === preset.id}
-                isLoading={isLoading}
-                onApply={() => handleApplyBuiltinPreset(preset.id)}
-                applyLabel={t('presetManager.apply')}
-              />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-col gap-3">
+              {builtinPresets.map((preset) => (
+                <BuiltinPresetCard
+                  key={preset.id}
+                  preset={preset}
+                  agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
+                  categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
+                  isActive={activeBuiltinPreset === preset.id}
+                  isLoading={isLoading}
+                  onApply={() => handleApplyBuiltinPreset(preset.id)}
+                  applyLabel={t('presetManager.apply')}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-3">
+              {t('presetManager.lastSync')}: {lastSyncTime
+                ? new Date(lastSyncTime).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }).replace(/\//g, '-')
+                : t('presetManager.notSynced')}
+            </p>
+          </>
         )}
       </div>
 
@@ -528,6 +581,7 @@ export function PresetManager() {
                 isActive={activePreset === null}
                 agentCount={defaultPresetInfo.agentCount}
                 categoryCount={defaultPresetInfo.categoryCount}
+                modifiedTime={configModifiedTime}
                 onLoad={handleLoadDefault}
                 loadLabel={t('presetManager.load')}
               />
