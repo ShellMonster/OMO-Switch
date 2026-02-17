@@ -65,7 +65,8 @@
     "loadConfigFailed": "載入配置失敗",
     "retry": "重試",
     "total": "共 {{count}} 個 Agent",
-    "refresh": "重新整理"
+    "refresh": "重新整理",
+    "builtinPresetEditHint": "內建預設不可編輯，請切換到'當前配置'或建立自訂預設"
   },
   "agentCard": {
     "edit": "編輯",
@@ -227,6 +228,7 @@
     "builtinPresets": "內建預設",
     "builtinPresetsDescription": "快速套用官方推薦的配置方案",
     "builtin": "內建",
+    "builtinLabel": "內建預設 · 不可修改",
     "apply": "套用",
     "lastSync": "上次同步",
     "notSynced": "未同步"
@@ -467,7 +469,9 @@
     "ok": "確定",
     "cancel": "取消",
     "search": "搜尋...",
-    "disabled": "已停用"
+    "disabled": "已停用",
+    "refresh": "重新整理",
+    "retry": "重試"
   },
    "errorBoundary": {
      "title": "應用程式遇到錯誤",

@@ -4,7 +4,7 @@ import { Bookmark, Plus, Trash2, Power, CheckCircle2, Settings, Star, Zap, Coins
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, getConfigModificationTime } from '../../services/tauri';
+import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, getConfigModificationTime, saveConfigSnapshot } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 import { usePreloadStore } from '../../store/preloadStore';
 import type { BuiltinPresetInfo } from '../../services/tauri';
@@ -279,9 +279,7 @@ export function PresetManager() {
   });
   const [configModifiedTime, setConfigModifiedTime] = useState<number | null>(null);
   const [builtinPresets, setBuiltinPresets] = useState<BuiltinPresetInfo[]>([]);
-  const [activeBuiltinPreset, setActiveBuiltinPreset] = useState<string | null>(null);
   const [builtinPresetStats, setBuiltinPresetStats] = useState<Record<string, { agentCount: number; categoryCount: number }>>({});
-  const [builtinExpanded, setBuiltinExpanded] = useState(true);
   const [myPresetsExpanded, setMyPresetsExpanded] = useState(true);
 
   const loadPresetList = async () => {
@@ -386,6 +384,7 @@ export function PresetManager() {
       setIsLoading(true);
       await loadPreset(name);
       setActivePreset(name);
+      await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
       toast.success(t('presetManager.loadSuccess', { name }));
       setError(null);
     } catch (err) {
@@ -403,7 +402,7 @@ export function PresetManager() {
     try {
       setIsLoading(true);
       clearActivePreset();
-      setActiveBuiltinPreset(null);
+      await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
       toast.success(t('presetManager.loadSuccess', { name: t('presetManager.defaultPreset') }));
       setError(null);
     } catch (err) {
@@ -421,8 +420,8 @@ export function PresetManager() {
     try {
       setIsLoading(true);
       await applyBuiltinPreset(presetId);
-      setActiveBuiltinPreset(presetId);
       setActivePreset(`__builtin__${presetId}`);
+      await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
 
       const preset = builtinPresets.find(p => p.id === presetId);
       toast.success(t('presetManager.loadSuccess', { name: preset?.name || presetId }));
@@ -482,58 +481,6 @@ export function PresetManager() {
           </div>
         </div>
       )}
-      {/* 内置预设区域 */}
-      <div>
-        <button
-          onClick={() => setBuiltinExpanded(!builtinExpanded)}
-          className="flex items-center gap-2 w-full text-left py-2 hover:bg-slate-50 rounded-lg transition-colors mb-3"
-        >
-          {builtinExpanded ? (
-            <ChevronDown className="w-5 h-5 text-slate-500" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-slate-500" />
-          )}
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800">{t('presetManager.builtinPresets')}</h3>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {t('presetManager.builtinPresetsDescription')}
-            </p>
-          </div>
-        </button>
-        {builtinExpanded && (
-          <>
-            <div className="flex flex-col gap-3">
-              {builtinPresets.map((preset) => (
-                <BuiltinPresetCard
-                  key={preset.id}
-                  preset={preset}
-                  agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
-                  categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
-                  isActive={activeBuiltinPreset === preset.id}
-                  isLoading={isLoading}
-                  onApply={() => handleApplyBuiltinPreset(preset.id)}
-                  applyLabel={t('presetManager.apply')}
-                />
-              ))}
-            </div>
-            <p className="text-xs text-slate-400 mt-3">
-              {t('presetManager.lastSync')}: {lastSyncTime
-                ? new Date(lastSyncTime).toLocaleString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }).replace(/\//g, '-')
-                : t('presetManager.notSynced')}
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* 分隔线 */}
-      <div className="border-t border-slate-200" />
-
       {/* 我的预设区域 */}
       <div className="flex items-center justify-between">
         <button
@@ -577,6 +524,41 @@ export function PresetManager() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
+              {/* 内置预设（置顶） */}
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-2">
+                <Star className="w-3 h-3" />
+                {t('presetManager.builtinLabel')}
+              </div>
+              {builtinPresets.map((preset) => (
+                <BuiltinPresetCard
+                  key={preset.id}
+                  preset={preset}
+                  agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
+                  categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
+                  isActive={activePreset === `__builtin__${preset.id}`}
+                  isLoading={isLoading}
+                  onApply={() => handleApplyBuiltinPreset(preset.id)}
+                  applyLabel={t('presetManager.apply')}
+                />
+              ))}
+
+              {/* 上次同步时间 */}
+              <p className="text-xs text-slate-400 mb-2">
+                {t('presetManager.lastSync')}: {lastSyncTime
+                  ? new Date(lastSyncTime).toLocaleString('zh-CN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }).replace(/\//g, '-')
+                  : t('presetManager.notSynced')}
+              </p>
+
+              {/* 分隔线 */}
+              <div className="border-t border-slate-200 my-2" />
+
+              {/* 默认预设 */}
               <DefaultPresetCard
                 isActive={activePreset === null}
                 agentCount={defaultPresetInfo.agentCount}

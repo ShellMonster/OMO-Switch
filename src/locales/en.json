@@ -132,7 +132,8 @@
     "total": "{{count}} Agents total",
     "totalCategories": "{{count}} categories",
     "refresh": "Refresh",
-    "saveAsTemplate": "Save as Template"
+    "saveAsTemplate": "Save as Template",
+    "builtinPresetEditHint": "Built-in presets cannot be edited. Please switch to 'Current Config' or create a custom preset."
   },
   "agentCard": {
     "edit": "Edit",
@@ -295,6 +296,7 @@
     "builtinPresets": "Built-in Presets",
     "builtinPresetsDescription": "Quickly apply official recommended configurations",
     "builtin": "Built-in",
+    "builtinLabel": "Built-in Presets · Read-only",
     "apply": "Apply",
     "lastSync": "Last Sync",
     "notSynced": "Not Synced"
@@ -536,7 +538,9 @@
     "ok": "OK",
     "cancel": "Cancel",
     "search": "Search...",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "refresh": "Refresh",
+    "retry": "Retry"
   },
    "errorBoundary": {
      "title": "Application Error",

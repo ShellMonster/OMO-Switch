@@ -132,7 +132,8 @@
     "total": "共 {{count}} 个 Agent",
     "totalCategories": "共 {{count}} 个 categories",
     "refresh": "刷新",
-    "saveAsTemplate": "另存模板"
+    "saveAsTemplate": "另存模板",
+    "builtinPresetEditHint": "内置预设不可编辑，请切换到'当前配置'或创建自定义预设"
   },
   "agentCard": {
     "edit": "编辑",
@@ -296,6 +297,7 @@
     "builtinPresets": "内置预设",
     "builtinPresetsDescription": "快速应用官方推荐的配置方案",
     "builtin": "内置",
+    "builtinLabel": "内置预设 · 不可修改",
     "apply": "应用",
     "lastSync": "上次同步",
     "notSynced": "未同步"
@@ -538,7 +540,9 @@
     "ok": "确定",
     "cancel": "取消",
     "search": "搜索...",
-    "disabled": "已禁用"
+    "disabled": "已禁用",
+    "refresh": "刷新",
+    "retry": "重试"
   },
    "errorBoundary": {
      "title": "应用程序遇到错误",

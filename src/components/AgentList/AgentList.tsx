@@ -60,7 +60,10 @@ export function AgentList({
 }: AgentListProps) {
   const { t } = useTranslation();
   const { updateAgentInConfig, updateCategoryInConfig } = usePreloadStore();
-  const { setActivePreset } = usePresetStore();
+  const { setActivePreset, activePreset } = usePresetStore();
+
+  // 判断当前是否为内置预设（内置预设不可编辑）
+  const isBuiltinPreset = activePreset?.startsWith('__builtin__');
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -72,9 +75,13 @@ export function AgentList({
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   const handleEdit = useCallback((agentName: string) => {
+    if (isBuiltinPreset) {
+      toast.info(t('agentList.builtinPresetEditHint'));
+      return;
+    }
     setSelectedAgent(agentName);
     setIsSelectorOpen(true);
-  }, []);
+  }, [isBuiltinPreset, t]);
 
   const handleClose = useCallback(() => {
     setIsSelectorOpen(false);
@@ -98,11 +105,11 @@ export function AgentList({
         // 保存配置快照，用于外部修改检测
         await saveConfigSnapshot();
 
-        // 如果有激活预设，同步更新到预设文件
-        const activePreset = usePresetStore.getState().activePreset;
-        if (activePreset) {
+        // 只有非内置预设才同步更新到预设文件
+        const currentActivePreset = usePresetStore.getState().activePreset;
+        if (currentActivePreset && !currentActivePreset.startsWith('__builtin__')) {
           try {
-            await updatePreset(activePreset);
+            await updatePreset(currentActivePreset);
           } catch (error) {
             if (import.meta.env.DEV) {
               console.error('Failed to sync preset:', error);

@@ -11,57 +11,65 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build - ${{ matrix.name }}
+    name: 构建并发布 - ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: macOS (Apple Silicon)
             platform: macos-latest
-            target: aarch64-apple-darwin
-            bundles: dmg
+            tauriArgs: '--target aarch64-apple-darwin'
           - name: macOS (Universal)
             platform: macos-latest
-            target: universal-apple-darwin
-            bundles: dmg
+            tauriArgs: '--target universal-apple-darwin'
           - name: Windows (x64)
             platform: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundles: nsis
+            tauriArgs: '--bundles nsis'
     runs-on: ${{ matrix.platform }}
     env:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
     steps:
-      - name: Checkout
+      - name: 拉取源代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: 安装 Node.js 环境
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Setup Rust
+      - name: 安装 Rust 环境
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.target }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      - name: Rust cache
+      - name: Rust 缓存
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: npm ci
 
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2" --locked
+      - name: 获取构建时间
+        shell: bash
+        run: |
+          BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+        if: runner.os != 'Windows'
 
-      - name: Generate Release Notes
+      - name: 获取构建时间 (Windows)
+        shell: pwsh
+        run: |
+          $buildTime = (Get-Date).ToUniversalTime().AddHours(8).ToString("yyyy-MM-dd HH:mm:ss")
+          echo "BUILD_TIME=$buildTime" >> $env:GITHUB_ENV
+        if: runner.os == 'Windows'
+
+      - name: 生成 Release Notes
         id: release_notes
         shell: bash
         run: |
@@ -99,135 +107,47 @@ jobs:
           [ -n "$OTHERS" ] && BODY="$BODY\n### 📦 其他改动$OTHERS\n"
           [ -z "$BODY" ] && BODY="本次发布包含内部优化与稳定性提升。"
           
-          BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
           {
             echo "body<<EOF"
             echo -e "$BODY"
             echo ""
             echo "---"
-            echo "*构建时间: $BUILD_TIME*"
+            echo "*构建时间: ${{ env.BUILD_TIME }}*"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build Tauri app
-        run: |
-          cd src-tauri
-          cargo tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-        env:
-          CI: true
-
-      - name: Generate Updater Signature (macOS)
-        if: matrix.platform == 'macos-latest'
-        shell: bash
-        run: |
-          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
-            echo "No signing key, skip signature generation"
-            exit 0
-          fi
-          
-          KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
-          
-          TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle/macos"
-          UPDATE_BUNDLE=$(ls -1 "$TARGET_DIR"/*.app.tar.gz 2>/dev/null | head -n 1 || true)
-          
-          if [ -z "$UPDATE_BUNDLE" ]; then
-            echo "No updater bundle found"
-            exit 0
-          fi
-          
-          npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
-          echo "Signature generated: ${UPDATE_BUNDLE}.sig"
-
-      - name: Generate Updater Signature (Windows)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
-            Write-Host "No signing key, skip signature generation"
-            exit 0
-          }
-          
-          $keyPath = "$env:RUNNER_TEMP\tauri-updater.key"
-          Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
-          
-          $targetDir = "src-tauri\target\${{ matrix.target }}\release\bundle\nsis"
-          $setupExe = Get-ChildItem -Path $targetDir -Filter "*_x64-setup.exe" | Select-Object -First 1
-          
-          if (-not $setupExe) {
-            Write-Host "No setup exe found"
-            exit 0
-          fi
-          
-          npm run tauri -- signer sign -f $keyPath -p "${env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" $setupExe.FullName
-          Write-Host "Signature generated: $($setupExe.FullName).sig"
-
-      - name: Prepare Release Assets (macOS)
-        if: matrix.platform == 'macos-latest'
-        shell: bash
-        run: |
-          mkdir -p release-assets
-          TARGET_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
-          
-          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ]; then
-            SUFFIX="_aarch64"
-          else
-            SUFFIX="_universal"
-          fi
-          
-          # DMG
-          if [ -d "$TARGET_DIR/dmg" ]; then
-            for f in "$TARGET_DIR/dmg"/*.dmg; do
-              [ -f "$f" ] && cp "$f" "release-assets/OMO_Switch${SUFFIX}.dmg"
-            done
-          fi
-          
-          # App bundle for updater
-          if [ -d "$TARGET_DIR/macos" ]; then
-            for f in "$TARGET_DIR/macos"/*.app.tar.gz; do
-              [ -f "$f" ] && cp "$f" "release-assets/OMO_Switch${SUFFIX}.app.tar.gz"
-            done
-            for f in "$TARGET_DIR/macos"/*.app.tar.gz.sig; do
-              [ -f "$f" ] && cp "$f" "release-assets/"
-            done
-          fi
-
-      - name: Prepare Release Assets (Windows)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path release-assets
-          $targetDir = "src-tauri\target\${{ matrix.target }}\release\bundle\nsis"
-          
-          $setupExe = Get-ChildItem -Path $targetDir -Filter "*_x64-setup.exe" | Select-Object -First 1
-          if ($setupExe) {
-            Copy-Item $setupExe.FullName "release-assets\OMO_Switch_x64-setup.exe"
-            $sigFile = "$($setupExe.FullName).sig"
-            if (Test-Path $sigFile) {
-              Copy-Item $sigFile "release-assets\OMO_Switch_x64-setup.exe.sig"
-            }
-          }
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          name: OMO Switch ${{ github.ref_name }}
-          body: ${{ steps.release_notes.outputs.body }}
-          files: release-assets/*
-          draft: false
-          prerelease: false
+      - name: 构建并发布
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: ${{ matrix.tauriArgs }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'OMO Switch ${{ github.ref_name }}'
+          releaseBody: |
+            ## OMO Switch - AI 模型切换管理工具
+
+            ### 🚀 本次更新
+            ${{ steps.release_notes.outputs.body }}
+
+            ---
+            *由 GitHub Actions 自动构建发布 - ${{ env.BUILD_TIME }}*
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: false
+          includeRelease: true
 
   publish-updater-json:
-    name: Publish Updater JSON
+    name: 发布 Updater latest.json
     needs: build-and-release
     if: always() && needs.build-and-release.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Generate latest.json
+      - name: 生成 latest.json 并上传
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -258,10 +178,10 @@ jobs:
                   return a
             return None
           
-          # macOS bundles
-          mac_arm = find_asset([r"OMO_Switch_aarch64\.app\.tar\.gz$"])
-          mac_universal = find_asset([r"OMO_Switch_universal\.app\.tar\.gz$"])
-          win_exe = find_asset([r"OMO_Switch_x64-setup\.exe$"])
+          # macOS bundles (tauri-action 生成的命名)
+          mac_arm = find_asset([r"aarch64.*\.app\.tar\.gz$", r"OMO.*aarch64.*\.app\.tar\.gz$"])
+          mac_universal = find_asset([r"universal.*\.app\.tar\.gz$", r"OMO.*universal.*\.app\.tar\.gz$"])
+          win_exe = find_asset([r"_x64-setup\.exe$", r"OMO.*x64.*\.exe$"])
           
           def sig_for(asset):
             if not asset:

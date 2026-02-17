@@ -8,7 +8,7 @@ import { ProviderList, type ProviderInfo } from '../components/Providers/Provide
 import { ProviderStatus } from '../components/Models/ProviderStatus';
 import { ApiKeyModal } from '../components/Providers/ApiKeyModal';
 import { CustomProviderModal } from '../components/Providers/CustomProviderModal';
-import { KeyRound, Wifi, Settings } from 'lucide-react';
+import { KeyRound, Wifi, Settings, RefreshCw } from 'lucide-react';
 import { cn } from '../components/common/cn';
 
 type TabType = 'status' | 'config';
@@ -86,16 +86,18 @@ export function ProviderPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <KeyRound className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">{t('provider.title')}</h1>
-            <p className="text-slate-500">{t('provider.description')}</p>
-          </div>
+      <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 mb-6">
+        <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+          <KeyRound className="w-6 h-6 text-white" />
         </div>
+        <div className="flex-1">
+          <h2 className="text-xl font-semibold text-slate-800">{t('provider.title')}</h2>
+          <p className="text-slate-600 mt-1">{t('provider.description')}</p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={loadData} disabled={isLoading}>
+          <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
+          {t('common.refresh')}
+        </Button>
       </div>
 
       <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit mb-6">

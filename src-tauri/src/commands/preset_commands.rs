@@ -28,6 +28,10 @@ pub fn get_preset_info(name: String) -> Result<(usize, usize, String), String> {
 
 #[tauri::command]
 pub fn update_preset(name: String) -> Result<(), String> {
+    // 检查是否为内置预设，内置预设不可修改
+    if name.starts_with("__builtin__") {
+        return Err("内置预设不可修改".to_string());
+    }
     preset_service::update_preset(&name)
 }
 

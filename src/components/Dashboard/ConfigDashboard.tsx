@@ -536,7 +536,7 @@ export function ConfigDashboard() {
                           ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
                           : 'bg-violet-50 text-violet-600 border border-violet-200'
                       )}>
-                        {agent.category === 'agent' ? 'Agent' : t('configDashboard.tableType')}
+                        {agent.category === 'agent' ? 'Agent' : 'Category'}
                       </span>
                     </td>
                     <td className="px-6 py-4">

@@ -65,7 +65,8 @@
     "loadConfigFailed": "설정 로딩 실패",
     "retry": "재시도",
     "total": "총 {{count}}개 Agent",
-    "refresh": "새로고침"
+    "refresh": "새로고침",
+    "builtinPresetEditHint": "내장 프리셋은 편집할 수 없습니다. '현재 설정'으로 전환하거나 사용자 정의 프리셋을 만드세요."
   },
   "agentCard": {
     "edit": "편집",
@@ -227,6 +228,7 @@
     "builtinPresets": "내장 프리셋",
     "builtinPresetsDescription": "공식 추천 구성을 빠르게 적용",
     "builtin": "내장",
+    "builtinLabel": "내장 프리셋 · 수정 불가",
     "apply": "적용",
     "lastSync": "마지막 동기화",
     "notSynced": "동기화되지 않음"
@@ -467,7 +469,9 @@
     "ok": "확인",
     "cancel": "취소",
     "search": "검색...",
-    "disabled": "비활성화됨"
+    "disabled": "비활성화됨",
+    "refresh": "새로고침",
+    "retry": "재시도"
   },
    "errorBoundary": {
      "title": "애플리케이션 오류",

@@ -308,10 +308,17 @@ export function SettingsPage() {
                       {t('versionCheck.updateAvailable')}
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-sm text-emerald-600">
-                      <CheckCircle2 className="w-4 h-4" />
-                      {t('versionCheck.upToDate')}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="flex items-center gap-1 text-sm text-emerald-600">
+                        <CheckCircle2 className="w-4 h-4" />
+                        {t('versionCheck.upToDate')}
+                      </span>
+                      {v.latest_version && (
+                        <span className="text-xs text-slate-400 mt-0.5 font-mono">
+                          v{v.latest_version}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -453,11 +460,18 @@ export function SettingsPage() {
                     "flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg",
                     cacheDir && "cursor-pointer hover:bg-slate-200 transition-colors"
                   )}
-                  onClick={() => {
-                    if (cacheDir) {
-                      revealItemInDir(cacheDir).catch(() => {});
-                    }
-                  }}
+onClick={async () => {
+                     if (cacheDir) {
+                       try {
+                         await revealItemInDir(cacheDir);
+                       } catch (err) {
+                         if (import.meta.env.DEV) {
+                           console.error('Failed to reveal cache directory:', err);
+                         }
+                         toast.error(t('settings.cacheDirRevealFailed', { defaultValue: '无法打开缓存目录' }));
+                       }
+                     }
+                   }}
                   title={cacheDir ? "点击在文件管理器中打开" : undefined}
                 >
                   <code className="text-sm text-slate-600 font-mono break-all">
@@ -504,11 +518,11 @@ export function SettingsPage() {
                   onClick={handleOpenRepo}
                   className="mt-1 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 hover:underline underline-offset-2"
                 >
-                  <img
-                    src={appLogo}
-                    alt="GitHub"
-                    className="w-4 h-4 rounded object-contain"
-                  />
+<img
+                     src={appLogo}
+                     alt={appInfo.name}
+                     className="w-4 h-4 rounded object-contain"
+                   />
                   <span className="truncate">{repoUrl}</span>
                 </button>
               )}

@@ -398,36 +398,7 @@ export function UpstreamSyncPanel() {
           </div>
         )}
 
-        {/* 无检查结果时的预设快速选择 */}
-        {!syncResult && !error && !isChecking && (
-          <div className="space-y-3">
-            <h4 className="font-medium text-slate-700">
-              {t('upstreamSync.quickApply', { defaultValue: '快速应用预设' })}
-            </h4>
-            <div className="grid gap-2">
-              {presets.map((preset) => (
-                <button
-                  key={preset.id}
-                  onClick={() => {
-                    setSelectedPreset(preset.id);
-                    handleApplyPreset();
-                  }}
-                  disabled={isApplying}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-left disabled:opacity-60"
-                >
-                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
-                    {getPresetIcon(preset.icon)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-700">{preset.name}</p>
-                    <p className="text-sm text-slate-500 truncate">{preset.description}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
