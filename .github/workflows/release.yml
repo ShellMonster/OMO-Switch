@@ -140,17 +140,17 @@ jobs:
       - name: 手动签名并上传签名文件
         if: runner.os == 'macOS'
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRIVATE_KEY_BASE64: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         shell: bash
         run: |
           TAG="${{ github.ref_name }}"
           REPO="${{ github.repository }}"
           
-          # 写入私钥到临时文件
+          # 写入私钥到临时文件（从专用环境变量读取，避免与 tauri 内置环境变量冲突）
           KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
+          printf '%s' "$PRIVATE_KEY_BASE64" > "$KEY_PATH"
           
           # 查找构建产物目录
           BUNDLE_DIR=""
@@ -171,7 +171,7 @@ jobs:
           # 查找并签名所有 .app.tar.gz 文件
           find "$BUNDLE_DIR" -name "*.app.tar.gz" -type f | while read -r bundle; do
             echo "签名文件: $bundle"
-            npm run -s tauri -- signer sign --private-key-path "$KEY_PATH" --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
+            npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
             
             # 获取签名文件
             SIG_FILE="${bundle}.sig"
@@ -186,17 +186,17 @@ jobs:
       - name: 手动签名并上传签名文件 (Windows)
         if: runner.os == 'Windows'
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRIVATE_KEY_BASE64: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         shell: bash
         run: |
           TAG="${{ github.ref_name }}"
           REPO="${{ github.repository }}"
           
-          # 写入私钥到临时文件
+          # 写入私钥到临时文件（从专用环境变量读取，避免与 tauri 内置环境变量冲突）
           KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
+          printf '%s' "$PRIVATE_KEY_BASE64" > "$KEY_PATH"
           
           # 查找 Windows 构建产物
           BUNDLE_DIR="src-tauri/target/release/bundle/nsis"
@@ -211,7 +211,17 @@ jobs:
           # 查找并签名 .exe 文件（不是安装包，而是 update bundle）
           find "$BUNDLE_DIR" -name "*.exe" -type f | grep -v "_setup" | while read -r bundle; do
             echo "签名文件: $bundle"
-            npm run -s tauri -- signer sign --private-key-path "$KEY_PATH" --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
+            npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
+            
+            # 获取签名文件
+            SIG_FILE="${bundle}.sig"
+            if [ -f "$SIG_FILE" ]; then
+              # 上传签名文件到 Release
+              SIG_NAME=$(basename "$SIG_FILE")
+              gh release upload "$TAG" "$SIG_FILE" --clobber --repo "$REPO"
+              echo "已上传签名文件: $SIG_NAME"
+            fi
+          done
             
             # 获取签名文件
             SIG_FILE="${bundle}.sig"
