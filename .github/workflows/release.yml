@@ -180,7 +180,7 @@ jobs:
             exit 0
           fi
           
-          npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
+          npm run -s tauri -- signer sign --private-key-path "$KEY_PATH" --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
           echo "Signature generated: ${UPDATE_BUNDLE}.sig"
           
           # 上传签名文件
@@ -225,7 +225,7 @@ jobs:
             exit 0
           }
           
-          npm run tauri -- signer sign -f $keyPath -p "${env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" $setupExe.FullName
+          npm run tauri -- signer sign --private-key-path $keyPath --password "${env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" $setupExe.FullName
           Write-Host "Signature generated: $($setupExe.FullName).sig"
           
           # 上传签名文件
