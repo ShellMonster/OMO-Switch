@@ -145,8 +145,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          TAURI_SIGNING_PRIVATE_KEY: ''
         run: |
+          unset TAURI_SIGNING_PRIVATE_KEY
+          
           if [ -z "${SIGNING_KEY:-}" ]; then
             echo "No signing key, skip signature generation"
             exit 0
@@ -197,8 +198,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          TAURI_SIGNING_PRIVATE_KEY: ''
         run: |
+          Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
+          
           if (-not $env:SIGNING_KEY) {
             Write-Host "No signing key, skip signature generation"
             exit 0
