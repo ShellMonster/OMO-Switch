@@ -151,9 +151,6 @@ jobs:
             exit 0
           fi
           
-          KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
-          
           # 解析 target
           if [[ "${{ matrix.tauriArgs }}" == *"universal"* ]]; then
             TARGET="universal-apple-darwin"
@@ -180,7 +177,7 @@ jobs:
             exit 0
           fi
           
-          npm run -s tauri -- signer sign --private-key-path "$KEY_PATH" --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
+          npm run -s tauri -- signer sign "$UPDATE_BUNDLE"
           echo "Signature generated: ${UPDATE_BUNDLE}.sig"
           
           # 上传签名文件
@@ -202,9 +199,6 @@ jobs:
             exit 0
           }
           
-          $keyPath = "$env:RUNNER_TEMP\tauri-updater.key"
-          Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
-          
           # 尝试多个可能的目录
           $targetDirs = @(
             "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis",
@@ -225,7 +219,7 @@ jobs:
             exit 0
           }
           
-          npm run tauri -- signer sign --private-key-path $keyPath --password "${env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" $setupExe.FullName
+          npm run tauri -- signer sign $setupExe.FullName
           Write-Host "Signature generated: $($setupExe.FullName).sig"
           
           # 上传签名文件
