@@ -120,8 +120,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: ${{ matrix.tauriArgs }}
           tagName: ${{ github.ref_name }}
@@ -138,6 +136,75 @@ jobs:
           prerelease: false
           includeUpdaterJson: false
           includeRelease: true
+
+      - name: 生成 Updater 签名 (macOS)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "No signing key, skip signature generation"
+            exit 0
+          fi
+          
+          KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
+          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
+          
+          # 解析 target
+          if [[ "${{ matrix.tauriArgs }}" == *"universal"* ]]; then
+            TARGET="universal-apple-darwin"
+          else
+            TARGET="aarch64-apple-darwin"
+          fi
+          
+          BUNDLE_DIR="src-tauri/target/$TARGET/release/bundle/macos"
+          UPDATE_BUNDLE=$(ls -1 "$BUNDLE_DIR"/*.app.tar.gz 2>/dev/null | head -n 1 || true)
+          
+          if [ -z "$UPDATE_BUNDLE" ]; then
+            echo "No updater bundle found"
+            exit 0
+          fi
+          
+          npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
+          echo "Signature generated: ${UPDATE_BUNDLE}.sig"
+          
+          # 上传签名文件
+          TAG="${{ github.ref_name }}"
+          REPO="${{ github.repository }}"
+          gh release upload "$TAG" "${UPDATE_BUNDLE}.sig" --clobber --repo "$REPO"
+
+      - name: 生成 Updater 签名 (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            Write-Host "No signing key, skip signature generation"
+            exit 0
+          }
+          
+          $keyPath = "$env:RUNNER_TEMP\tauri-updater.key"
+          Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
+          
+          $targetDir = "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis"
+          $setupExe = Get-ChildItem -Path $targetDir -Filter "*_x64-setup.exe" | Select-Object -First 1
+          
+          if (-not $setupExe) {
+            Write-Host "No setup exe found"
+            exit 0
+          }
+          
+          npm run tauri -- signer sign -f $keyPath -p "${env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" $setupExe.FullName
+          Write-Host "Signature generated: $($setupExe.FullName).sig"
+          
+          # 上传签名文件
+          gh release upload "${{ github.ref_name }}" "$($setupExe.FullName).sig" --clobber --repo "${{ github.repository }}"
 
   publish-updater-json:
     name: 发布 Updater latest.json
