@@ -144,17 +144,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          unset TAURI_SIGNING_PRIVATE_KEY
-          
           if [ -z "${SIGNING_KEY:-}" ]; then
             echo "No signing key, skip signature generation"
             exit 0
           fi
-          
-          KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$SIGNING_KEY" > "$KEY_PATH"
           
           # 解析 target
           if [[ "${{ matrix.tauriArgs }}" == *"universal"* ]]; then
@@ -182,7 +176,8 @@ jobs:
             exit 0
           fi
           
-          npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
+          # 使用 -k 参数直接传递私钥内容，避免环境变量冲突
+          npm run -s tauri -- signer sign -k "$SIGNING_KEY" -p "" "$UPDATE_BUNDLE"
           echo "Signature generated: ${UPDATE_BUNDLE}.sig"
           
           # 上传签名文件
@@ -197,17 +192,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
-          
           if (-not $env:SIGNING_KEY) {
             Write-Host "No signing key, skip signature generation"
             exit 0
           }
-          
-          $keyPath = "$env:RUNNER_TEMP\tauri-updater.key"
-          Set-Content -Path $keyPath -Value $env:SIGNING_KEY -NoNewline
           
           # 尝试多个可能的目录
           $targetDirs = @(
@@ -227,9 +216,10 @@ jobs:
           if (-not $setupExe) {
             Write-Host "No setup exe found, skipping"
             exit 0
-          fi
+          }
           
-          npm run tauri -- signer sign -f $keyPath -p "${env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" $setupExe.FullName
+          # 使用 -k 参数直接传递私钥内容，避免环境变量冲突
+          npm run tauri -- signer sign -k $env:SIGNING_KEY -p "" $setupExe.FullName
           Write-Host "Signature generated: $($setupExe.FullName).sig"
           
           # 上传签名文件
