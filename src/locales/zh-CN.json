@@ -114,7 +114,9 @@
     "connectedProviders": "已连接供应商",
     "notConnectedProviders": "未连接供应商",
     "noConnectedProviders": "暂无已连接的供应商",
-    "noNotConnectedProviders": "暂无未连接的供应商"
+    "noNotConnectedProviders": "暂无未连接的供应商",
+    "noData": "暂无供应商数据",
+    "noDataHint": "请先运行 oh-my-opencode 配置您的 AI 提供商"
   },
   "importExportPage": {
     "title": "导入导出",
@@ -334,7 +336,9 @@
     "description": "描述",
     "pricing": "定价",
     "input": "输入:",
-    "output": "输出:"
+    "output": "输出:",
+    "noData": "暂无模型数据",
+    "noDataHint": "请先运行 oh-my-opencode 配置您的 AI 提供商"
   },
   "importExport": {
     "title": "导入导出",

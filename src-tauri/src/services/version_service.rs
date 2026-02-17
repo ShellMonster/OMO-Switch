@@ -56,6 +56,19 @@ pub fn get_omo_latest_version() -> Option<String> {
     json.get("version")?.as_str().map(|s| s.to_string())
 }
 
+/// Get OpenCode latest version from GitHub Releases
+pub fn get_opencode_latest_version() -> Option<String> {
+    let resp = ureq::get("https://api.github.com/repos/opencode-ai/opencode/releases/latest")
+        .set("User-Agent", "OMO-Switch")
+        .timeout(std::time::Duration::from_secs(3))
+        .call()
+        .ok()?;
+    let json: serde_json::Value = resp.into_json().ok()?;
+    json.get("tag_name")?
+        .as_str()
+        .map(|s| s.trim_start_matches('v').to_string())
+}
+
 /// Simple semver comparison: returns true if latest > current
 pub fn has_newer_version(current: &str, latest: &str) -> bool {
     let parse = |v: &str| -> Vec<u32> { v.split('.').filter_map(|s| s.parse().ok()).collect() };
@@ -70,12 +83,16 @@ pub fn check_all_versions() -> Vec<VersionInfo> {
 
     // OpenCode
     let oc_current = get_opencode_version();
+    let oc_latest = get_opencode_latest_version();
     results.push(VersionInfo {
         name: "OpenCode".to_string(),
         installed: oc_current.is_some(),
-        current_version: oc_current,
-        latest_version: None,
-        has_update: false,
+        current_version: oc_current.clone(),
+        latest_version: oc_latest.clone(),
+        has_update: match (&oc_current, &oc_latest) {
+            (Some(c), Some(l)) => has_newer_version(c, l),
+            _ => false,
+        },
         update_command: "opencode upgrade".to_string(),
         update_hint: "Run 'opencode upgrade' in terminal".to_string(),
     });

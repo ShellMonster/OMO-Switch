@@ -114,7 +114,9 @@
     "connectedProviders": "Connected Providers",
     "notConnectedProviders": "Not Connected Providers",
     "noConnectedProviders": "No connected providers",
-    "noNotConnectedProviders": "No unconnected providers"
+    "noNotConnectedProviders": "No unconnected providers",
+    "noData": "No Provider Data",
+    "noDataHint": "Please run oh-my-opencode to configure your AI providers first"
   },
   "importExportPage": {
     "title": "Import/Export",
@@ -333,7 +335,9 @@
     "description": "Description",
     "pricing": "Pricing",
     "input": "Input:",
-    "output": "Output:"
+    "output": "Output:",
+    "noData": "No Model Data",
+    "noDataHint": "Please run oh-my-opencode to configure your AI providers first"
   },
   "importExport": {
     "title": "Import/Export",

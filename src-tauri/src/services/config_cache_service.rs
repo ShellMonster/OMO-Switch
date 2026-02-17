@@ -40,13 +40,12 @@ pub struct ConfigChange {
 // 辅助函数
 // ============================================================================
 
-/// 获取缓存目录路径（使用系统标准缓存目录）
-/// macOS: ~/Library/Caches/oh-my-opencode/
-/// Linux: ~/.cache/oh-my-opencode/
+/// 获取缓存目录路径（与 oh-my-opencode CLI 保持一致）
+/// 统一使用 ~/.cache/oh-my-opencode/
 fn get_cache_dir() -> Result<PathBuf, String> {
-    dirs::cache_dir()
-        .ok_or_else(|| "无法获取系统缓存目录".to_string())
-        .map(|p| p.join("oh-my-opencode"))
+    std::env::var("HOME")
+        .map(|home| PathBuf::from(home).join(".cache").join("oh-my-opencode"))
+        .map_err(|_| "无法获取 HOME 环境变量".to_string())
 }
 
 /// 获取配置快照文件路径

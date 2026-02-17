@@ -474,6 +474,29 @@ export function ModelBrowser({
     );
   }
 
+  // 空数据状态提示（非加载中且无数据）
+  if (!models.loading && groupedModels.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+          <Database className="w-8 h-8 text-slate-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">
+          {t('modelBrowser.noData')}
+        </h3>
+        <p className="text-slate-500 text-center max-w-md mb-4">
+          {t('modelBrowser.noDataHint')}
+        </p>
+        <button
+          onClick={() => refreshModels()}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          {t('modelBrowser.retry')}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 头部统计 */}
