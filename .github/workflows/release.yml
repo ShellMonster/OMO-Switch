@@ -141,7 +141,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
             echo "No signing key, skip signature generation"
@@ -174,8 +174,8 @@ jobs:
             exit 0
           fi
           
-          # 直接用环境变量，不传 -k 或 -f 参数
-          npm run -s tauri -- signer sign -p "" "$UPDATE_BUNDLE"
+          # 使用环境变量签名
+          npm run -s tauri -- signer sign -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" "$UPDATE_BUNDLE"
           echo "Signature generated: ${UPDATE_BUNDLE}.sig"
           
           # 上传签名文件
@@ -190,7 +190,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
             Write-Host "No signing key, skip signature generation"
@@ -217,8 +217,8 @@ jobs:
             exit 0
           }
           
-          # 直接用环境变量，不传 -k 或 -f 参数
-          npm run tauri -- signer sign -p "" $setupExe.FullName
+          # 使用环境变量签名
+          npm run tauri -- signer sign -p $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $setupExe.FullName
           Write-Host "Signature generated: $($setupExe.FullName).sig"
           
           # 上传签名文件
