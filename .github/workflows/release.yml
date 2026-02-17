@@ -143,16 +143,16 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+          if [ -z "${SIGNING_KEY:-}" ]; then
             echo "No signing key, skip signature generation"
             exit 0
           fi
           
           KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
+          printf '%s' "$SIGNING_KEY" > "$KEY_PATH"
           
           # 解析 target
           if [[ "${{ matrix.tauriArgs }}" == *"universal"* ]]; then
@@ -194,16 +194,16 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+          if (-not $env:SIGNING_KEY) {
             Write-Host "No signing key, skip signature generation"
             exit 0
           }
           
           $keyPath = "$env:RUNNER_TEMP\tauri-updater.key"
-          Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
+          Set-Content -Path $keyPath -Value $env:SIGNING_KEY -NoNewline
           
           # 尝试多个可能的目录
           $targetDirs = @(
