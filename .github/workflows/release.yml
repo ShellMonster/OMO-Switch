@@ -26,9 +26,6 @@ jobs:
             platform: windows-latest
             tauriArgs: '--bundles nsis'
     runs-on: ${{ matrix.platform }}
-    env:
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
     steps:
       - name: 拉取源代码
@@ -143,9 +140,10 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: |
-          if [ -z "${SIGNING_KEY:-}" ]; then
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
             echo "No signing key, skip signature generation"
             exit 0
           fi
@@ -176,8 +174,8 @@ jobs:
             exit 0
           fi
           
-          # 使用 -k 参数直接传递私钥内容，避免环境变量冲突
-          npm run -s tauri -- signer sign -k "$SIGNING_KEY" -p "" "$UPDATE_BUNDLE"
+          # 直接用环境变量，不传 -k 或 -f 参数
+          npm run -s tauri -- signer sign -p "" "$UPDATE_BUNDLE"
           echo "Signature generated: ${UPDATE_BUNDLE}.sig"
           
           # 上传签名文件
@@ -191,9 +189,10 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: |
-          if (-not $env:SIGNING_KEY) {
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
             Write-Host "No signing key, skip signature generation"
             exit 0
           }
@@ -218,8 +217,8 @@ jobs:
             exit 0
           }
           
-          # 使用 -k 参数直接传递私钥内容，避免环境变量冲突
-          npm run tauri -- signer sign -k $env:SIGNING_KEY -p "" $setupExe.FullName
+          # 直接用环境变量，不传 -k 或 -f 参数
+          npm run tauri -- signer sign -p "" $setupExe.FullName
           Write-Host "Signature generated: $($setupExe.FullName).sig"
           
           # 上传签名文件
