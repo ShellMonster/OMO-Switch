@@ -312,6 +312,7 @@
       "cacheDirectory": "캐시 디렉토리"
     },
     "configPathError": "설정 파일 경로를 가져올 수 없습니다",
+    "cacheDirNotExist": "캐시 디렉토리가 아직 생성되지 않았습니다. 앱 사용 후 자동 생성됩니다",
     "update": {
       "title": "소프트웨어 업데이트",
       "description": "OMO Switch 최신 버전 확인 및 설치",

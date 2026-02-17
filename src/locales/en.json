@@ -404,6 +404,7 @@
       "cacheDirectory": "Cache Directory"
     },
     "configPathError": "Unable to retrieve config path",
+    "cacheDirNotExist": "Cache directory not yet created, it will be generated after using the app",
     "update": {
       "title": "Software Update",
       "description": "Check and install the latest version of OMO Switch",

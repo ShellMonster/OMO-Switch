@@ -312,6 +312,7 @@
       "cacheDirectory": "快取目錄"
     },
     "configPathError": "無法取得設定檔案路徑",
+    "cacheDirNotExist": "快取目錄尚未建立，使用應用後會自動生成",
     "update": {
       "title": "軟體更新",
       "description": "檢查並安裝 OMO Switch 的最新版本",

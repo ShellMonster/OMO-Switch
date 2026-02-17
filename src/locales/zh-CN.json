@@ -406,6 +406,7 @@
       "cacheDirectory": "缓存目录"
     },
     "configPathError": "无法获取配置文件路径",
+    "cacheDirNotExist": "缓存目录尚未创建，使用应用后会自动生成",
     "update": {
       "title": "软件更新",
       "description": "检查并安装 OMO Switch 的最新版本",

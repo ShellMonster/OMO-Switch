@@ -58,10 +58,13 @@ struct ModelsDevPricing {
     currency: Option<String>,
 }
 
-/// 获取缓存目录路径 - ~/.cache/oh-my-opencode/
+/// 获取缓存目录路径（使用系统标准缓存目录）
+/// macOS: ~/Library/Caches/oh-my-opencode/
+/// Linux: ~/.cache/oh-my-opencode/
 fn get_cache_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    PathBuf::from(home).join(".cache").join("oh-my-opencode")
+    dirs::cache_dir()
+        .expect("无法获取系统缓存目录")
+        .join("oh-my-opencode")
 }
 
 /// 获取可用模型列表，按提供商分组

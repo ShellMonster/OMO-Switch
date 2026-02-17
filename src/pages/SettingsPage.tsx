@@ -468,7 +468,8 @@ onClick={async () => {
                          if (import.meta.env.DEV) {
                            console.error('Failed to reveal cache directory:', err);
                          }
-                         toast.error(t('settings.cacheDirRevealFailed', { defaultValue: '无法打开缓存目录' }));
+                         // 缓存目录可能尚未创建（首次使用），提示用户
+                      toast.info(t('settings.cacheDirNotExist', { defaultValue: '缓存目录尚未创建，使用应用后会自动生成' }));
                        }
                      }
                    }}

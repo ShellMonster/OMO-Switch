@@ -312,6 +312,7 @@
       "cacheDirectory": "キャッシュディレクトリ"
     },
     "configPathError": "設定ファイルパスを取得できません",
+    "cacheDirNotExist": "キャッシュディレクトリはまだ作成されていません。アプリ使用後に自動生成されます",
     "update": {
       "title": "ソフトウェア更新",
       "description": "OMO Switchの最新バージョンを確認・インストール",
