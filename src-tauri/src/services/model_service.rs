@@ -61,10 +61,10 @@ struct ModelsDevPricing {
 /// 获取缓存目录路径（使用系统标准缓存目录）
 /// macOS: ~/Library/Caches/oh-my-opencode/
 /// Linux: ~/.cache/oh-my-opencode/
-fn get_cache_dir() -> PathBuf {
+fn get_cache_dir() -> Result<PathBuf, String> {
     dirs::cache_dir()
-        .expect("无法获取系统缓存目录")
-        .join("oh-my-opencode")
+        .ok_or_else(|| "无法获取系统缓存目录".to_string())
+        .map(|p| p.join("oh-my-opencode"))
 }
 
 /// 获取可用模型列表，按提供商分组
@@ -72,7 +72,12 @@ fn get_cache_dir() -> PathBuf {
 /// 从 ~/.cache/oh-my-opencode/provider-models.json 读取本地缓存
 /// 返回格式: { "provider_name": ["model1", "model2", ...] }
 pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
-    let cache_file = get_cache_dir().join("provider-models.json");
+    let cache_file = get_cache_dir()?.join("provider-models.json");
+
+    // 文件不存在时返回空结果
+    if !cache_file.exists() {
+        return Ok(HashMap::new());
+    }
 
     // 读取文件内容
     let content = fs::read_to_string(&cache_file)
@@ -90,7 +95,12 @@ pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
 /// 从 ~/.cache/oh-my-opencode/connected-providers.json 读取
 /// 返回提供商名称列表，例如: ["aicodewith", "kimi-for-coding", ...]
 pub fn get_connected_providers() -> Result<Vec<String>, String> {
-    let cache_file = get_cache_dir().join("connected-providers.json");
+    let cache_file = get_cache_dir()?.join("connected-providers.json");
+
+    // 文件不存在时返回空结果
+    if !cache_file.exists() {
+        return Ok(Vec::new());
+    }
 
     // 读取文件内容
     let content = fs::read_to_string(&cache_file)
@@ -104,8 +114,10 @@ pub fn get_connected_providers() -> Result<Vec<String>, String> {
 }
 
 /// models.dev 缓存文件路径
-fn get_models_dev_cache_path() -> PathBuf {
-    get_cache_dir().join("models-dev-cache.json")
+fn get_models_dev_cache_path() -> Option<PathBuf> {
+    get_cache_dir()
+        .ok()
+        .map(|p| p.join("models-dev-cache.json"))
 }
 
 /// models.dev 缓存结构
@@ -130,7 +142,7 @@ const CACHE_TTL_SECS: u64 = 30 * 60;
 
 /// 读取本地 models.dev 缓存（仅在有效期内）
 fn read_models_dev_cache() -> Option<Vec<ModelInfo>> {
-    let cache_path = get_models_dev_cache_path();
+    let cache_path = get_models_dev_cache_path()?;
     let content = fs::read_to_string(&cache_path).ok()?;
     let cache: ModelsDevCache = serde_json::from_str(&content).ok()?;
     let age = now_unix_secs().saturating_sub(cache.cached_at);
@@ -143,12 +155,14 @@ fn read_models_dev_cache() -> Option<Vec<ModelInfo>> {
 
 /// 写入 models.dev 缓存到本地
 fn write_models_dev_cache(models: &[ModelInfo]) {
+    let Some(cache_path) = get_models_dev_cache_path() else {
+        return;
+    };
     let cache = ModelsDevCache {
         cached_at: now_unix_secs(),
         models: models.to_vec(),
     };
     if let Ok(json) = serde_json::to_string(&cache) {
-        let cache_path = get_models_dev_cache_path();
         if let Some(parent) = cache_path.parent() {
             let _ = fs::create_dir_all(parent);
         }
@@ -158,7 +172,9 @@ fn write_models_dev_cache(models: &[ModelInfo]) {
 
 /// 读取过期缓存作为兜底（忽略 TTL）
 fn read_expired_cache() -> Vec<ModelInfo> {
-    let cache_path = get_models_dev_cache_path();
+    let Some(cache_path) = get_models_dev_cache_path() else {
+        return Vec::new();
+    };
     if let Ok(content) = fs::read_to_string(&cache_path) {
         if let Ok(cache) = serde_json::from_str::<ModelsDevCache>(&content) {
             return cache.models;
@@ -228,31 +244,34 @@ mod tests {
     #[test]
     fn test_get_available_models() {
         // 测试读取本地缓存的模型列表
+        // 修复后：文件不存在时返回 Ok(空 HashMap) 而不是 Err
         let result = get_available_models();
 
-        // 如果缓存文件存在，应该能成功读取
-        if result.is_ok() {
-            let models = result.unwrap();
-            assert!(!models.is_empty(), "模型列表不应为空");
+        // 应该始终返回 Ok（即使文件不存在）
+        assert!(result.is_ok(), "应该返回 Ok，即使文件不存在");
 
-            // 检查是否包含常见的提供商
-            println!("找到的提供商: {:?}", models.keys().collect::<Vec<_>>());
+        let models = result.unwrap();
+        if models.is_empty() {
+            println!("缓存文件不存在或为空，返回空 HashMap（优雅降级）");
         } else {
-            println!("缓存文件不存在或无法读取: {:?}", result.err());
+            println!("找到的提供商: {:?}", models.keys().collect::<Vec<_>>());
         }
     }
 
     #[test]
     fn test_get_connected_providers() {
         // 测试读取已连接的提供商列表
+        // 修复后：文件不存在时返回 Ok(空 Vec) 而不是 Err
         let result = get_connected_providers();
 
-        if result.is_ok() {
-            let providers = result.unwrap();
-            println!("已连接的提供商: {:?}", providers);
-            assert!(!providers.is_empty(), "已连接提供商列表不应为空");
+        // 应该始终返回 Ok（即使文件不存在）
+        assert!(result.is_ok(), "应该返回 Ok，即使文件不存在");
+
+        let providers = result.unwrap();
+        if providers.is_empty() {
+            println!("缓存文件不存在或为空，返回空 Vec（优雅降级）");
         } else {
-            println!("缓存文件不存在或无法读取: {:?}", result.err());
+            println!("已连接的提供商: {:?}", providers);
         }
     }
 

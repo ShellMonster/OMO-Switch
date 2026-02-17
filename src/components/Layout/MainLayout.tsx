@@ -81,8 +81,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   // 同时后台静默检查上游配置更新（不阻塞、不弹窗）
   useEffect(() => {
     const timer = setTimeout(() => {
-      startPreload();
-      checkUpstreamUpdate();
+      void startPreload();
+      void checkUpstreamUpdate().catch(() => {});
     }, 500);
     return () => clearTimeout(timer);
   }, [startPreload, checkUpstreamUpdate]);

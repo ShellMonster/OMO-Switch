@@ -76,53 +76,77 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 fn build_tray_menu<R: Runtime, M: Manager<R>>(
     manager: &M,
 ) -> Result<tauri::menu::Menu<R>, Box<dyn std::error::Error>> {
-    let config = config_service::read_omo_config()?;
-    let connected_providers = model_service::get_connected_providers()?;
-    let provider_models = model_service::get_available_models()?;
+    // 使用 unwrap_or_else/unwrap_or_default 优雅降级，不因文件不存在而崩溃
+    let config = config_service::read_omo_config()
+        .unwrap_or_else(|_| serde_json::json!({"agents": {}, "categories": {}}));
 
+    let connected_providers = model_service::get_connected_providers().unwrap_or_default();
+
+    let provider_models = model_service::get_available_models().unwrap_or_default();
+
+    let empty_agents: serde_json::Map<String, Value> = serde_json::Map::new();
     let agents = config
         .get("agents")
         .and_then(|v| v.as_object())
-        .ok_or("配置缺少 agents 字段")?;
+        .unwrap_or(&empty_agents);
 
     let locale = detect_locale();
     let mut menu_builder = MenuBuilder::new(manager);
 
-    for (agent_name, agent_config) in agents {
-        let current_model = agent_config
-            .get("model")
-            .and_then(|v| v.as_str())
-            .unwrap_or("未配置");
+    // 如果没有配置或没有已连接的提供商，显示简化菜单
+    if agents.is_empty() || connected_providers.is_empty() {
+        let no_config_msg = if locale == "zh-CN" {
+            "请先配置 OMO"
+        } else if locale == "ja" {
+            "OMO を先に設定してください"
+        } else if locale == "ko" {
+            "먼저 OMO를 구성하세요"
+        } else {
+            "Please configure OMO first"
+        };
 
-        let agent_title = format!(
-            "{} [{}]",
-            build_agent_display_name(agent_name, locale),
-            short_model_label(current_model)
-        );
-        let mut agent_submenu = SubmenuBuilder::new(manager, agent_title);
+        let info_item = MenuItemBuilder::with_id("info", no_config_msg)
+            .enabled(false)
+            .build(manager)?;
+        menu_builder = menu_builder.item(&info_item);
+    } else {
+        // 正常构建 Agent 菜单
+        for (agent_name, agent_config) in agents {
+            let current_model = agent_config
+                .get("model")
+                .and_then(|v| v.as_str())
+                .unwrap_or("未配置");
 
-        for provider in &connected_providers {
-            let Some(models) = provider_models.get(provider) else {
-                continue;
-            };
+            let agent_title = format!(
+                "{} [{}]",
+                build_agent_display_name(agent_name, locale),
+                short_model_label(current_model)
+            );
+            let mut agent_submenu = SubmenuBuilder::new(manager, agent_title);
 
-            let mut provider_submenu = SubmenuBuilder::new(manager, provider);
-            for model in models {
-                let item_id = build_action_id(agent_name, provider, model);
-                let is_current = model == current_model;
+            for provider in &connected_providers {
+                let Some(models) = provider_models.get(provider) else {
+                    continue;
+                };
 
-                let model_item = CheckMenuItemBuilder::with_id(item_id, model)
-                    .checked(is_current)
-                    .build(manager)?;
-                provider_submenu = provider_submenu.item(&model_item);
+                let mut provider_submenu = SubmenuBuilder::new(manager, provider);
+                for model in models {
+                    let item_id = build_action_id(agent_name, provider, model);
+                    let is_current = model == current_model;
+
+                    let model_item = CheckMenuItemBuilder::with_id(item_id, model)
+                        .checked(is_current)
+                        .build(manager)?;
+                    provider_submenu = provider_submenu.item(&model_item);
+                }
+
+                let provider_menu = provider_submenu.build()?;
+                agent_submenu = agent_submenu.item(&provider_menu);
             }
 
-            let provider_menu = provider_submenu.build()?;
-            agent_submenu = agent_submenu.item(&provider_menu);
+            let agent_menu = agent_submenu.build()?;
+            menu_builder = menu_builder.item(&agent_menu);
         }
-
-        let agent_menu = agent_submenu.build()?;
-        menu_builder = menu_builder.item(&agent_menu);
     }
 
     menu_builder = menu_builder.separator();

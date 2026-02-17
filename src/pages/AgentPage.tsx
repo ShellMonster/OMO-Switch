@@ -138,8 +138,14 @@ export function AgentPage() {
   }, [hasChanges, showChangeAlert]);
 
   const handleRestoreFromCache = useCallback(async () => {
-    await mergeAndSave();
-    loadOmoConfig();
+    try {
+      await mergeAndSave();
+      loadOmoConfig();
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('从缓存恢复失败:', err);
+      }
+    }
   }, [loadOmoConfig]);
 
   const handleRestoreFromPreset = useCallback(() => {

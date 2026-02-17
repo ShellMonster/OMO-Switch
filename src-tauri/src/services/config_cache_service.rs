@@ -43,16 +43,16 @@ pub struct ConfigChange {
 /// 获取缓存目录路径（使用系统标准缓存目录）
 /// macOS: ~/Library/Caches/oh-my-opencode/
 /// Linux: ~/.cache/oh-my-opencode/
-fn get_cache_dir() -> PathBuf {
+fn get_cache_dir() -> Result<PathBuf, String> {
     dirs::cache_dir()
-        .expect("无法获取系统缓存目录")
-        .join("oh-my-opencode")
+        .ok_or_else(|| "无法获取系统缓存目录".to_string())
+        .map(|p| p.join("oh-my-opencode"))
 }
 
 /// 获取配置快照文件路径
 /// 返回 ~/.cache/oh-my-opencode/config-snapshot.json
-fn get_snapshot_path() -> PathBuf {
-    get_cache_dir().join("config-snapshot.json")
+fn get_snapshot_path() -> Result<PathBuf, String> {
+    get_cache_dir().map(|p| p.join("config-snapshot.json"))
 }
 
 /// 获取当前 Unix 时间戳（毫秒级）
@@ -79,8 +79,8 @@ fn now_timestamp_ms() -> u64 {
 /// - Ok(()) 保存成功
 /// - Err(String) 保存失败，包含错误信息
 pub fn save_config_snapshot(config: &Value) -> Result<(), String> {
-    let cache_dir = get_cache_dir();
-    let snapshot_path = get_snapshot_path();
+    let cache_dir = get_cache_dir()?;
+    let snapshot_path = get_snapshot_path()?;
 
     // 确保缓存目录存在
     fs::create_dir_all(&cache_dir).map_err(|e| format!("创建缓存目录失败: {}", e))?;
@@ -109,7 +109,7 @@ pub fn save_config_snapshot(config: &Value) -> Result<(), String> {
 /// - Some(ConfigSnapshot) 成功读取快照
 /// - None 文件不存在或已损坏（不 panic）
 pub fn load_config_snapshot() -> Option<ConfigSnapshot> {
-    let snapshot_path = get_snapshot_path();
+    let snapshot_path = get_snapshot_path().ok()?;
 
     // 检查文件是否存在
     if !snapshot_path.exists() {
@@ -290,14 +290,14 @@ mod tests {
     /// 测试缓存目录路径
     #[test]
     fn test_cache_dir_path() {
-        let path = get_cache_dir();
-        assert!(path.to_string_lossy().contains(".cache/oh-my-opencode"));
+        let path = get_cache_dir().expect("should get cache dir");
+        assert!(path.to_string_lossy().contains("oh-my-opencode"));
     }
 
     /// 测试快照路径
     #[test]
     fn test_snapshot_path() {
-        let path = get_snapshot_path();
+        let path = get_snapshot_path().expect("should get snapshot path");
         assert!(path.to_string_lossy().contains("config-snapshot.json"));
     }
 

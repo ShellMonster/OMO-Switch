@@ -8,12 +8,22 @@ lazy_static::lazy_static! {
 
 /// 获取当前语言设置
 pub fn get_locale() -> String {
-    CURRENT_LOCALE.lock().unwrap().clone()
+    CURRENT_LOCALE
+        .lock()
+        .unwrap_or_else(|e| {
+            eprintln!("获取语言设置时 Mutex 中毒，使用默认值: {}", e);
+            e.into_inner()
+        })
+        .clone()
 }
 
 /// 设置当前语言设置
 pub fn set_locale(locale: &str) {
-    *CURRENT_LOCALE.lock().unwrap() = locale.to_string();
+    let mut guard = CURRENT_LOCALE.lock().unwrap_or_else(|e| {
+        eprintln!("设置语言时 Mutex 中毒，恢复默认值: {}", e);
+        e.into_inner()
+    });
+    *guard = locale.to_string();
 }
 
 /// 翻译错误消息
