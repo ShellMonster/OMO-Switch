@@ -171,7 +171,7 @@ jobs:
           # 查找并签名所有 .app.tar.gz 文件
           find "$BUNDLE_DIR" -name "*.app.tar.gz" -type f | while read -r bundle; do
             echo "签名文件: $bundle"
-            npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
+            npm run -s tauri -- signer sign --private-key-path "$KEY_PATH" --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
             
             # 获取签名文件
             SIG_FILE="${bundle}.sig"
@@ -211,7 +211,7 @@ jobs:
           # 查找并签名 .exe 文件（不是安装包，而是 update bundle）
           find "$BUNDLE_DIR" -name "*.exe" -type f | grep -v "_setup" | while read -r bundle; do
             echo "签名文件: $bundle"
-            npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
+            npm run -s tauri -- signer sign --private-key-path "$KEY_PATH" --password "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$bundle"
             
             # 获取签名文件
             SIG_FILE="${bundle}.sig"
