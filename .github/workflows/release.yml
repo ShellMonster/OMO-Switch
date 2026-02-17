@@ -139,6 +139,7 @@ jobs:
 
       - name: 生成 Updater 签名 (macOS)
         if: matrix.platform == 'macos-latest'
+        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -160,11 +161,22 @@ jobs:
             TARGET="aarch64-apple-darwin"
           fi
           
-          BUNDLE_DIR="src-tauri/target/$TARGET/release/bundle/macos"
-          UPDATE_BUNDLE=$(ls -1 "$BUNDLE_DIR"/*.app.tar.gz 2>/dev/null | head -n 1 || true)
+          # 尝试多个可能的目录
+          for BUNDLE_DIR in \
+            "src-tauri/target/$TARGET/release/bundle/macos" \
+            "src-tauri/target/release/bundle/macos"
+          do
+            if [ -d "$BUNDLE_DIR" ]; then
+              echo "Found bundle dir: $BUNDLE_DIR"
+              UPDATE_BUNDLE=$(ls -1 "$BUNDLE_DIR"/*.app.tar.gz 2>/dev/null | head -n 1 || true)
+              if [ -n "$UPDATE_BUNDLE" ]; then
+                break
+              fi
+            fi
+          done
           
-          if [ -z "$UPDATE_BUNDLE" ]; then
-            echo "No updater bundle found"
+          if [ -z "${UPDATE_BUNDLE:-}" ]; then
+            echo "No updater bundle found, skipping"
             exit 0
           fi
           
@@ -178,6 +190,7 @@ jobs:
 
       - name: 生成 Updater 签名 (Windows)
         if: matrix.platform == 'windows-latest'
+        continue-on-error: true
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -192,11 +205,23 @@ jobs:
           $keyPath = "$env:RUNNER_TEMP\tauri-updater.key"
           Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
           
-          $targetDir = "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis"
-          $setupExe = Get-ChildItem -Path $targetDir -Filter "*_x64-setup.exe" | Select-Object -First 1
+          # 尝试多个可能的目录
+          $targetDirs = @(
+            "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis",
+            "src-tauri\target\release\bundle\nsis"
+          )
+          
+          $setupExe = $null
+          foreach ($dir in $targetDirs) {
+            if (Test-Path $dir) {
+              Write-Host "Found bundle dir: $dir"
+              $setupExe = Get-ChildItem -Path $dir -Filter "*_x64-setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($setupExe) { break }
+            }
+          }
           
           if (-not $setupExe) {
-            Write-Host "No setup exe found"
+            Write-Host "No setup exe found, skipping"
             exit 0
           }
           
