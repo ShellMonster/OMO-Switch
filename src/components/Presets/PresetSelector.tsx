@@ -4,7 +4,7 @@ import { Select } from '../common/Select';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { listPresets, loadPreset, savePreset } from '../../services/tauri';
+import { listPresets, loadPreset, savePreset, saveConfigSnapshot } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 
 interface PresetSelectorProps {
@@ -91,6 +91,7 @@ export function PresetSelector({ onLoadPreset }: PresetSelectorProps) {
     setIsLoading(true);
     try {
       await loadPreset(value);
+      await saveConfigSnapshot();  // 更新快照，避免变更检测误报
       setActivePreset(value);
       toast.success(t('presetSelector.switchSuccess', { name: value }));
       onLoadPreset?.();
