@@ -10,6 +10,7 @@ use tauri::{
 const TRAY_ID: &str = "omo-tray";
 const ACTION_PREFIX: &str = "set_model";
 const ACTION_OPEN: &str = "open_omo_switch";
+const ACTION_SET_PRESET: &str = "set_preset";
 const ACTION_QUIT: &str = "quit_omo_switch";
 
 const AGENT_NAME_ZH_CN: [(&str, &str); 17] = [
@@ -68,9 +69,20 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 return;
             }
             
-            if id == "open_presets" {
-                open_main_window(app_handle);
-                // TODO: 跳转到预设页面需要前端配合
+            if let Some(preset_name) = id
+                .strip_prefix(ACTION_SET_PRESET)
+                .and_then(|s| s.strip_prefix(":"))
+            {
+                if let Err(err) = preset_service::load_preset(preset_name) {
+                    eprintln!("托盘切换预设失败: {}", err);
+                    return;
+                }
+                if let Err(err) = preset_service::set_active_preset(preset_name) {
+                    eprintln!("设置当前预设失败: {}", err);
+                }
+                if let Err(err) = rebuild_tray_menu(app_handle) {
+                    eprintln!("托盘菜单刷新失败: {}", err);
+                }
                 return;
             }
 
@@ -263,17 +275,32 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
-    // 预设管理入口
-    menu_builder = menu_builder.separator();
-    
-    let preset_label = if locale == "zh-CN" {
-        "💾 预设管理..."
-    } else {
-        "💾 Presets..."
-    };
-    let preset_item = MenuItemBuilder::with_id("open_presets", preset_label)
-        .build(manager)?;
-    menu_builder = menu_builder.item(&preset_item);
+    // 预设切换菜单
+    let presets = preset_service::list_presets().unwrap_or_default();
+    if !presets.is_empty() {
+        menu_builder = menu_builder.separator();
+        
+        let presets_label = if locale == "zh-CN" {
+            "💾 预设切换"
+        } else {
+            "💾 Presets"
+        };
+        let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
+            .enabled(false)
+            .build(manager)?;
+        menu_builder = menu_builder.item(&presets_header);
+        
+        let active_preset = preset_service::get_active_preset();
+        for preset_name in &presets {
+            let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
+            let is_active = active_preset.as_ref() == Some(preset_name);
+            
+            let preset_item = CheckMenuItemBuilder::with_id(item_id, preset_name)
+                .checked(is_active)
+                .build(manager)?;
+            menu_builder = menu_builder.item(&preset_item);
+        }
+    }
 
     menu_builder = menu_builder.separator();
 

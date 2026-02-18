@@ -175,6 +175,7 @@ pub fn load_preset(name: &str) -> Result<(), String> {
     }
 
     write_omo_config(&preset_config)?;
+    set_active_preset(name)?;
 
     Ok(())
 }
@@ -485,4 +486,27 @@ mod tests {
         let result = save_preset("test/invalid");
         assert!(result.is_err());
     }
+}
+
+// ========== 当前激活预设管理 ==========
+
+/// 获取当前激活的预设名称
+pub fn get_active_preset() -> Option<String> {
+    let home = std::env::var("HOME").ok()?;
+    let path = std::path::PathBuf::from(home)
+        .join(".config")
+        .join("OMO-Switch")
+        .join("active_preset");
+    std::fs::read_to_string(path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+}
+
+/// 设置当前激活的预设名称
+pub fn set_active_preset(name: &str) -> Result<(), String> {
+    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量")?;
+    let dir = std::path::PathBuf::from(home)
+        .join(".config")
+        .join("OMO-Switch");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("创建目录失败: {}", e))?;
+    let path = dir.join("active_preset");
+    std::fs::write(&path, name).map_err(|e| format!("写入文件失败: {}", e))
 }
