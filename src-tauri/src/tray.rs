@@ -69,6 +69,22 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 return;
             }
             
+            // 内置预设切换
+            if let Some(preset_id) = id.strip_prefix("builtin:") {
+                if let Err(err) = crate::commands::upstream_sync_commands::apply_builtin_preset(preset_id.to_string()) {
+                    eprintln!("托盘切换内置预设失败: {}", err);
+                    return;
+                }
+                if let Err(err) = preset_service::set_active_preset(&format!("__builtin__{}", preset_id)) {
+                    eprintln!("设置当前预设失败: {}", err);
+                }
+                if let Err(err) = rebuild_tray_menu(app_handle) {
+                    eprintln!("托盘菜单刷新失败: {}", err);
+                }
+                return;
+            }
+            
+            // 用户预设切换
             if let Some(preset_name) = id
                 .strip_prefix(ACTION_SET_PRESET)
                 .and_then(|s| s.strip_prefix(":"))
@@ -276,22 +292,43 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
     }
 
     // 预设切换菜单
-    let presets = preset_service::list_presets().unwrap_or_default();
-    if !presets.is_empty() {
+    menu_builder = menu_builder.separator();
+    
+    let presets_label = if locale == "zh-CN" {
+        "💾 预设切换"
+    } else {
+        "💾 Presets"
+    };
+    let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
+        .enabled(false)
+        .build(manager)?;
+    menu_builder = menu_builder.item(&presets_header);
+    
+    // 内置预设
+    let builtin_presets = [
+        ("official-default", if locale == "zh-CN" { "官方默认" } else { "Official Default" }),
+        ("economy", if locale == "zh-CN" { "经济模式" } else { "Economy" }),
+        ("high-performance", if locale == "zh-CN" { "高性能模式" } else { "High Performance" }),
+    ];
+    
+    let active_preset = preset_service::get_active_preset();
+    
+    for (id, name) in &builtin_presets {
+        let item_id = format!("builtin:{}", id);
+        let is_active = active_preset.as_ref() == Some(&format!("__builtin__{}", id));
+        
+        let preset_item = CheckMenuItemBuilder::with_id(item_id, *name)
+            .checked(is_active)
+            .build(manager)?;
+        menu_builder = menu_builder.item(&preset_item);
+    }
+    
+    // 用户预设
+    let user_presets = preset_service::list_presets().unwrap_or_default();
+    if !user_presets.is_empty() {
         menu_builder = menu_builder.separator();
         
-        let presets_label = if locale == "zh-CN" {
-            "💾 预设切换"
-        } else {
-            "💾 Presets"
-        };
-        let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
-            .enabled(false)
-            .build(manager)?;
-        menu_builder = menu_builder.item(&presets_header);
-        
-        let active_preset = preset_service::get_active_preset();
-        for preset_name in &presets {
+        for preset_name in &user_presets {
             let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
             let is_active = active_preset.as_ref() == Some(preset_name);
             
