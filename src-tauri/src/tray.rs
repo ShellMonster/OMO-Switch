@@ -1,4 +1,4 @@
-use crate::services::{config_service, model_service};
+use crate::services::{config_service, model_service, preset_service};
 use serde_json::Value;
 use tauri::{
     image::Image,
@@ -11,6 +11,7 @@ const TRAY_ID: &str = "omo-tray";
 const ACTION_PREFIX: &str = "set_model";
 const ACTION_OPEN: &str = "open_omo_switch";
 const ACTION_QUIT: &str = "quit_omo_switch";
+const ACTION_SET_PRESET: &str = "set_preset";
 
 const AGENT_NAME_ZH_CN: [(&str, &str); 17] = [
     ("sisyphus", "西西弗斯"),
@@ -32,17 +33,23 @@ const AGENT_NAME_ZH_CN: [(&str, &str); 17] = [
     ("document-writer", "文档撰写者"),
 ];
 
+const CATEGORY_NAMES_ZH: [(&str, &str); 5] = [
+    ("quick", "快速任务"),
+    ("visual-engineering", "视觉工程"),
+    ("plan", "规划"),
+    ("build", "构建"),
+    ("general", "通用"),
+];
+
 /// 加载 macOS 专用的托盘图标（模板图标）
 /// 模板图标会自动适配深色/浅色模式
 #[cfg(target_os = "macos")]
 fn macos_tray_icon() -> Option<Image<'static>> {
     const ICON_BYTES: &[u8] = include_bytes!("../icons/tray/macos/statusbar_template_3x.png");
     match Image::from_bytes(ICON_BYTES) {
-        Ok(icon) => {
-                        Some(icon)
-        },
+        Ok(icon) => Some(icon),
         Err(err) => {
-                        eprintln!("加载 macOS 托盘图标失败: {err}");
+            eprintln!("加载 macOS 托盘图标失败: {err}");
             None
         }
     }
@@ -67,6 +74,20 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 return;
             }
 
+            if let Some(preset_name) = id
+                .strip_prefix(ACTION_SET_PRESET)
+                .and_then(|s| s.strip_prefix(":"))
+            {
+                if let Err(err) = preset_service::load_preset(preset_name) {
+                    eprintln!("托盘切换预设失败: {}", err);
+                    return;
+                }
+                if let Err(err) = rebuild_tray_menu(app_handle) {
+                    eprintln!("托盘菜单刷新失败: {}", err);
+                }
+                return;
+            }
+
             let Some((agent, model)) = parse_action_id(id) else {
                 return;
             };
@@ -84,11 +105,11 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // macOS 使用专用的模板图标，适配深色/浅色模式
     #[cfg(target_os = "macos")]
     {
-                if let Some(icon) = macos_tray_icon() {
-                        tray_builder = tray_builder.icon(icon).icon_as_template(true);
+        if let Some(icon) = macos_tray_icon() {
+            tray_builder = tray_builder.icon(icon).icon_as_template(true);
         } else {
             // 降级：使用默认图标
-                        let icon_bytes = include_bytes!("../icons/32x32.png");
+            let icon_bytes = include_bytes!("../icons/32x32.png");
             let icon = Image::new_owned(icon_bytes.to_vec(), 32, 32);
             tray_builder = tray_builder.icon(icon);
         }
@@ -101,8 +122,8 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tray_builder = tray_builder.icon(icon);
     }
 
-        let _tray = tray_builder.build(app)?;
-        Ok(())
+    let _tray = tray_builder.build(app)?;
+    Ok(())
 }
 
 fn build_tray_menu<R: Runtime, M: Manager<R>>(
@@ -181,16 +202,91 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
+    // 添加 Categories 菜单
+    let empty_categories: serde_json::Map<String, Value> = serde_json::Map::new();
+    let categories = config
+        .get("categories")
+        .and_then(|v| v.as_object())
+        .unwrap_or(&empty_categories);
+
+    if !categories.is_empty() {
+        menu_builder = menu_builder.separator();
+
+        for (category_name, category_config) in categories {
+            let current_model = category_config
+                .get("model")
+                .and_then(|v| v.as_str())
+                .unwrap_or("未配置");
+
+            let category_title = format!(
+                "{} [{}]",
+                build_category_display_name(category_name, locale),
+                short_model_label(current_model)
+            );
+            let mut category_submenu = SubmenuBuilder::new(manager, category_title);
+
+            for provider in &connected_providers {
+                let Some(models) = provider_models.get(provider) else {
+                    continue;
+                };
+
+                let mut provider_submenu = SubmenuBuilder::new(manager, provider);
+                for model in models {
+                    let item_id =
+                        build_action_id(&format!("cat:{}", category_name), provider, model);
+                    let is_current = model == current_model;
+
+                    let model_item = CheckMenuItemBuilder::with_id(item_id, model)
+                        .checked(is_current)
+                        .build(manager)?;
+                    provider_submenu = provider_submenu.item(&model_item);
+                }
+
+                let provider_menu = provider_submenu.build()?;
+                category_submenu = category_submenu.item(&provider_menu);
+            }
+
+            let category_menu = category_submenu.build()?;
+            menu_builder = menu_builder.item(&category_menu);
+        }
+    }
+
+    // 预设切换菜单
+    let presets = preset_service::list_presets().unwrap_or_default();
+    if !presets.is_empty() {
+        menu_builder = menu_builder.separator();
+
+        for preset_name in &presets {
+            let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
+            let preset_item = MenuItemBuilder::with_id(item_id, preset_name).build(manager)?;
+            menu_builder = menu_builder.item(&preset_item);
+        }
+    }
+
     menu_builder = menu_builder.separator();
 
-    let app_name = manager
-        .config()
-        .product_name
-        .clone()
-        .unwrap_or_else(|| "OMO Switch".to_string());
-    let open_label = format!("Open {}", app_name);
-    let open_item = MenuItemBuilder::with_id(ACTION_OPEN, &open_label).build(manager)?;
-    let quit_item = MenuItemBuilder::with_id(ACTION_QUIT, "Quit").build(manager)?;
+    let open_label = if locale == "zh-CN" {
+        "打开 OMO Switch"
+    } else if locale == "ja" {
+        "OMO Switch を開く"
+    } else if locale == "ko" {
+        "OMO Switch 열기"
+    } else {
+        "Open OMO Switch"
+    };
+
+    let quit_label = if locale == "zh-CN" {
+        "退出"
+    } else if locale == "ja" {
+        "終了"
+    } else if locale == "ko" {
+        "종료"
+    } else {
+        "Quit"
+    };
+
+    let open_item = MenuItemBuilder::with_id(ACTION_OPEN, open_label).build(manager)?;
+    let quit_item = MenuItemBuilder::with_id(ACTION_QUIT, quit_label).build(manager)?;
 
     menu_builder = menu_builder.item(&open_item);
     menu_builder = menu_builder.item(&quit_item);
@@ -214,20 +310,32 @@ fn open_main_window<R: Runtime>(app_handle: &tauri::AppHandle<R>) {
     }
 }
 
-fn update_agent_model(agent_name: &str, model: &str) -> Result<(), String> {
+fn update_agent_model(key: &str, model: &str) -> Result<(), String> {
     let mut config = config_service::read_omo_config()?;
 
-    let agents = config
-        .get_mut("agents")
-        .and_then(|v| v.as_object_mut())
-        .ok_or("配置缺少 agents 对象".to_string())?;
+    let (is_category, name) = if key.starts_with("cat:") {
+        (true, key.strip_prefix("cat:").unwrap())
+    } else {
+        (false, key)
+    };
 
-    let agent_obj = agents
-        .get_mut(agent_name)
-        .and_then(|v| v.as_object_mut())
-        .ok_or(format!("未找到代理: {}", agent_name))?;
+    let target = if is_category {
+        config
+            .get_mut("categories")
+            .and_then(|v| v.as_object_mut())
+            .and_then(|cats| cats.get_mut(name))
+    } else {
+        config
+            .get_mut("agents")
+            .and_then(|v| v.as_object_mut())
+            .and_then(|agents| agents.get_mut(name))
+    };
 
-    agent_obj.insert("model".to_string(), Value::String(model.to_string()));
+    let target_obj = target
+        .and_then(|v| v.as_object_mut())
+        .ok_or(format!("未找到: {}", key))?;
+    target_obj.insert("model".to_string(), Value::String(model.to_string()));
+
     config_service::write_omo_config(&config)
 }
 
@@ -262,6 +370,15 @@ fn build_agent_display_name(agent_name: &str, locale: &str) -> String {
         .unwrap_or(agent_name);
 
     format!("{} · {}", english_name, localized_name)
+}
+
+fn build_category_display_name(name: &str, locale: &str) -> String {
+    if locale == "zh-CN" {
+        if let Some((_, cn)) = CATEGORY_NAMES_ZH.iter().find(|(en, _)| *en == name) {
+            return format!("{} · {}", name, cn);
+        }
+    }
+    name.to_string()
 }
 
 fn format_agent_english_name(agent_name: &str) -> String {
