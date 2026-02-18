@@ -291,27 +291,44 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
-    // 预设切换菜单
+    // 预设菜单
     menu_builder = menu_builder.separator();
     
-    let presets_label = if locale == "zh-CN" {
-        "💾 预设切换"
-    } else {
-        "💾 Presets"
-    };
+    let presets_label = crate::i18n::tr_current("tray_presets");
     let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
         .enabled(false)
         .build(manager)?;
     menu_builder = menu_builder.item(&presets_header);
     
-    // 内置预设（使用国际化）
+    let active_preset = preset_service::get_active_preset();
+    
+    // 显示当前预设（只读）
+    if let Some(ref current) = active_preset {
+        let current_label = if current.starts_with("__builtin__") {
+            let id = current.strip_prefix("__builtin__").unwrap();
+            match id {
+                "official-default" => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), crate::i18n::tr_current("preset_official_default")),
+                "economy" => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), crate::i18n::tr_current("preset_economy")),
+                "high-performance" => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), crate::i18n::tr_current("preset_high_performance")),
+                _ => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), current),
+            }
+        } else {
+            format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), current)
+        };
+        let current_item = MenuItemBuilder::with_id("current_preset", current_label)
+            .enabled(false)
+            .build(manager)?;
+        menu_builder = menu_builder.item(&current_item);
+    }
+    
+    menu_builder = menu_builder.separator();
+    
+    // 切换预设
     let builtin_presets = [
         ("official-default", crate::i18n::tr_current("preset_official_default")),
         ("economy", crate::i18n::tr_current("preset_economy")),
         ("high-performance", crate::i18n::tr_current("preset_high_performance")),
     ];
-    
-    let active_preset = preset_service::get_active_preset();
     
     for (id, name) in &builtin_presets {
         let item_id = format!("builtin:{}", id);
@@ -326,8 +343,6 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
     // 用户预设
     let user_presets = preset_service::list_presets().unwrap_or_default();
     if !user_presets.is_empty() {
-        menu_builder = menu_builder.separator();
-        
         for preset_name in &user_presets {
             let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
             let is_active = active_preset.as_ref() == Some(preset_name);
