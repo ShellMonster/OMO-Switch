@@ -302,28 +302,7 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
     
     let active_preset = preset_service::get_active_preset();
     
-    // 显示当前预设（只读）
-    if let Some(ref current) = active_preset {
-        let current_label = if current.starts_with("__builtin__") {
-            let id = current.strip_prefix("__builtin__").unwrap();
-            match id {
-                "official-default" => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), crate::i18n::tr_current("preset_official_default")),
-                "economy" => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), crate::i18n::tr_current("preset_economy")),
-                "high-performance" => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), crate::i18n::tr_current("preset_high_performance")),
-                _ => format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), current),
-            }
-        } else {
-            format!("✓ {} ({})", crate::i18n::tr_current("tray_current_preset"), current)
-        };
-        let current_item = MenuItemBuilder::with_id("current_preset", current_label)
-            .enabled(false)
-            .build(manager)?;
-        menu_builder = menu_builder.item(&current_item);
-    }
-    
-    menu_builder = menu_builder.separator();
-    
-    // 切换预设
+    // 内置预设（当前使用的用 ● 标记）
     let builtin_presets = [
         ("official-default", crate::i18n::tr_current("preset_official_default")),
         ("economy", crate::i18n::tr_current("preset_economy")),
@@ -334,8 +313,14 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         let item_id = format!("builtin:{}", id);
         let is_active = active_preset.as_ref() == Some(&format!("__builtin__{}", id));
         
-        let preset_item = CheckMenuItemBuilder::with_id(item_id, name.clone())
-            .checked(is_active)
+        // 当前使用的预设前面加 ● 标记
+        let display_name = if is_active {
+            format!("● {}", name)
+        } else {
+            name.clone()
+        };
+        
+        let preset_item = MenuItemBuilder::with_id(item_id, display_name)
             .build(manager)?;
         menu_builder = menu_builder.item(&preset_item);
     }
@@ -343,12 +328,20 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
     // 用户预设
     let user_presets = preset_service::list_presets().unwrap_or_default();
     if !user_presets.is_empty() {
+        menu_builder = menu_builder.separator();
+        
         for preset_name in &user_presets {
             let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
             let is_active = active_preset.as_ref() == Some(preset_name);
             
-            let preset_item = CheckMenuItemBuilder::with_id(item_id, preset_name)
-                .checked(is_active)
+            // 当前使用的预设前面加 ● 标记
+            let display_name = if is_active {
+                format!("● {}", preset_name)
+            } else {
+                preset_name.clone()
+            };
+            
+            let preset_item = MenuItemBuilder::with_id(item_id, display_name)
                 .build(manager)?;
             menu_builder = menu_builder.item(&preset_item);
         }
