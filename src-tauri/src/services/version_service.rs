@@ -29,20 +29,43 @@ pub fn get_opencode_version() -> Option<String> {
     }
 }
 
-/// Get oh-my-opencode current version from ~/.config/opencode/opencode.json
+/// Get oh-my-opencode current version
+/// Priority: 1) installed package.json  2) config file (if not "latest")
 pub fn get_omo_current_version() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
-    let config_path = format!("{}/.config/opencode/opencode.json", home);
-    let content = std::fs::read_to_string(&config_path).ok()?;
-    let config: serde_json::Value = serde_json::from_str(&content).ok()?;
-    let plugins = config.get("plugin")?.as_array()?;
-    for plugin in plugins {
-        if let Some(s) = plugin.as_str() {
-            if s.starts_with("oh-my-opencode@") {
-                return Some(s.trim_start_matches("oh-my-opencode@").to_string());
+
+    // Method 1: From installed package.json (most reliable)
+    let installed_pkg = format!(
+        "{}/.config/opencode/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if let Ok(content) = std::fs::read_to_string(&installed_pkg) {
+        if let Ok(pkg) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(version) = pkg.get("version").and_then(|v| v.as_str()) {
+                return Some(version.to_string());
             }
         }
     }
+
+    // Method 2: From config file (only if not "latest")
+    let config_path = format!("{}/.config/opencode/opencode.json", home);
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(plugins) = config.get("plugin").and_then(|v| v.as_array()) {
+                for plugin in plugins {
+                    if let Some(s) = plugin.as_str() {
+                        if s.starts_with("oh-my-opencode@") {
+                            let version = s.trim_start_matches("oh-my-opencode@");
+                            if version != "latest" {
+                                return Some(version.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     None
 }
 
@@ -58,7 +81,7 @@ pub fn get_omo_latest_version() -> Option<String> {
 
 /// Get OpenCode latest version from GitHub Releases
 pub fn get_opencode_latest_version() -> Option<String> {
-    let resp = ureq::get("https://api.github.com/repos/opencode-ai/opencode/releases/latest")
+    let resp = ureq::get("https://api.github.com/repos/anomalyco/opencode/releases/latest")
         .set("User-Agent", "OMO-Switch")
         .timeout(std::time::Duration::from_secs(3))
         .call()

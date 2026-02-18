@@ -38,9 +38,11 @@ const AGENT_NAME_ZH_CN: [(&str, &str); 17] = [
 fn macos_tray_icon() -> Option<Image<'static>> {
     const ICON_BYTES: &[u8] = include_bytes!("../icons/tray/macos/statusbar_template_3x.png");
     match Image::from_bytes(ICON_BYTES) {
-        Ok(icon) => Some(icon),
+        Ok(icon) => {
+                        Some(icon)
+        },
         Err(err) => {
-            eprintln!("加载 macOS 托盘图标失败: {err}");
+                        eprintln!("加载 macOS 托盘图标失败: {err}");
             None
         }
     }
@@ -82,11 +84,11 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // macOS 使用专用的模板图标，适配深色/浅色模式
     #[cfg(target_os = "macos")]
     {
-        if let Some(icon) = macos_tray_icon() {
-            tray_builder = tray_builder.icon(icon).icon_as_template(true);
+                if let Some(icon) = macos_tray_icon() {
+                        tray_builder = tray_builder.icon(icon).icon_as_template(true);
         } else {
             // 降级：使用默认图标
-            let icon_bytes = include_bytes!("../icons/32x32.png");
+                        let icon_bytes = include_bytes!("../icons/32x32.png");
             let icon = Image::new_owned(icon_bytes.to_vec(), 32, 32);
             tray_builder = tray_builder.icon(icon);
         }
@@ -99,8 +101,8 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tray_builder = tray_builder.icon(icon);
     }
 
-    let _tray = tray_builder.build(app)?;
-    Ok(())
+        let _tray = tray_builder.build(app)?;
+        Ok(())
 }
 
 fn build_tray_menu<R: Runtime, M: Manager<R>>(

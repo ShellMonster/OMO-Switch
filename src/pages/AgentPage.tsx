@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 import { Bot, RefreshCw, ChevronDown, AlertCircle } from 'lucide-react';
 import { usePreloadStore } from '../store/preloadStore';
 import { usePresetStore } from '../store/presetStore';
@@ -152,8 +153,24 @@ export function AgentPage() {
     setShowChangeAlert(false);
   }, []);
 
+  // 忽略变更处理函数：持久化当前配置 → 更新快照 → 同步预设
   const handleIgnoreChanges = useCallback(async () => {
+    // 1. 获取当前配置并写入文件（持久化）
+    const currentConfig = omoConfig.data;
+    if (currentConfig) {
+      try {
+        await invoke('write_omo_config', { config: currentConfig });
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('写入配置失败:', err);
+        }
+      }
+    }
+
+    // 2. 更新快照
     await ignoreChanges();
+
+    // 3. 更新预设
     const currentPreset = usePresetStore.getState().activePreset;
     if (currentPreset) {
       try {
@@ -164,7 +181,7 @@ export function AgentPage() {
         }
       }
     }
-  }, [ignoreChanges]);
+  }, [ignoreChanges, omoConfig.data]);
 
   const handleCloseAlert = useCallback(() => {
     setShowChangeAlert(false);
