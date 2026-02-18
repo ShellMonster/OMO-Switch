@@ -30,42 +30,37 @@ pub fn get_opencode_version() -> Option<String> {
 }
 
 /// Get oh-my-opencode current version
-/// Priority: 1) installed package.json  2) config file (if not "latest")
+/// Priority: 1) installed package.json  2) config file (fallback)
 pub fn get_omo_current_version() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
-
-    // Method 1: From installed package.json (most reliable)
-    let installed_pkg = format!(
-        "{}/.config/opencode/node_modules/oh-my-opencode/package.json",
-        home
-    );
-    if let Ok(content) = std::fs::read_to_string(&installed_pkg) {
-        if let Ok(pkg) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(version) = pkg.get("version").and_then(|v| v.as_str()) {
-                return Some(version.to_string());
-            }
-        }
+    
+    // Method 1: From installed package.json
+    let pkg_path = format!("{}/.config/opencode/node_modules/oh-my-opencode/package.json", home);
+    if let Some(version) = read_pkg_version(&pkg_path) {
+        return Some(version);
     }
-
-    // Method 2: From config file (only if not "latest")
+    
+    // Method 2: Fallback - from config file
     let config_path = format!("{}/.config/opencode/opencode.json", home);
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(plugins) = config.get("plugin").and_then(|v| v.as_array()) {
-                for plugin in plugins {
-                    if let Some(s) = plugin.as_str() {
-                        if s.starts_with("oh-my-opencode@") {
-                            let version = s.trim_start_matches("oh-my-opencode@");
-                            if version != "latest" {
-                                return Some(version.to_string());
-                            }
-                        }
-                    }
-                }
-            }
+    read_version_from_config(&config_path)
+}
+
+fn read_pkg_version(path: &str) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let pkg: serde_json::Value = serde_json::from_str(&content).ok()?;
+    pkg.get("version")?.as_str().map(|s| s.to_string())
+}
+
+fn read_version_from_config(path: &str) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let config: serde_json::Value = serde_json::from_str(&content).ok()?;
+    let plugins = config.get("plugin")?.as_array()?;
+    
+    for plugin in plugins {
+        if let Some(s) = plugin.as_str().and_then(|s| s.strip_prefix("oh-my-opencode@")) {
+            return Some(s.to_string());
         }
     }
-
     None
 }
 
