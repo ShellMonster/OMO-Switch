@@ -11,7 +11,6 @@ const TRAY_ID: &str = "omo-tray";
 const ACTION_PREFIX: &str = "set_model";
 const ACTION_OPEN: &str = "open_omo_switch";
 const ACTION_QUIT: &str = "quit_omo_switch";
-const ACTION_SET_PRESET: &str = "set_preset";
 
 const AGENT_NAME_ZH_CN: [(&str, &str); 17] = [
     ("sisyphus", "西西弗斯"),
@@ -68,23 +67,15 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 open_main_window(app_handle);
                 return;
             }
-
-            if id == ACTION_QUIT {
-                app_handle.exit(0);
+            
+            if id == "open_presets" {
+                open_main_window(app_handle);
+                // TODO: 跳转到预设页面需要前端配合
                 return;
             }
 
-            if let Some(preset_name) = id
-                .strip_prefix(ACTION_SET_PRESET)
-                .and_then(|s| s.strip_prefix(":"))
-            {
-                if let Err(err) = preset_service::load_preset(preset_name) {
-                    eprintln!("托盘切换预设失败: {}", err);
-                    return;
-                }
-                if let Err(err) = rebuild_tray_menu(app_handle) {
-                    eprintln!("托盘菜单刷新失败: {}", err);
-                }
+            if id == ACTION_QUIT {
+                app_handle.exit(0);
                 return;
             }
 
@@ -146,6 +137,17 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
     let locale = detect_locale();
     let mut menu_builder = MenuBuilder::new(manager);
 
+    // Agents 分组标题
+    let agents_label = if locale == "zh-CN" {
+        "🤖 代理 Agents"
+    } else {
+        "🤖 Agents"
+    };
+    let agents_header = MenuItemBuilder::with_id("agents_header", agents_label)
+        .enabled(false)
+        .build(manager)?;
+    menu_builder = menu_builder.item(&agents_header);
+
     // 如果没有配置或没有已连接的提供商，显示简化菜单
     if agents.is_empty() || connected_providers.is_empty() {
         let no_config_msg = if locale == "zh-CN" {
@@ -202,7 +204,7 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
-    // 添加 Categories 菜单
+    // Categories 分组标题
     let empty_categories: serde_json::Map<String, Value> = serde_json::Map::new();
     let categories = config
         .get("categories")
@@ -211,6 +213,16 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
 
     if !categories.is_empty() {
         menu_builder = menu_builder.separator();
+        
+        let categories_label = if locale == "zh-CN" {
+            "📂 类别 Categories"
+        } else {
+            "📂 Categories"
+        };
+        let categories_header = MenuItemBuilder::with_id("categories_header", categories_label)
+            .enabled(false)
+            .build(manager)?;
+        menu_builder = menu_builder.item(&categories_header);
 
         for (category_name, category_config) in categories {
             let current_model = category_config
@@ -251,17 +263,17 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
-    // 预设切换菜单
-    let presets = preset_service::list_presets().unwrap_or_default();
-    if !presets.is_empty() {
-        menu_builder = menu_builder.separator();
-
-        for preset_name in &presets {
-            let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
-            let preset_item = MenuItemBuilder::with_id(item_id, preset_name).build(manager)?;
-            menu_builder = menu_builder.item(&preset_item);
-        }
-    }
+    // 预设管理入口
+    menu_builder = menu_builder.separator();
+    
+    let preset_label = if locale == "zh-CN" {
+        "💾 预设管理..."
+    } else {
+        "💾 Presets..."
+    };
+    let preset_item = MenuItemBuilder::with_id("open_presets", preset_label)
+        .build(manager)?;
+    menu_builder = menu_builder.item(&preset_item);
 
     menu_builder = menu_builder.separator();
 
