@@ -304,11 +304,11 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         .build(manager)?;
     menu_builder = menu_builder.item(&presets_header);
     
-    // 内置预设
+    // 内置预设（使用国际化）
     let builtin_presets = [
-        ("official-default", if locale == "zh-CN" { "官方默认" } else { "Official Default" }),
-        ("economy", if locale == "zh-CN" { "经济模式" } else { "Economy" }),
-        ("high-performance", if locale == "zh-CN" { "高性能模式" } else { "High Performance" }),
+        ("official-default", crate::i18n::tr_current("preset_official_default")),
+        ("economy", crate::i18n::tr_current("preset_economy")),
+        ("high-performance", crate::i18n::tr_current("preset_high_performance")),
     ];
     
     let active_preset = preset_service::get_active_preset();
@@ -317,7 +317,7 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         let item_id = format!("builtin:{}", id);
         let is_active = active_preset.as_ref() == Some(&format!("__builtin__{}", id));
         
-        let preset_item = CheckMenuItemBuilder::with_id(item_id, *name)
+        let preset_item = CheckMenuItemBuilder::with_id(item_id, name.clone())
             .checked(is_active)
             .build(manager)?;
         menu_builder = menu_builder.item(&preset_item);

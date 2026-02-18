@@ -105,6 +105,10 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
     zh_cn.insert("create_preset_dir_failed", "创建预设目录失败".to_string());
     zh_cn.insert("write_preset_file_failed", "写入预设文件失败".to_string());
     zh_cn.insert("preset_not_found", "预设不存在".to_string());
+    zh_cn.insert("preset_official_default", "官方默认".to_string());
+    zh_cn.insert("preset_economy", "经济模式".to_string());
+    zh_cn.insert("preset_high_performance", "高性能模式".to_string());
+
     zh_cn.insert("read_preset_file_failed", "读取预设文件失败".to_string());
     zh_cn.insert("parse_preset_file_failed", "解析预设文件失败".to_string());
     zh_cn.insert("delete_preset_failed", "删除预设失败".to_string());
@@ -155,6 +159,10 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
     zh_tw.insert("create_preset_dir_failed", "建立預設目錄失敗".to_string());
     zh_tw.insert("write_preset_file_failed", "寫入預設檔案失敗".to_string());
     zh_tw.insert("preset_not_found", "預設不存在".to_string());
+    zh_tw.insert("preset_official_default", "官方預設".to_string());
+    zh_tw.insert("preset_economy", "經濟模式".to_string());
+    zh_tw.insert("preset_high_performance", "高效能模式".to_string());
+
     zh_tw.insert("read_preset_file_failed", "讀取預設檔案失敗".to_string());
     zh_tw.insert("parse_preset_file_failed", "解析預設檔案失敗".to_string());
     zh_tw.insert("delete_preset_failed", "刪除預設失敗".to_string());
@@ -247,6 +255,10 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
         "Failed to write preset file".to_string(),
     );
     en.insert("preset_not_found", "Preset not found".to_string());
+    en.insert("preset_official_default", "Official Default".to_string());
+    en.insert("preset_economy", "Economy".to_string());
+    en.insert("preset_high_performance", "High Performance".to_string());
+
     en.insert(
         "read_preset_file_failed",
         "Failed to read preset file".to_string(),
@@ -354,6 +366,10 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
         "プリセットファイルの書き込みに失敗しました".to_string(),
     );
     ja.insert("preset_not_found", "プリセットが見つかりません".to_string());
+    ja.insert("preset_official_default", "公式デフォルト".to_string());
+    ja.insert("preset_economy", "エコノミー".to_string());
+    ja.insert("preset_high_performance", "ハイパフォーマンス".to_string());
+
     ja.insert(
         "read_preset_file_failed",
         "プリセットファイルの読み込みに失敗しました".to_string(),
