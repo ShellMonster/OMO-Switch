@@ -104,7 +104,7 @@ function LoadingSkeleton() {
 
 export function AgentPage() {
   const { t } = useTranslation();
-  const { omoConfig, models, loadOmoConfig, refreshModels, softRefreshAll } = usePreloadStore();
+  const { omoConfig, models, loadOmoConfig, refreshModels } = usePreloadStore();
 
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
@@ -120,17 +120,19 @@ export function AgentPage() {
 
   /**
    * 组件挂载时检查数据是否已有缓存
-   * 只有数据为空时才刷新，避免重复请求
+   * 每次进入页面都刷新模型列表，确保供应商增删模型后数据同步
    * 同时检测配置变更
    */
   useEffect(() => {
-    // 只有数据为空时才刷新
-    const { omoConfig, models } = usePreloadStore.getState();
-    if (!omoConfig.data || !models.grouped) {
-      softRefreshAll();
+    const { omoConfig } = usePreloadStore.getState();
+    // 每次进入页面都刷新模型列表
+    refreshModels();
+    // 只有配置为空时才加载
+    if (!omoConfig.data) {
+      loadOmoConfig();
     }
     checkChanges();
-  }, []); // 空依赖，只在挂载时执行一次
+  }, [refreshModels, loadOmoConfig]);
 
   useEffect(() => {
     if (hasChanges && !showChangeAlert) {
