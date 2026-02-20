@@ -79,11 +79,19 @@ fn get_opencode_config_path() -> Result<PathBuf, String> {
         .map_err(|_| "无法获取 HOME 环境变量".to_string())
 }
 
-/// 从 opencode.json 读取自定义模型配置
+/// 获取自定义模型配置
 ///
-/// 返回格式: { "provider_name": ["model1", "model2", ...] }
-/// 读取 provider.{name}.models 字段中的模型 ID
-fn read_custom_models_from_opencode() -> HashMap<String, Vec<String>> {
+/// 从 opencode.json 读取 provider.{name}.models 字段
+///
+/// # 返回值
+/// 返回 HashMap，key 是 provider ID，value 是该 provider 下的模型 ID 列表
+///
+/// # 示例
+/// ```
+/// let models = get_custom_models();
+/// // 返回: { "anthropic": ["claude-3-opus", "claude-3-sonnet"], ... }
+/// ```
+pub fn get_custom_models() -> HashMap<String, Vec<String>> {
     let mut result = HashMap::new();
 
     // 获取配置文件路径
@@ -151,7 +159,7 @@ pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
     };
 
     // 2. 从 opencode.json 读取自定义模型并合并
-    let custom_models = read_custom_models_from_opencode();
+    let custom_models = get_custom_models();
     for (provider_id, models) in custom_models {
         // 获取或创建该 provider 的模型列表
         let entry = result.entry(provider_id).or_insert_with(Vec::new);

@@ -536,6 +536,14 @@ pub fn remove_custom_model(provider_id: String, model_id: String) -> Result<(), 
     Ok(())
 }
 
+/// 获取自定义模型列表
+///
+/// 从 opencode.json 读取所有 provider 的自定义模型配置
+#[tauri::command]
+pub fn get_custom_models() -> Result<HashMap<String, Vec<String>>, String> {
+    Ok(crate::services::model_service::get_custom_models())
+}
+
 // ============================================================================
 // 连接测试函数
 // ============================================================================
