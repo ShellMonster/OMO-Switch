@@ -26,3 +26,6 @@ regex = "1"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+[dev-dependencies]
+serial_test = "3"

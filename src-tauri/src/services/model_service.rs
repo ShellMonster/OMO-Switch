@@ -66,27 +66,104 @@ fn get_cache_dir() -> Result<PathBuf, String> {
         .map_err(|_| "无法获取 HOME 环境变量".to_string())
 }
 
+/// 获取 OpenCode 配置文件路径
+/// 路径: ~/.config/opencode/opencode.json
+fn get_opencode_config_path() -> Result<PathBuf, String> {
+    std::env::var("HOME")
+        .map(|home| {
+            PathBuf::from(home)
+                .join(".config")
+                .join("opencode")
+                .join("opencode.json")
+        })
+        .map_err(|_| "无法获取 HOME 环境变量".to_string())
+}
+
+/// 从 opencode.json 读取自定义模型配置
+///
+/// 返回格式: { "provider_name": ["model1", "model2", ...] }
+/// 读取 provider.{name}.models 字段中的模型 ID
+fn read_custom_models_from_opencode() -> HashMap<String, Vec<String>> {
+    let mut result = HashMap::new();
+
+    // 获取配置文件路径
+    let Ok(config_path) = get_opencode_config_path() else {
+        return result;
+    };
+
+    // 文件不存在时返回空结果
+    if !config_path.exists() {
+        return result;
+    }
+
+    // 读取文件内容
+    let Ok(content) = fs::read_to_string(&config_path) else {
+        return result;
+    };
+
+    // 解析 JSON（使用 serde_json::Value 保持灵活性）
+    let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) else {
+        return result;
+    };
+
+    // 遍历 provider 对象，提取每个 provider 的 models 字段
+    if let Some(provider) = config.get("provider") {
+        if let Some(provider_obj) = provider.as_object() {
+            for (provider_id, provider_config) in provider_obj {
+                // 获取该 provider 的 models 字段
+                if let Some(models) = provider_config.get("models") {
+                    if let Some(models_obj) = models.as_object() {
+                        // models 是一个对象，key 是模型 ID
+                        let model_ids: Vec<String> = models_obj.keys().cloned().collect();
+                        if !model_ids.is_empty() {
+                            result.insert(provider_id.clone(), model_ids);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    result
+}
+
 /// 获取可用模型列表，按提供商分组
 ///
-/// 从 ~/.cache/oh-my-opencode/provider-models.json 读取本地缓存
+/// 合并两个来源的模型：
+/// 1. ~/.cache/oh-my-opencode/provider-models.json - CLI 缓存的模型
+/// 2. ~/.config/opencode/opencode.json 的 provider.{name}.models - 自定义模型
+///
 /// 返回格式: { "provider_name": ["model1", "model2", ...] }
 pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
     let cache_file = get_cache_dir()?.join("provider-models.json");
 
-    // 文件不存在时返回空结果
-    if !cache_file.exists() {
-        return Ok(HashMap::new());
+    // 1. 从缓存文件读取模型列表
+    let mut result = if cache_file.exists() {
+        let content = fs::read_to_string(&cache_file)
+            .map_err(|e| format!("{}: {}", i18n::tr_current("read_model_cache_failed"), e))?;
+
+        let cache: ProviderModelsCache = serde_json::from_str(&content)
+            .map_err(|e| format!("{}: {}", i18n::tr_current("parse_model_cache_failed"), e))?;
+
+        cache.models
+    } else {
+        HashMap::new()
+    };
+
+    // 2. 从 opencode.json 读取自定义模型并合并
+    let custom_models = read_custom_models_from_opencode();
+    for (provider_id, models) in custom_models {
+        // 获取或创建该 provider 的模型列表
+        let entry = result.entry(provider_id).or_insert_with(Vec::new);
+        // 添加自定义模型（去重）
+        for model_id in models {
+            if !entry.contains(&model_id) {
+                entry.push(model_id);
+            }
+        }
     }
 
-    // 读取文件内容
-    let content = fs::read_to_string(&cache_file)
-        .map_err(|e| format!("{}: {}", i18n::tr_current("read_model_cache_failed"), e))?;
-
-    // 解析 JSON
-    let cache: ProviderModelsCache = serde_json::from_str(&content)
-        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_model_cache_failed"), e))?;
-
-    Ok(cache.models)
+    Ok(result)
 }
 
 /// 获取已连接的提供商列表
@@ -239,6 +316,7 @@ pub fn fetch_models_dev() -> Result<Vec<ModelInfo>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_get_available_models() {
@@ -289,5 +367,123 @@ mod tests {
                 println!("成功获取 {} 个模型信息", models.len());
             }
         }
+    }
+
+    /// 测试合并自定义模型到缓存模型列表
+    ///
+    /// 验证：
+    /// 1. 自定义模型被正确合并到现有缓存
+    /// 2. 不影响原有的缓存模型
+    /// 3. 自定义模型不会重复
+    #[test]
+    #[serial]
+    fn test_get_available_models_with_custom() {
+        use std::io::Write;
+
+        // 创建临时目录
+        let temp_dir = std::env::temp_dir().join("omo_test_merge_models");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).expect("创建临时目录失败");
+
+        // 保存原始 HOME
+        let original_home = std::env::var("HOME").ok();
+        // SAFETY: 测试中修改 HOME 环境变量是安全的
+        unsafe {
+            std::env::set_var("HOME", &temp_dir);
+        }
+
+        // 1. 创建缓存文件 provider-models.json（模拟 CLI 缓存）
+        let cache_dir = temp_dir.join(".cache").join("oh-my-opencode");
+        std::fs::create_dir_all(&cache_dir).expect("创建缓存目录失败");
+
+        let provider_models_content = r#"{
+            "models": {
+                "openai": ["gpt-4", "gpt-3.5-turbo"],
+                "anthropic": ["claude-3-opus"]
+            }
+        }"#;
+        let cache_file = cache_dir.join("provider-models.json");
+        let mut file = std::fs::File::create(&cache_file).expect("创建缓存文件失败");
+        file.write_all(provider_models_content.as_bytes())
+            .expect("写入缓存文件失败");
+
+        // 2. 创建配置文件 opencode.json（包含自定义模型）
+        let config_dir = temp_dir.join(".config").join("opencode");
+        std::fs::create_dir_all(&config_dir).expect("创建配置目录失败");
+
+        let opencode_content = r#"{
+            "provider": {
+                "openai": {
+                    "models": {
+                        "gpt-4-custom": {}
+                    }
+                },
+                "custom-provider": {
+                    "models": {
+                        "custom-model-1": {},
+                        "custom-model-2": {}
+                    }
+                }
+            }
+        }"#;
+        let config_file = config_dir.join("opencode.json");
+        let mut file = std::fs::File::create(&config_file).expect("创建配置文件失败");
+        file.write_all(opencode_content.as_bytes())
+            .expect("写入配置文件失败");
+
+        // 3. 调用 get_available_models 获取合并后的模型
+        let result = get_available_models();
+
+        // 恢复 HOME
+        // SAFETY: 测试中恢复 HOME 环境变量是安全的
+        unsafe {
+            if let Some(home) = original_home {
+                std::env::set_var("HOME", home);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+
+        // 验证结果
+        assert!(result.is_ok(), "获取模型应该成功: {:?}", result.err());
+        let models = result.unwrap();
+
+        // 验证 openai 提供商包含缓存模型 + 自定义模型
+        let openai_models = models.get("openai").expect("应该有 openai 提供商");
+        assert!(
+            openai_models.contains(&"gpt-4".to_string()),
+            "应该包含缓存的 gpt-4"
+        );
+        assert!(
+            openai_models.contains(&"gpt-3.5-turbo".to_string()),
+            "应该包含缓存的 gpt-3.5-turbo"
+        );
+        assert!(
+            openai_models.contains(&"gpt-4-custom".to_string()),
+            "应该包含自定义的 gpt-4-custom"
+        );
+
+        // 验证 anthropic 提供商保持不变
+        let anthropic_models = models.get("anthropic").expect("应该有 anthropic 提供商");
+        assert!(
+            anthropic_models.contains(&"claude-3-opus".to_string()),
+            "应该包含缓存的 claude-3-opus"
+        );
+
+        // 验证自定义提供商被添加
+        let custom_models = models
+            .get("custom-provider")
+            .expect("应该有 custom-provider");
+        assert!(
+            custom_models.contains(&"custom-model-1".to_string()),
+            "应该包含自定义模型 1"
+        );
+        assert!(
+            custom_models.contains(&"custom-model-2".to_string()),
+            "应该包含自定义模型 2"
+        );
+
+        // 清理
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

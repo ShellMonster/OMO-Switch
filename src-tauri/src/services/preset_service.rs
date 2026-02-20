@@ -358,7 +358,7 @@ mod tests {
         let path = result.unwrap();
         assert!(path
             .to_string_lossy()
-            .contains(".config/omo-model-switcher/presets"));
+            .contains(".config/OMO-Switch/presets"));
     }
 
     #[test]
@@ -497,7 +497,10 @@ pub fn get_active_preset() -> Option<String> {
         .join(".config")
         .join("OMO-Switch")
         .join("active_preset");
-    std::fs::read_to_string(path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+    std::fs::read_to_string(path)
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 /// 设置当前激活的预设名称

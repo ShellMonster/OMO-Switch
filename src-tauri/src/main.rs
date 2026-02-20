@@ -45,6 +45,8 @@ fn main() {
             commands::provider_commands::set_provider_api_key,
             commands::provider_commands::delete_provider_auth,
             commands::provider_commands::add_custom_provider,
+            commands::provider_commands::add_custom_model,
+            commands::provider_commands::remove_custom_model,
             commands::provider_commands::test_provider_connection,
             commands::provider_commands::get_provider_icon,
             commands::import_export_commands::export_omo_config,
