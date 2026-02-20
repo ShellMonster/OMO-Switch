@@ -582,6 +582,13 @@
       "changeVersion": "Change {{from}} to",
       "thenRestart": "Then restart opencode",
       "runInTerminal": "Run in terminal:",
-      "copied": "Copied"
-    }
-  }
+       "copied": "Copied"
+     },
+     "customModel": {
+       "addModel": "Add Model",
+       "selectModelToAdd": "Select a model to add",
+       "noModelsAvailable": "No models available",
+       "modelAdded": "Model added successfully",
+       "addModelError": "Failed to add model"
+     }
+   }

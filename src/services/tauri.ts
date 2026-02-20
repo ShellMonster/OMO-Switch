@@ -122,6 +122,24 @@ export async function getConnectedProviders(): Promise<string[]> {
   return invoke<string[]>('get_connected_providers');
 }
 
+/**
+ * 添加自定义模型到指定提供商
+ * @param providerId 提供商ID
+ * @param modelId 模型ID
+ */
+export async function addCustomModel(providerId: string, modelId: string): Promise<void> {
+  return invoke<void>('add_custom_model', { providerId, modelId });
+}
+
+/**
+ * 从指定提供商移除自定义模型
+ * @param providerId 提供商ID
+ * @param modelId 模型ID
+ */
+export async function removeCustomModel(providerId: string, modelId: string): Promise<void> {
+  return invoke<void>('remove_custom_model', { providerId, modelId });
+}
+
 export async function fetchModelsDev(): Promise<ModelInfo[]> {
   return invoke<ModelInfo[]>('fetch_models_dev');
 }
@@ -370,6 +388,10 @@ const tauriService = {
   // 内置预设
   getBuiltinPresets,
   applyBuiltinPreset,
+
+  // 自定义模型管理
+  addCustomModel,
+  removeCustomModel,
 };
 
 export default tauriService;

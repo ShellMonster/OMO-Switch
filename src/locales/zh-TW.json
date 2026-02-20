@@ -509,6 +509,13 @@
       "changeVersion": "將 {{from}} 改為",
       "thenRestart": "然後重啟 opencode",
       "runInTerminal": "在終端運行:",
-      "copied": "已複製"
-    }
-  }
+       "copied": "已複製"
+     },
+     "customModel": {
+       "addModel": "新增模型",
+       "selectModelToAdd": "選擇要新增的模型",
+       "noModelsAvailable": "模型列表為空",
+       "modelAdded": "模型新增成功",
+       "addModelError": "新增模型失敗"
+     }
+   }

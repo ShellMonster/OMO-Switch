@@ -9,10 +9,12 @@ import {
   Database,
   Wifi,
   WifiOff,
+  Plus,
 } from 'lucide-react';
 import { cn } from '../common/cn';
 import { getConnectedProviders, getAvailableModels } from '../../services/tauri';
 import { usePreloadStore } from '../../store/preloadStore';
+import { AddModelModal } from './AddModelModal';
 
 /**
  * 供应商状态接口
@@ -42,128 +44,173 @@ function getProviderColor(provider: string): string {
   return colors[provider.toLowerCase()] || 'bg-slate-500';
 }
 
-/**
- * 供应商卡片组件
- */
 interface ProviderCardProps {
   provider: ProviderStatus;
   models?: string[];
+  providerModels: Record<string, string[]>;
+  onModelAdded: () => void;
 }
 
-function ProviderCard({ provider, models }: ProviderCardProps) {
+function ProviderCard({ provider, models, providerModels, onModelAdded }: ProviderCardProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
   };
 
+  const handleAddModelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
   return (
-    <div
-      className={cn(
-        'p-4 rounded-xl border transition-all group cursor-pointer',
-        provider.isConnected
-          ? 'bg-slate-50 border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/30'
-          : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50'
-      )}
-      onClick={handleToggle}
-    >
-      <div className="flex items-center gap-3">
-        {/* 图标 */}
-        <div
-          className={cn(
-            'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-            provider.isConnected
-              ? 'bg-emerald-50 group-hover:bg-emerald-100'
-              : 'bg-slate-200 group-hover:bg-slate-300',
-            'transition-colors'
-          )}
-        >
-          {provider.isConnected ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          ) : (
-            <XCircle className="w-5 h-5 text-slate-500" />
-          )}
+    <>
+      <div
+        className={cn(
+          'p-4 rounded-xl border transition-all group cursor-pointer',
+          provider.isConnected
+            ? 'bg-slate-50 border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/30'
+            : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50'
+        )}
+        onClick={handleToggle}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
+              provider.isConnected
+                ? 'bg-emerald-50 group-hover:bg-emerald-100'
+                : 'bg-slate-200 group-hover:bg-slate-300',
+              'transition-colors'
+            )}
+          >
+            {provider.isConnected ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            ) : (
+              <XCircle className="w-5 h-5 text-slate-500" />
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'w-2.5 h-2.5 rounded-full flex-shrink-0',
+                  getProviderColor(provider.name)
+                )}
+              />
+              <p className="font-semibold text-slate-700 capitalize truncate">
+                {provider.name}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                  provider.isConnected
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-slate-200 text-slate-600'
+                )}
+              >
+                {provider.isConnected ? (
+                  <>
+                    <Wifi className="w-3 h-3" />
+                    {t('providerStatus.connected')}
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3 h-3" />
+                    {t('providerStatus.notConnected')}
+                  </>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm">
+              <Database className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-sm font-medium text-slate-700">
+                {provider.modelCount}
+              </span>
+              <span className="text-xs text-slate-400">
+                {t('providerStatus.models')}
+              </span>
+            </div>
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </div>
         </div>
 
-        {/* 信息 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                'w-2.5 h-2.5 rounded-full flex-shrink-0',
-                getProviderColor(provider.name)
-              )}
-            />
-            <p className="font-semibold text-slate-700 capitalize truncate">
-              {provider.name}
-            </p>
+        {isExpanded && models && models.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <div className="text-xs text-slate-500 mb-2">{t('providerStatus.models')}</div>
+            <div className="flex flex-wrap gap-2">
+              {models.map((model) => (
+                <span
+                  key={model}
+                  className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md"
+                >
+                  {model}
+                </span>
+              ))}
+            </div>
+            {provider.isConnected && (
+              <button
+                onClick={handleAddModelClick}
+                className={cn(
+                  'mt-3 w-full py-2 px-3 rounded-lg border border-dashed',
+                  'border-emerald-300 text-emerald-600 text-sm font-medium',
+                  'hover:bg-emerald-50 hover:border-emerald-400',
+                  'transition-colors flex items-center justify-center gap-2'
+                )}
+              >
+                <Plus className="w-4 h-4" />
+                {t('customModel.addModel')}
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            <span
+        )}
+
+        {isExpanded && (!models || models.length === 0) && provider.isConnected && (
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <div className="text-xs text-slate-500 mb-2">{t('providerStatus.models')}</div>
+            <button
+              onClick={handleAddModelClick}
               className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                provider.isConnected
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-200 text-slate-600'
+                'w-full py-2 px-3 rounded-lg border border-dashed',
+                'border-emerald-300 text-emerald-600 text-sm font-medium',
+                'hover:bg-emerald-50 hover:border-emerald-400',
+                'transition-colors flex items-center justify-center gap-2'
               )}
             >
-              {provider.isConnected ? (
-                <>
-                  <Wifi className="w-3 h-3" />
-                  {t('providerStatus.connected')}
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-3 h-3" />
-                  {t('providerStatus.notConnected')}
-                </>
-              )}
-            </span>
+              <Plus className="w-4 h-4" />
+              {t('customModel.addModel')}
+            </button>
           </div>
-        </div>
-
-        {/* 模型数量 */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm">
-            <Database className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-sm font-medium text-slate-700">
-              {provider.modelCount}
-            </span>
-            <span className="text-xs text-slate-400">
-              {t('providerStatus.models')}
-            </span>
-          </div>
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          )}
-        </div>
+        )}
       </div>
 
-      {isExpanded && models && models.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-slate-200">
-          <div className="text-xs text-slate-500 mb-2">{t('providerStatus.models')}</div>
-          <div className="flex flex-wrap gap-2">
-            {models.map((model) => (
-              <span
-                key={model}
-                className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md"
-              >
-                {model}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+      <AddModelModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        currentProviderId={provider.name}
+        providerModels={providerModels}
+        onModelAdded={onModelAdded}
+      />
+    </>
   );
 }
 
-/**
- * 供应商分组组件
- */
 function ProviderGroup({
   title,
   icon: Icon,
@@ -171,6 +218,7 @@ function ProviderGroup({
   providers,
   providerModels,
   emptyMessage,
+  onModelAdded,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -178,12 +226,12 @@ function ProviderGroup({
   providers: ProviderStatus[];
   providerModels: Record<string, string[]>;
   emptyMessage: string;
+  onModelAdded: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-      {/* 分组标题栏 */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between px-6 py-4 bg-slate-50 hover:bg-slate-100 transition-colors border-b border-slate-200"
@@ -212,7 +260,6 @@ function ProviderGroup({
         />
       </button>
 
-      {/* 供应商列表 */}
       {isExpanded && (
         <div className="p-4">
           {providers.length === 0 ? (
@@ -229,6 +276,8 @@ function ProviderGroup({
                   key={provider.name}
                   provider={provider}
                   models={providerModels[provider.name] ?? []}
+                  providerModels={providerModels}
+                  onModelAdded={onModelAdded}
                 />
               ))}
             </div>
@@ -260,14 +309,12 @@ export function ProviderStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 加载数据
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
 
-        // 优先使用预加载数据
         if (preloadedModels.grouped && preloadedModels.providers) {
           const modelMap = Object.fromEntries(
             preloadedModels.grouped.map((group) => [group.provider, group.models])
@@ -281,23 +328,19 @@ export function ProviderStatus() {
           setProviders(providerData);
           setLoading(false);
 
-          // 使用预加载数据，不重复刷新
           return;
         }
 
-        // 并行加载数据
         const [modelsData, connectedProviders] = await Promise.all([
           getAvailableModels(),
           getConnectedProviders(),
         ]);
 
-        // 转换模型数据为分组格式
         const grouped = Object.entries(modelsData).map(([provider, models]) => ({
           provider,
           models,
         }));
 
-        // 按模型数量排序
         grouped.sort((a, b) => b.models.length - a.models.length);
 
         const modelMap = Object.fromEntries(
@@ -333,13 +376,36 @@ export function ProviderStatus() {
     }));
   }
 
-  // 分离已连接和未连接的供应商
   const { connected, notConnected } = useMemo(() => {
     return {
       connected: providers.filter((p) => p.isConnected),
       notConnected: providers.filter((p) => !p.isConnected),
     };
   }, [providers]);
+
+  async function handleModelAdded() {
+    try {
+      const [modelsData, connectedProviders] = await Promise.all([
+        getAvailableModels(),
+        getConnectedProviders(),
+      ]);
+
+      const grouped = Object.entries(modelsData).map(([provider, models]) => ({
+        provider,
+        models,
+      }));
+
+      grouped.sort((a, b) => b.models.length - a.models.length);
+
+      const modelMap = Object.fromEntries(
+        grouped.map((group) => [group.provider, group.models])
+      );
+      setProviderModels(modelMap);
+
+      const providerData = buildProviderStatus(grouped, connectedProviders);
+      setProviders(providerData);
+    } catch {}
+  }
 
   if (loading) {
     return (
@@ -442,7 +508,6 @@ export function ProviderStatus() {
         </div>
       </div>
 
-      {/* 已连接供应商 */}
       <ProviderGroup
         title={t('providerStatus.connectedProviders')}
         icon={Wifi}
@@ -450,9 +515,9 @@ export function ProviderStatus() {
         providers={connected}
         providerModels={providerModels}
         emptyMessage={t('providerStatus.noConnectedProviders')}
+        onModelAdded={handleModelAdded}
       />
 
-      {/* 未连接供应商 */}
       <ProviderGroup
         title={t('providerStatus.notConnectedProviders')}
         icon={WifiOff}
@@ -460,6 +525,7 @@ export function ProviderStatus() {
         providers={notConnected}
         providerModels={providerModels}
         emptyMessage={t('providerStatus.noNotConnectedProviders')}
+        onModelAdded={handleModelAdded}
       />
     </div>
   );

@@ -509,6 +509,13 @@
       "changeVersion": "{{from}} 변경",
       "thenRestart": "그런 다음 opencode 재시작",
       "runInTerminal": "터미널에서 실행:",
-      "copied": "복사됨"
-    }
-  }
+       "copied": "복사됨"
+     },
+     "customModel": {
+       "addModel": "모델 추가",
+       "selectModelToAdd": "추가할 모델 선택",
+       "noModelsAvailable": "모델 목록이 비어 있습니다",
+       "modelAdded": "모델이 추가되었습니다",
+       "addModelError": "모델 추가 실패"
+     }
+   }

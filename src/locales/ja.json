@@ -509,6 +509,13 @@
       "changeVersion": "{{from}} を変更",
       "thenRestart": "その後 opencode を再起動",
       "runInTerminal": "ターミナルで実行:",
-      "copied": "コピーしました"
-    }
-  }
+       "copied": "コピーしました"
+     },
+     "customModel": {
+       "addModel": "モデルを追加",
+       "selectModelToAdd": "追加するモデルを選択",
+       "noModelsAvailable": "モデルリストが空です",
+       "modelAdded": "モデルを追加しました",
+       "addModelError": "モデルの追加に失敗しました"
+     }
+   }
