@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Search } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { cn } from '../common/cn';
@@ -24,6 +24,7 @@ export function AddModelModal({
   const { t } = useTranslation();
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const availableModels = useMemo(() => {
     const models: Array<{ modelId: string; providerName: string }> = [];
@@ -43,6 +44,16 @@ export function AddModelModal({
 
     return models;
   }, [providerModels, currentProviderId]);
+
+  const filteredModels = useMemo(() => {
+    if (!searchQuery.trim()) return availableModels;
+    const query = searchQuery.toLowerCase();
+    return availableModels.filter(
+      ({ modelId, providerName }) =>
+        modelId.toLowerCase().includes(query) ||
+        providerName.toLowerCase().includes(query)
+    );
+  }, [availableModels, searchQuery]);
 
   const handleAddModel = async (modelId: string) => {
     try {
@@ -98,7 +109,18 @@ export function AddModelModal({
           </div>
         )}
 
-        {availableModels.length === 0 ? (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('customModel.searchPlaceholder')}
+            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300"
+          />
+        </div>
+
+        {filteredModels.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3">
               <AlertCircle className="w-6 h-6 text-slate-400" />
@@ -109,7 +131,7 @@ export function AddModelModal({
           </div>
         ) : (
           <div className="max-h-[400px] overflow-y-auto space-y-2 pr-1">
-            {availableModels.map(({ modelId, providerName }) => (
+            {filteredModels.map(({ modelId, providerName }) => (
               <button
                 key={`${providerName}-${modelId}`}
                 onClick={() => handleAddModel(modelId)}

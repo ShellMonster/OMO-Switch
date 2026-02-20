@@ -586,11 +586,16 @@
       "runInTerminal": "在终端运行:",
        "copied": "已复制"
      },
-     "customModel": {
-       "addModel": "添加模型",
-       "selectModelToAdd": "选择要添加的模型",
-       "noModelsAvailable": "模型列表为空",
-       "modelAdded": "模型添加成功",
-       "addModelError": "添加模型失败"
-     }
-   }
+      "customModel": {
+        "addModel": "添加模型",
+        "selectModelToAdd": "选择要添加的模型",
+        "noModelsAvailable": "模型列表为空",
+        "modelAdded": "模型添加成功",
+        "addModelError": "添加模型失败",
+        "searchPlaceholder": "搜索模型或供应商...",
+        "confirmDelete": "确定删除？",
+        "modelRemoved": "模型删除成功",
+        "cancel": "取消",
+        "confirm": "确定"
+      }
+    }

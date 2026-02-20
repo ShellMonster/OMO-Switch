@@ -511,11 +511,16 @@
       "runInTerminal": "ターミナルで実行:",
        "copied": "コピーしました"
      },
-     "customModel": {
-       "addModel": "モデルを追加",
-       "selectModelToAdd": "追加するモデルを選択",
-       "noModelsAvailable": "モデルリストが空です",
-       "modelAdded": "モデルを追加しました",
-       "addModelError": "モデルの追加に失敗しました"
-     }
-   }
+      "customModel": {
+        "addModel": "モデルを追加",
+        "selectModelToAdd": "追加するモデルを選択",
+        "noModelsAvailable": "モデルリストが空です",
+        "modelAdded": "モデルを追加しました",
+        "addModelError": "モデルの追加に失敗しました",
+        "searchPlaceholder": "モデルまたはプロバイダーを検索...",
+        "confirmDelete": "削除しますか？",
+        "modelRemoved": "モデルを削除しました",
+        "cancel": "キャンセル",
+        "confirm": "確認"
+      }
+    }

@@ -10,11 +10,13 @@ import {
   Wifi,
   WifiOff,
   Plus,
+  X,
 } from 'lucide-react';
 import { cn } from '../common/cn';
-import { getConnectedProviders, getAvailableModels } from '../../services/tauri';
+import { getConnectedProviders, getAvailableModels, getCustomModels, removeCustomModel } from '../../services/tauri';
 import { usePreloadStore } from '../../store/preloadStore';
 import { AddModelModal } from './AddModelModal';
+import { ConfirmPopover } from '../common/ConfirmPopover';
 
 /**
  * 供应商状态接口
@@ -48,13 +50,19 @@ interface ProviderCardProps {
   provider: ProviderStatus;
   models?: string[];
   providerModels: Record<string, string[]>;
+  customModels: string[];
   onModelAdded: () => void;
 }
 
-function ProviderCard({ provider, models, providerModels, onModelAdded }: ProviderCardProps) {
+function ProviderCard({ provider, models, providerModels, customModels, onModelAdded }: ProviderCardProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ model: string; isOpen: boolean }>({
+    model: '',
+    isOpen: false,
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
@@ -68,6 +76,30 @@ function ProviderCard({ provider, models, providerModels, onModelAdded }: Provid
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
+
+  const handleDeleteClick = (e: React.MouseEvent, model: string) => {
+    e.stopPropagation();
+    setDeleteConfirm({ model, isOpen: true });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm.model) return;
+    try {
+      setIsDeleting(true);
+      await removeCustomModel(provider.name, deleteConfirm.model);
+      setDeleteConfirm({ model: '', isOpen: false });
+      onModelAdded();
+    } catch {
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirm({ model: '', isOpen: false });
+  };
+
+  const isCustomModel = (model: string) => customModels.includes(model);
 
   return (
     <>
@@ -158,12 +190,28 @@ function ProviderCard({ provider, models, providerModels, onModelAdded }: Provid
               {models.map((model) => (
                 <span
                   key={model}
-                  className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md"
+                  className="relative group px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md flex items-center gap-1"
                 >
                   {model}
+                  {isCustomModel(model) && (
+                    <button
+                      onClick={(e) => handleDeleteClick(e, model)}
+                      disabled={isDeleting}
+                      className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </span>
               ))}
             </div>
+            <ConfirmPopover
+              isOpen={deleteConfirm.isOpen}
+              onConfirm={handleConfirmDelete}
+              onCancel={handleCancelDelete}
+              message={t('customModel.confirmDelete')}
+              className="mt-1"
+            />
             {provider.isConnected && (
               <button
                 onClick={handleAddModelClick}
@@ -217,6 +265,7 @@ function ProviderGroup({
   iconColor,
   providers,
   providerModels,
+  customModels,
   emptyMessage,
   onModelAdded,
 }: {
@@ -225,6 +274,7 @@ function ProviderGroup({
   iconColor: string;
   providers: ProviderStatus[];
   providerModels: Record<string, string[]>;
+  customModels: Record<string, string[]>;
   emptyMessage: string;
   onModelAdded: () => void;
 }) {
@@ -277,6 +327,7 @@ function ProviderGroup({
                   provider={provider}
                   models={providerModels[provider.name] ?? []}
                   providerModels={providerModels}
+                  customModels={customModels[provider.name] ?? []}
                   onModelAdded={onModelAdded}
                 />
               ))}
@@ -306,6 +357,9 @@ export function ProviderStatus() {
   const [providerModels, setProviderModels] = useState<Record<string, string[]>>(
     {}
   );
+  const [customModelsData, setCustomModelsData] = useState<Record<string, string[]>>(
+    {}
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -331,9 +385,10 @@ export function ProviderStatus() {
           return;
         }
 
-        const [modelsData, connectedProviders] = await Promise.all([
+        const [modelsData, connectedProviders, customModels] = await Promise.all([
           getAvailableModels(),
           getConnectedProviders(),
+          getCustomModels(),
         ]);
 
         const grouped = Object.entries(modelsData).map(([provider, models]) => ({
@@ -347,6 +402,7 @@ export function ProviderStatus() {
           grouped.map((group) => [group.provider, group.models])
         );
         setProviderModels(modelMap);
+        setCustomModelsData(customModels);
 
         const providerData = buildProviderStatus(grouped, connectedProviders);
         setProviders(providerData);
@@ -385,9 +441,10 @@ export function ProviderStatus() {
 
   async function handleModelAdded() {
     try {
-      const [modelsData, connectedProviders] = await Promise.all([
+      const [modelsData, connectedProviders, customModels] = await Promise.all([
         getAvailableModels(),
         getConnectedProviders(),
+        getCustomModels(),
       ]);
 
       const grouped = Object.entries(modelsData).map(([provider, models]) => ({
@@ -401,6 +458,7 @@ export function ProviderStatus() {
         grouped.map((group) => [group.provider, group.models])
       );
       setProviderModels(modelMap);
+      setCustomModelsData(customModels);
 
       const providerData = buildProviderStatus(grouped, connectedProviders);
       setProviders(providerData);
@@ -514,6 +572,7 @@ export function ProviderStatus() {
         iconColor="bg-emerald-500"
         providers={connected}
         providerModels={providerModels}
+        customModels={customModelsData}
         emptyMessage={t('providerStatus.noConnectedProviders')}
         onModelAdded={handleModelAdded}
       />
@@ -524,6 +583,7 @@ export function ProviderStatus() {
         iconColor="bg-slate-500"
         providers={notConnected}
         providerModels={providerModels}
+        customModels={customModelsData}
         emptyMessage={t('providerStatus.noNotConnectedProviders')}
         onModelAdded={handleModelAdded}
       />

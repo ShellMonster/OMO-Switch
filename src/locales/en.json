@@ -584,11 +584,16 @@
       "runInTerminal": "Run in terminal:",
        "copied": "Copied"
      },
-     "customModel": {
-       "addModel": "Add Model",
-       "selectModelToAdd": "Select a model to add",
-       "noModelsAvailable": "No models available",
-       "modelAdded": "Model added successfully",
-       "addModelError": "Failed to add model"
-     }
-   }
+      "customModel": {
+        "addModel": "Add Model",
+        "selectModelToAdd": "Select a model to add",
+        "noModelsAvailable": "No models available",
+        "modelAdded": "Model added successfully",
+        "addModelError": "Failed to add model",
+        "searchPlaceholder": "Search models or providers...",
+        "confirmDelete": "Confirm delete?",
+        "modelRemoved": "Model removed successfully",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      }
+    }

@@ -140,6 +140,14 @@ export async function removeCustomModel(providerId: string, modelId: string): Pr
   return invoke<void>('remove_custom_model', { providerId, modelId });
 }
 
+/**
+ * 获取所有自定义模型
+ * 返回格式：Record<providerId, modelId[]>
+ */
+export async function getCustomModels(): Promise<Record<string, string[]>> {
+  return invoke<Record<string, string[]>>('get_custom_models');
+}
+
 export async function fetchModelsDev(): Promise<ModelInfo[]> {
   return invoke<ModelInfo[]>('fetch_models_dev');
 }
@@ -392,6 +400,7 @@ const tauriService = {
   // 自定义模型管理
   addCustomModel,
   removeCustomModel,
+  getCustomModels,
 };
 
 export default tauriService;
