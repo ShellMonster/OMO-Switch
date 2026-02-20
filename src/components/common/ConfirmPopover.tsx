@@ -49,13 +49,19 @@ export function ConfirmPopover({
       <p className="text-xs text-slate-600 mb-2">{message}</p>
       <div className="flex gap-1.5 justify-center">
         <button
-          onClick={onCancel}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCancel();
+          }}
           className="flex-1 px-2 py-1 text-xs rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
         >
           {t('customModel.cancel')}
         </button>
         <button
-          onClick={onConfirm}
+          onClick={(e) => {
+            e.stopPropagation();
+            onConfirm();
+          }}
           className="flex-1 px-2 py-1 text-xs rounded bg-rose-500 text-white hover:bg-rose-600 transition-colors"
         >
           {t('customModel.confirm')}

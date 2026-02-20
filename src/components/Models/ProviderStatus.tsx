@@ -194,24 +194,26 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
                 >
                   {model}
                   {isCustomModel(model) && (
-                    <button
-                      onClick={(e) => handleDeleteClick(e, model)}
-                      disabled={isDeleting}
-                      className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 hover:text-rose-500 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                    <>
+                      <button
+                        onClick={(e) => handleDeleteClick(e, model)}
+                        disabled={isDeleting}
+                        className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 hover:text-rose-500 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <ConfirmPopover
+                        isOpen={deleteConfirm.isOpen && deleteConfirm.model === model}
+                        onConfirm={handleConfirmDelete}
+                        onCancel={handleCancelDelete}
+                        message={t('customModel.confirmDelete')}
+                        className="absolute left-0 top-full mt-1 z-50"
+                      />
+                    </>
                   )}
                 </span>
               ))}
             </div>
-            <ConfirmPopover
-              isOpen={deleteConfirm.isOpen}
-              onConfirm={handleConfirmDelete}
-              onCancel={handleCancelDelete}
-              message={t('customModel.confirmDelete')}
-              className="absolute left-0 top-full mt-1"
-            />
             {provider.isConnected && (
               <button
                 onClick={handleAddModelClick}
