@@ -184,7 +184,7 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
         </div>
 
         {isExpanded && models && models.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-slate-200">
+          <div className="relative mt-3 pt-3 border-t border-slate-200">
             <div className="text-xs text-slate-500 mb-2">{t('providerStatus.models')}</div>
             <div className="flex flex-wrap gap-2">
               {models.map((model) => (
@@ -210,7 +210,7 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
               onConfirm={handleConfirmDelete}
               onCancel={handleCancelDelete}
               message={t('customModel.confirmDelete')}
-              className="mt-1"
+              className="absolute left-0 top-full mt-1"
             />
             {provider.isConnected && (
               <button
@@ -380,6 +380,15 @@ export function ProviderStatus() {
             preloadedModels.providers
           );
           setProviders(providerData);
+
+          // 即使使用 preloadedModels，也要获取 customModels
+          try {
+            const customModels = await getCustomModels();
+            setCustomModelsData(customModels);
+          } catch {
+            // 忽略错误
+          }
+
           setLoading(false);
 
           return;
