@@ -107,7 +107,7 @@ function getProviderColor(provider: string): { bg: string; text: string } {
   return colors[provider.toLowerCase()] || { bg: 'bg-slate-100', text: 'text-slate-600' };
 }
 
-export function AgentCard({ agentName, config, onEdit, isCategory }: AgentCardProps) {
+const AgentCardBase = ({ agentName, config, onEdit, isCategory }: AgentCardProps) => {
   const { t } = useTranslation();
   const variantStyle = getVariantStyle(config.variant);
   const icon = getAgentIcon(agentName, isCategory);
@@ -185,4 +185,6 @@ export function AgentCard({ agentName, config, onEdit, isCategory }: AgentCardPr
       </div>
     </div>
   );
-}
+};
+
+export const AgentCard = React.memo(AgentCardBase);
