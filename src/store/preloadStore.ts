@@ -177,10 +177,10 @@ refreshModels: async () => {
   }
 
   try {
-    const [modelsData, providersData, modelDetails] = await Promise.all([
+    // 先获取本地数据（快速响应，不等待网络请求）
+    const [modelsData, providersData] = await Promise.all([
       getAvailableModels(),
       getConnectedProviders(),
-      fetchModelsDev(),
     ]);
 
     // 稳定排序：先按模型数量降序，数量相同按 provider 名称升序
@@ -193,15 +193,26 @@ refreshModels: async () => {
         return a.provider.localeCompare(b.provider);
       });
 
-    const infos: Record<string, ModelInfo> = {};
-    modelDetails.forEach((info) => {
-      infos[info.id] = info;
-    });
-
+    // 立即更新 UI（不等待 fetchModelsDev）
     set({
-      models: { grouped, providers: providersData, infos, loading: false, error: null },
+      models: { grouped, providers: providersData, infos: {}, loading: false, error: null },
       _modelsRefreshing: false,
     });
+
+    // 后台加载 models.dev 详情（不阻塞主流程）
+    fetchModelsDev()
+      .then((modelDetails) => {
+        const infos: Record<string, ModelInfo> = {};
+        modelDetails.forEach((info) => {
+          infos[info.id] = info;
+        });
+        set((state) => ({
+          models: { ...state.models, infos },
+        }));
+      })
+      .catch(() => {
+        // 静默失败，不影响用户体验
+      });
   } catch (error) {
     set((current) => ({
       models: {

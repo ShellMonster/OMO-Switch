@@ -427,7 +427,8 @@ export function ProviderStatus() {
     }
 
     loadData();
-  }, [preloadedModels, t]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preloadedModels]);
 
   // 构建供应商状态数据
   function buildProviderStatus(
@@ -452,27 +453,10 @@ export function ProviderStatus() {
 
   async function handleModelAdded() {
     try {
-      const [modelsData, connectedProviders, customModels] = await Promise.all([
-        getAvailableModels(),
-        getConnectedProviders(),
-        getCustomModels(),
-      ]);
-
-      const grouped = Object.entries(modelsData).map(([provider, models]) => ({
-        provider,
-        models,
-      }));
-
-      grouped.sort((a, b) => b.models.length - a.models.length);
-
-      const modelMap = Object.fromEntries(
-        grouped.map((group) => [group.provider, group.models])
-      );
-      setProviderModels(modelMap);
+      // 只刷新必要的数据（自定义模型）
+      const customModels = await getCustomModels();
       setCustomModelsData(customModels);
-
-      const providerData = buildProviderStatus(grouped, connectedProviders);
-      setProviders(providerData);
+      // providerModels 和 providers 不需要刷新（添加/删除自定义模型不影响它们）
     } catch {}
   }
 
