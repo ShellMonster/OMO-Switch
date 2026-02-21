@@ -474,7 +474,9 @@ export function ProviderStatus() {
 
       // 更新 customModelsData
       setCustomModelsData(customModels);
-    } catch {}
+    } catch (error) {
+      console.error('[ProviderStatus] Failed to refresh models:', error);
+    }
   }
 
   if (loading) {

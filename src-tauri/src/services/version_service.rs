@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VersionInfo {
@@ -67,21 +68,43 @@ pub fn get_omo_current_version() -> Option<String> {
 }
 
 /// 通过命令获取版本号（兜底方案）
+/// 添加 3 秒超时机制，防止网络问题阻塞 UI
 fn get_version_from_command() -> Option<String> {
-    // 尝试 bunx oh-my-opencode --version
-    let output = Command::new("bunx")
+    let mut child = Command::new("bunx")
         .args(["oh-my-opencode", "--version"])
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
         .ok()?;
 
-    if output.status.success() {
-        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !version.is_empty() {
-            return Some(version);
+    // 3 秒超时
+    let timeout = Duration::from_secs(3);
+    let start = Instant::now();
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => {
+                let output = child.wait_with_output().ok()?;
+                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !version.is_empty() {
+                    return Some(version);
+                }
+                return None;
+            }
+            Ok(Some(_)) => return None, // 命令执行失败
+            Ok(None) => {
+                // 还在运行，检查超时
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                // 短暂休眠避免忙等待
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(_) => return None,
         }
     }
-
-    None
 }
 
 fn read_pkg_version(path: &str) -> Option<String> {

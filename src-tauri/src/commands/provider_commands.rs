@@ -97,19 +97,6 @@ struct ProviderModelsCache {
 // 路径获取函数
 // ============================================================================
 
-/// 获取 models.json 缓存文件路径
-/// 路径: ~/.cache/opencode/models.json
-pub fn get_models_cache_path() -> Result<PathBuf, String> {
-    let home = std::env::var("HOME").map_err(|_| "无法获取 HOME 环境变量".to_string())?;
-
-    let path = PathBuf::from(home)
-        .join(".cache")
-        .join("opencode")
-        .join("models.json");
-
-    Ok(path)
-}
-
 /// 获取 auth.json 认证文件路径
 /// 路径: ~/.local/share/opencode/auth.json
 pub fn get_auth_file_path() -> Result<PathBuf, String> {
@@ -171,25 +158,6 @@ fn get_provider_icon_cache_path(provider_id: &str) -> Result<PathBuf, String> {
 // ============================================================================
 // 文件读写函数
 // ============================================================================
-
-/// 读取 models.json 缓存文件
-/// 返回所有供应商的模型信息
-pub fn read_models_cache() -> Result<Value, String> {
-    let models_path = get_models_cache_path()?;
-
-    // 如果文件不存在，返回空对象
-    if !models_path.exists() {
-        return Ok(json!({}));
-    }
-
-    let content =
-        fs::read_to_string(&models_path).map_err(|e| format!("读取 models.json 失败: {}", e))?;
-
-    let models: Value =
-        serde_json::from_str(&content).map_err(|e| format!("解析 models.json 失败: {}", e))?;
-
-    Ok(models)
-}
 
 /// 读取 auth.json 认证文件
 /// 返回已配置的供应商认证信息

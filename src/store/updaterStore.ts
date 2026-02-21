@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { toast } from '../components/common/Toast';
+import { isTauriEnvironment } from '../utils/tauri';
 import i18n from '../i18n';
 
 /**
@@ -55,10 +56,7 @@ interface UpdaterState {
   installUpdate: () => Promise<void>;   // 安装更新
 }
 
-/**
- * 检测是否在 Tauri 环境中运行
- */
-const isTauri = () => typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
+
 
 // 防止重复调用的 Promise 缓存
 let inFlightCheck: Promise<void> | null = null;
@@ -104,7 +102,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
    */
   checkForUpdates: async (options) => {
     // 非 Tauri 环境不执行
-    if (!isTauri()) return;
+    if (!isTauriEnvironment()) return;
     // 正在检查中，跳过
     if (get().status === 'checking') return;
     // 有正在进行的检查，返回同一个 Promise
@@ -224,7 +222,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
    */
   downloadUpdate: async () => {
     // 非 Tauri 环境不执行
-    if (!isTauri()) return;
+    if (!isTauriEnvironment()) return;
     
     const update = get().update;
     if (!update) return;
@@ -295,7 +293,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
    */
   installUpdate: async () => {
     // 非 Tauri 环境不执行
-    if (!isTauri()) return;
+    if (!isTauriEnvironment()) return;
     
     const update = get().update;
     if (!update) return;

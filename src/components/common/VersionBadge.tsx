@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpCircle, Github, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUpdaterStore } from '../../store/updaterStore';
+import { isTauriEnvironment } from '../../utils/tauri';
 import { cn } from './cn';
 
 /**
@@ -43,7 +44,7 @@ export function VersionBadge() {
     const load = async () => {
       try {
         // 检测是否在 Tauri 环境中运行
-        if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+        if (isTauriEnvironment()) {
           const { getVersion } = await import('@tauri-apps/api/app');
           const v = await getVersion();
           if (!canceled) setVersion(v);
@@ -155,7 +156,7 @@ export function VersionBadge() {
     if (manualHint === 'checking') return;
 
     // 检测是否在 Tauri 环境中
-    const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
+    const isTauri = isTauriEnvironment();
     if (!isTauri) {
       setHintWithAutoClear('not-tauri', 2000);
       return;
@@ -193,7 +194,7 @@ export function VersionBadge() {
   const handleOpenRepo = async () => {
     if (!repoUrl) return;
     try {
-      if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+      if (isTauriEnvironment()) {
         const { openUrl } = await import('@tauri-apps/plugin-opener');
         await openUrl(repoUrl);
         return;

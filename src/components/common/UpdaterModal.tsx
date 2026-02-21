@@ -5,6 +5,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { cn } from './cn';
 import { useUpdaterStore } from '../../store/updaterStore';
+import { isTauriEnvironment } from '../../utils/tauri';
 import i18n from '../../i18n';
 
 /**
@@ -58,7 +59,7 @@ export function UpdaterModal() {
 
     // 只在桌面端生产环境自动检查，避免开发时 StrictMode 重复触发和打扰
     if (!import.meta.env.PROD) return;
-    if (typeof window === 'undefined' || !(window as any).__TAURI_INTERNALS__) return;
+    if (typeof window === 'undefined' || !isTauriEnvironment()) return;
 
     const t = window.setTimeout(() => {
       checkForUpdates({ silent: true, openIfAvailable: true }).catch(() => {});
