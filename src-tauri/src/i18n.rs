@@ -111,7 +111,6 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
     zh_cn.insert("tray_presets", "💾 预设".to_string());
     zh_cn.insert("tray_current_preset", "当前预设".to_string());
 
-
     zh_cn.insert("read_preset_file_failed", "读取预设文件失败".to_string());
     zh_cn.insert("parse_preset_file_failed", "解析预设文件失败".to_string());
     zh_cn.insert("delete_preset_failed", "删除预设失败".to_string());
@@ -167,7 +166,6 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
     zh_tw.insert("preset_high_performance", "高效能模式".to_string());
     zh_tw.insert("tray_presets", "💾 預設".to_string());
     zh_tw.insert("tray_current_preset", "目前".to_string());
-
 
     zh_tw.insert("read_preset_file_failed", "讀取預設檔案失敗".to_string());
     zh_tw.insert("parse_preset_file_failed", "解析預設檔案失敗".to_string());
@@ -266,7 +264,6 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
     en.insert("preset_high_performance", "High Performance".to_string());
     en.insert("tray_presets", "💾 Presets".to_string());
     en.insert("tray_current_preset", "Current".to_string());
-
 
     en.insert(
         "read_preset_file_failed",
@@ -380,7 +377,6 @@ fn get_translations() -> HashMap<&'static str, HashMap<&'static str, String>> {
     ja.insert("preset_high_performance", "ハイパフォーマンス".to_string());
     ja.insert("tray_presets", "💾 プリセット".to_string());
     ja.insert("tray_current_preset", "現在".to_string());
-
 
     ja.insert(
         "read_preset_file_failed",

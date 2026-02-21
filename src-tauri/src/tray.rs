@@ -68,14 +68,18 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 open_main_window(app_handle);
                 return;
             }
-            
+
             // 内置预设切换
             if let Some(preset_id) = id.strip_prefix("builtin:") {
-                if let Err(err) = crate::commands::upstream_sync_commands::apply_builtin_preset(preset_id.to_string()) {
+                if let Err(err) = crate::commands::upstream_sync_commands::apply_builtin_preset(
+                    preset_id.to_string(),
+                ) {
                     eprintln!("托盘切换内置预设失败: {}", err);
                     return;
                 }
-                if let Err(err) = preset_service::set_active_preset(&format!("__builtin__{}", preset_id)) {
+                if let Err(err) =
+                    preset_service::set_active_preset(&format!("__builtin__{}", preset_id))
+                {
                     eprintln!("设置当前预设失败: {}", err);
                 }
                 if let Err(err) = rebuild_tray_menu(app_handle) {
@@ -83,7 +87,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 }
                 return;
             }
-            
+
             // 用户预设切换
             if let Some(preset_name) = id
                 .strip_prefix(ACTION_SET_PRESET)
@@ -241,7 +245,7 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
 
     if !categories.is_empty() {
         menu_builder = menu_builder.separator();
-        
+
         let categories_label = if locale == "zh-CN" {
             "📂 类别 Categories"
         } else {
@@ -293,56 +297,60 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
 
     // 预设菜单
     menu_builder = menu_builder.separator();
-    
+
     let presets_label = crate::i18n::tr_current("tray_presets");
     let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
         .enabled(false)
         .build(manager)?;
     menu_builder = menu_builder.item(&presets_header);
-    
+
     let active_preset = preset_service::get_active_preset();
-    
+
     // 内置预设（当前使用的用 ● 标记）
     let builtin_presets = [
-        ("official-default", crate::i18n::tr_current("preset_official_default")),
+        (
+            "official-default",
+            crate::i18n::tr_current("preset_official_default"),
+        ),
         ("economy", crate::i18n::tr_current("preset_economy")),
-        ("high-performance", crate::i18n::tr_current("preset_high_performance")),
+        (
+            "high-performance",
+            crate::i18n::tr_current("preset_high_performance"),
+        ),
     ];
-    
+
     for (id, name) in &builtin_presets {
         let item_id = format!("builtin:{}", id);
         let is_active = active_preset.as_ref() == Some(&format!("__builtin__{}", id));
-        
+
         // 当前使用的预设前面加 ● 标记
         let display_name = if is_active {
             format!("● {}", name)
         } else {
             name.clone()
         };
-        
-        let preset_item = MenuItemBuilder::with_id(item_id, display_name)
-            .build(manager)?;
+
+        let preset_item = MenuItemBuilder::with_id(item_id, display_name).build(manager)?;
         menu_builder = menu_builder.item(&preset_item);
     }
-    
+
     // 用户预设
     let user_presets = preset_service::list_presets().unwrap_or_default();
     if !user_presets.is_empty() {
         menu_builder = menu_builder.separator();
-        
+
         for preset_name in &user_presets {
             let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
             let is_active = active_preset.as_ref() == Some(preset_name);
-            
+
             // 当前使用的预设前面加 ● 标记
             let display_name = if is_active {
                 format!("● {}", preset_name)
             } else {
                 preset_name.clone()
             };
-            
-            let preset_item = MenuItemBuilder::with_id(item_id, display_name)
-                .build(manager)?;
+
+            let preset_item = MenuItemBuilder::with_id(item_id, display_name).build(manager)?;
             menu_builder = menu_builder.item(&preset_item);
         }
     }
