@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -39,8 +39,10 @@ export function ApplyModelModal({
   const { t } = useTranslation();
   const fullModelPath = `${provider}/${modelName}`;
 
-  const { omoConfig, updateAgentInConfig, updateCategoryInConfig } = usePreloadStore();
-  const { activePreset } = usePresetStore();
+  const omoConfig = usePreloadStore((state) => state.omoConfig);
+  const updateAgentInConfig = usePreloadStore((state) => state.updateAgentInConfig);
+  const updateCategoryInConfig = usePreloadStore((state) => state.updateCategoryInConfig);
+  const activePreset = usePresetStore((state) => state.activePreset);
 
   const isBuiltinPreset = activePreset?.startsWith('__builtin__');
 
@@ -50,6 +52,16 @@ export function ApplyModelModal({
   const [agentSearch, setAgentSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
   const [isApplying, setIsApplying] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setVariant('none');
+      setSelectedAgents(new Set());
+      setSelectedCategories(new Set());
+      setAgentSearch('');
+      setCategorySearch('');
+    }
+  }, [isOpen]);
 
   const agents = omoConfig.data?.agents || {};
   const categories = omoConfig.data?.categories || {};
@@ -168,10 +180,13 @@ export function ApplyModelModal({
     }
   };
 
-  const renderAgentItem = ([name, config]: [string, AgentConfig]) => {
-    const isSelected = selectedAgents.has(name);
+  const renderSelectItem = (
+    name: string,
+    config: AgentConfig,
+    isSelected: boolean,
+    onToggle: () => void
+  ) => {
     const currentModelShort = config.model.split('/').pop() || config.model;
-
     return (
       <label
         key={name}
@@ -180,30 +195,8 @@ export function ApplyModelModal({
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={() => toggleAgent(name)}
-          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-        />
-        <span className="flex-1 text-sm font-medium text-slate-700">{name}</span>
-        <span className="text-xs text-slate-400 truncate max-w-[150px]">
-          {t('applyModel.currentModel', { model: currentModelShort })}
-        </span>
-      </label>
-    );
-  };
-
-  const renderCategoryItem = ([name, config]: [string, AgentConfig]) => {
-    const isSelected = selectedCategories.has(name);
-    const currentModelShort = config.model.split('/').pop() || config.model;
-
-    return (
-      <label
-        key={name}
-        className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
-      >
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => toggleCategory(name)}
+          onChange={onToggle}
+          aria-label={`Select ${name}`}
           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
         />
         <span className="flex-1 text-sm font-medium text-slate-700">{name}</span>
@@ -273,7 +266,9 @@ export function ApplyModelModal({
                 {t('applyModel.noResults')}
               </p>
             ) : (
-              filteredAgents.map(renderAgentItem)
+              filteredAgents.map(([name, config]) =>
+                renderSelectItem(name, config, selectedAgents.has(name), () => toggleAgent(name))
+              )
             )}
           </div>
         </div>
@@ -304,7 +299,9 @@ export function ApplyModelModal({
                 {t('applyModel.noResults')}
               </p>
             ) : (
-              filteredCategories.map(renderCategoryItem)
+              filteredCategories.map(([name, config]) =>
+                renderSelectItem(name, config, selectedCategories.has(name), () => toggleCategory(name))
+              )
             )}
           </div>
         </div>

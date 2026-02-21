@@ -209,7 +209,6 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
                 >
                   <span>{model}</span>
                   
-                  {/* 应用按钮 - 悬浮时显示，仅已连接的 Provider */}
                   {provider.isConnected && (
                     <button
                       onClick={(e) => {
@@ -223,7 +222,6 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
                     </button>
                   )}
                   
-                  {/* 删除按钮 - 仅自定义模型显示 */}
                   {isCustomModel(model) && (
                     <>
                       <button
