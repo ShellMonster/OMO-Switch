@@ -15,6 +15,15 @@ import {
 import { cn } from '../common/cn';
 import { getConnectedProviders, getAvailableModels, getCustomModels, removeCustomModel } from '../../services/tauri';
 import { usePreloadStore } from '../../store/preloadStore';
+
+// 获取 store 方法（在组件外使用，避免 hook 规则限制）
+const updateProviderModels = (provider: string, models: string[]) => {
+  usePreloadStore.getState().updateProviderModels(provider, models);
+};
+
+const removeProviderModel = (provider: string, modelId: string) => {
+  usePreloadStore.getState().removeProviderModel(provider, modelId);
+};
 import { AddModelModal } from './AddModelModal';
 import { ConfirmPopover } from '../common/ConfirmPopover';
 import { ProviderStatusSkeleton } from '../common/Skeleton';
@@ -89,7 +98,9 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
       setIsDeleting(true);
       await removeCustomModel(provider.name, deleteConfirm.model);
       setDeleteConfirm({ model: '', isOpen: false });
-      onModelAdded();
+      
+      // 本地更新 store，无需重新加载
+      removeProviderModel(provider.name, deleteConfirm.model);
     } catch {
     } finally {
       setIsDeleting(false);
@@ -475,6 +486,11 @@ export function ProviderStatus() {
 
       // 更新 customModelsData
       setCustomModelsData(customModels);
+
+      // 同步更新 zustand store（供 AgentPage 使用）
+      Object.entries(modelsData).forEach(([provider, models]) => {
+        updateProviderModels(provider, models);
+      });
     } catch (error) {
       console.error('[ProviderStatus] Failed to refresh models:', error);
     }

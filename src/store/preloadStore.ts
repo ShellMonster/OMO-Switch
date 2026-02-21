@@ -61,6 +61,9 @@ interface PreloadState {
   // 更新 omoConfig 中特定 agent 或 category 的配置
   updateAgentInConfig: (agentName: string, config: AgentConfig) => void;
   updateCategoryInConfig: (categoryName: string, config: AgentConfig) => void;
+  // 本地更新模型数据（无需从后端重新加载）
+  updateProviderModels: (provider: string, models: string[]) => void;
+  removeProviderModel: (provider: string, modelId: string) => void;
 }
 
 export const usePreloadStore = create<PreloadState>()(
@@ -349,27 +352,61 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
   });
 },
 
-// 更新 omoConfig 中特定 category 的配置
-updateCategoryInConfig: (categoryName: string, config: AgentConfig) => {
-  set((state) => {
-    // 如果 omoConfig.data 不存在，不做任何更新
-    if (!state.omoConfig.data) {
-      return state;
-    }
-    return {
-      omoConfig: {
-        ...state.omoConfig,
-        data: {
-          ...state.omoConfig.data,
-          categories: {
-            ...state.omoConfig.data.categories,
-            [categoryName]: config,
+  // 更新 omoConfig 中特定 category 的配置
+  updateCategoryInConfig: (categoryName: string, config: AgentConfig) => {
+    set((state) => {
+      // 如果 omoConfig.data 不存在，不做任何更新
+      if (!state.omoConfig.data) {
+        return state;
+      }
+      return {
+        omoConfig: {
+          ...state.omoConfig,
+          data: {
+            ...state.omoConfig.data,
+            categories: {
+              ...state.omoConfig.data.categories,
+              [categoryName]: config,
+            },
           },
         },
-      },
-    };
-  });
-},
+      };
+    });
+  },
+
+  // 本地更新供应商模型列表（无需从后端重新加载）
+  updateProviderModels: (provider: string, models: string[]) => {
+    set((state) => {
+      if (!state.models.grouped) return state;
+      
+      const grouped = state.models.grouped.map(g => 
+        g.provider === provider ? { ...g, models } : g
+      );
+      
+      return {
+        models: { ...state.models, grouped }
+      };
+    });
+  },
+
+  // 本地移除供应商下的特定模型
+  removeProviderModel: (provider: string, modelId: string) => {
+    set((state) => {
+      if (!state.models.grouped) return state;
+      
+      const grouped = state.models.grouped.map(g => {
+        if (g.provider !== provider) return g;
+        return {
+          ...g,
+          models: g.models.filter(m => m !== modelId)
+        };
+      });
+      
+      return {
+        models: { ...state.models, grouped }
+      };
+    });
+  },
 }),
 // persist 配置
 {

@@ -129,16 +129,22 @@ export function AgentPage() {
 
   /**
    * 组件挂载时检查数据是否已有缓存
-   * 每次进入页面都刷新模型列表，确保供应商增删模型后数据同步
+   * 不再主动刷新模型数据，依赖 ProviderStatus 的本地同步
+   * 只在数据完全为空时才加载（首次启动）
    * 同时检测配置变更
    */
   useEffect(() => {
-    const { omoConfig } = usePreloadStore.getState();
-    // 每次进入页面都刷新模型列表
-    refreshModels();
-    // 只有配置为空时才加载
+    const { omoConfig, models } = usePreloadStore.getState();
+    
+    // 不再主动刷新模型数据，依赖缓存
+    // 数据更新通过 ProviderStatus 的本地同步实现
+    
     if (!omoConfig.data) {
       loadOmoConfig();
+    }
+    if (!models.grouped) {
+      // 只有在数据完全为空时才加载（首次启动）
+      refreshModels();
     }
     checkChanges();
     // eslint-disable-next-line react-hooks/exhaustive-deps
