@@ -262,11 +262,28 @@ fn write_opencode_config(config: &Value) -> Result<(), String> {
         fs::create_dir_all(parent).map_err(|e| format!("创建配置目录失败: {}", e))?;
     }
 
-    // 格式化 JSON
+    // 备份现有配置（如果存在）
+    if config_path.exists() {
+        let backup_path = config_path.with_extension("json.bak");
+        if let Err(e) = fs::copy(&config_path, &backup_path) {
+            eprintln!("警告：备份配置文件失败: {}", e);
+            // 不阻止写入，只记录警告
+        }
+    }
+
+    // 验证配置完整性：确保 provider 字段存在
+    if config.get("provider").is_none() {
+        return Err("配置缺少 provider 字段，拒绝写入以防止数据丢失".to_string());
+    }
+
+    // 格式化 JSON（保持可读性）
     let json_string =
         serde_json::to_string_pretty(config).map_err(|e| format!("序列化 JSON 失败: {}", e))?;
 
-    fs::write(&config_path, json_string).map_err(|e| format!("写入配置文件失败: {}", e))?;
+    // 原子写入：先写临时文件，再重命名
+    let temp_path = config_path.with_extension("json.tmp");
+    fs::write(&temp_path, &json_string).map_err(|e| format!("写入临时文件失败: {}", e))?;
+    fs::rename(&temp_path, &config_path).map_err(|e| format!("重命名配置文件失败: {}", e))?;
 
     Ok(())
 }

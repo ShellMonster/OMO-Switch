@@ -453,10 +453,27 @@ export function ProviderStatus() {
 
   async function handleModelAdded() {
     try {
-      // 只刷新必要的数据（自定义模型）
-      const customModels = await getCustomModels();
+      // 需要刷新两个数据源：
+      // 1. providerModels（用于显示模型列表）
+      // 2. customModelsData（用于判断哪些是自定义模型）
+      const [modelsData, customModels] = await Promise.all([
+        getAvailableModels(),
+        getCustomModels(),
+      ]);
+
+      // 更新 providerModels
+      const grouped = Object.entries(modelsData).map(([provider, models]) => ({
+        provider,
+        models,
+      }));
+      grouped.sort((a, b) => b.models.length - a.models.length);
+      const modelMap = Object.fromEntries(
+        grouped.map((group) => [group.provider, group.models])
+      );
+      setProviderModels(modelMap);
+
+      // 更新 customModelsData
       setCustomModelsData(customModels);
-      // providerModels 和 providers 不需要刷新（添加/删除自定义模型不影响它们）
     } catch {}
   }
 
