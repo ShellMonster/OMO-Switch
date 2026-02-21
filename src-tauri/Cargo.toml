@@ -22,6 +22,7 @@ tauri-plugin-process = "2"
 dirs = "5"
 sha2 = "0.10"
 regex = "1"
+tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
 
 [features]
 default = ["custom-protocol"]
