@@ -112,6 +112,9 @@ export function AgentPage() {
   const modelsGrouped = usePreloadStore(state => state.models.grouped);
   const modelsProviders = usePreloadStore(state => state.models.providers);
 
+  // 首次加载状态 - 先显示骨架屏，避免卡顿
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,13 +141,23 @@ export function AgentPage() {
       loadOmoConfig();
     }
     checkChanges();
-  }, [refreshModels, loadOmoConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (hasChanges && !showChangeAlert) {
       setShowChangeAlert(true);
     }
   }, [hasChanges, showChangeAlert]);
+
+  // 数据准备好后，关闭初始加载状态
+  useEffect(() => {
+    if (omoConfig.data && modelsGrouped && isInitialLoad) {
+      requestAnimationFrame(() => {
+        setIsInitialLoad(false);
+      });
+    }
+  }, [omoConfig.data, modelsGrouped, isInitialLoad]);
 
   const handleRestoreFromCache = useCallback(async () => {
     try {
@@ -212,8 +225,8 @@ export function AgentPage() {
     return config;
   }, [loadOmoConfig]);
 
-  // 加载中状态
-  if (omoConfig.loading) {
+  // 首次加载或加载中 - 显示骨架屏
+  if (isInitialLoad || omoConfig.loading) {
     return <LoadingSkeleton />;
   }
 
