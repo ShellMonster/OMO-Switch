@@ -586,16 +586,34 @@
       "runInTerminal": "在终端运行:",
        "copied": "已复制"
      },
-      "customModel": {
-        "addModel": "添加模型",
-        "selectModelToAdd": "选择要添加的模型",
-        "noModelsAvailable": "模型列表为空",
-        "modelAdded": "模型添加成功",
-        "addModelError": "添加模型失败",
-        "searchPlaceholder": "搜索模型或供应商...",
-        "confirmDelete": "确定删除？",
-        "modelRemoved": "模型删除成功",
-        "cancel": "取消",
-        "confirm": "确定"
-      }
-    }
+       "customModel": {
+         "addModel": "添加模型",
+         "selectModelToAdd": "选择要添加的模型",
+         "noModelsAvailable": "模型列表为空",
+         "modelAdded": "模型添加成功",
+         "addModelError": "添加模型失败",
+         "searchPlaceholder": "搜索模型或供应商...",
+         "confirmDelete": "确定删除？",
+         "modelRemoved": "模型删除成功",
+         "cancel": "取消",
+         "confirm": "确定"
+       },
+       "applyModel": {
+         "title": "将 {{model}} 应用到",
+         "intensityLevel": "强度等级",
+         "agents": "Agents",
+         "categories": "Categories",
+         "selectAll": "全选",
+         "clearAll": "清空",
+         "searchPlaceholder": "搜索...",
+         "currentModel": "当前: {{model}}",
+         "selected": "已选择: {{agents}} 个 Agents, {{categories}} 个 Category",
+         "apply": "应用到 {{count}} 个项目",
+         "cancel": "取消",
+         "success": "已将 {{model}} 应用到 {{count}} 个项目",
+         "failed": "应用失败",
+         "noSelection": "请至少选择一个 Agent 或 Category",
+         "noResults": "无匹配结果"
+       }
+     }
+

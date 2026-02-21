@@ -11,6 +11,7 @@ import {
   WifiOff,
   Plus,
   X,
+  Zap,
 } from 'lucide-react';
 import { cn } from '../common/cn';
 import { getConnectedProviders, getAvailableModels, getCustomModels, removeCustomModel } from '../../services/tauri';
@@ -25,6 +26,7 @@ const removeProviderModel = (provider: string, modelId: string) => {
   usePreloadStore.getState().removeProviderModel(provider, modelId);
 };
 import { AddModelModal } from './AddModelModal';
+import { ApplyModelModal } from './ApplyModelModal';
 import { ConfirmPopover } from '../common/ConfirmPopover';
 import { ProviderStatusSkeleton } from '../common/Skeleton';
 
@@ -73,6 +75,7 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
     isOpen: false,
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [applyModal, setApplyModal] = useState<{ provider: string; model: string } | null>(null);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
@@ -204,7 +207,23 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
                   key={model}
                   className="relative group px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md flex items-center gap-1"
                 >
-                  {model}
+                  <span>{model}</span>
+                  
+                  {/* 应用按钮 - 悬浮时显示，仅已连接的 Provider */}
+                  {provider.isConnected && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setApplyModal({ provider: provider.name, model });
+                      }}
+                      className="w-4 h-4 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-indigo-100 text-slate-400 hover:text-indigo-600 transition-all"
+                      title="应用到 Agents"
+                    >
+                      <Zap className="w-3 h-3" />
+                    </button>
+                  )}
+                  
+                  {/* 删除按钮 - 仅自定义模型显示 */}
                   {isCustomModel(model) && (
                     <>
                       <button
@@ -269,6 +288,15 @@ function ProviderCard({ provider, models, providerModels, customModels, onModelA
         providerModels={providerModels}
         onModelAdded={onModelAdded}
       />
+
+      {applyModal && (
+        <ApplyModelModal
+          isOpen={true}
+          onClose={() => setApplyModal(null)}
+          provider={applyModal.provider}
+          modelName={applyModal.model}
+        />
+      )}
     </>
   );
 }
