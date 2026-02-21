@@ -17,6 +17,7 @@ import { getConnectedProviders, getAvailableModels, getCustomModels, removeCusto
 import { usePreloadStore } from '../../store/preloadStore';
 import { AddModelModal } from './AddModelModal';
 import { ConfirmPopover } from '../common/ConfirmPopover';
+import { ProviderStatusSkeleton } from '../common/Skeleton';
 
 /**
  * 供应商状态接口
@@ -480,15 +481,7 @@ export function ProviderStatus() {
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="relative w-12 h-12">
-          <div className="absolute inset-0 border-4 border-slate-200 rounded-full" />
-          <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin" />
-        </div>
-        <p className="text-slate-500 mt-4">{t('providerStatus.loading')}</p>
-      </div>
-    );
+    return <ProviderStatusSkeleton />;
   }
 
   if (error) {

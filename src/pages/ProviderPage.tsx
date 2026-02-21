@@ -10,6 +10,7 @@ import { ApiKeyModal } from '../components/Providers/ApiKeyModal';
 import { CustomProviderModal } from '../components/Providers/CustomProviderModal';
 import { KeyRound, Wifi, Settings, RefreshCw } from 'lucide-react';
 import { cn } from '../components/common/cn';
+import { ProviderStatusSkeleton } from '../components/common/Skeleton';
 
 type TabType = 'status' | 'config';
 
@@ -78,8 +79,35 @@ export function ProviderPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-slate-500">{t('common.loading')}</div>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* 页面头部骨架 */}
+        <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 rounded-2xl border border-indigo-100/50 animate-pulse">
+          <div className="w-12 h-12 bg-slate-200 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <div className="h-6 bg-slate-200 rounded w-48" />
+            <div className="h-4 bg-slate-200 rounded w-64" />
+          </div>
+        </div>
+
+        {/* Tab 骨架 */}
+        <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit animate-pulse">
+          <div className="h-10 w-24 bg-slate-200 rounded-lg" />
+          <div className="h-10 w-24 bg-slate-200 rounded-lg" />
+        </div>
+
+        {/* 内容区骨架 */}
+        {activeTab === 'status' ? (
+          <ProviderStatusSkeleton />
+        ) : (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-12 bg-slate-200 rounded-xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-32 bg-slate-200 rounded-xl" />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

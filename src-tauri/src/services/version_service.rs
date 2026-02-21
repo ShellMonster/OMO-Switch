@@ -14,19 +14,45 @@ pub struct VersionInfo {
 }
 
 /// Get opencode current version by executing ~/.opencode/bin/opencode --version
+/// 添加 3 秒超时机制，防止命令卡住阻塞 UI
 pub fn get_opencode_version() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
     let bin_path = format!("{}/.opencode/bin/opencode", home);
-    let output = Command::new(&bin_path).arg("--version").output().ok()?;
-    if output.status.success() {
-        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !version.is_empty() {
-            Some(version)
-        } else {
-            None
+
+    let mut child = Command::new(&bin_path)
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+
+    let timeout = Duration::from_secs(3);
+    let start = Instant::now();
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => {
+                let output = child.wait_with_output().ok()?;
+                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                return if !version.is_empty() {
+                    Some(version)
+                } else {
+                    None
+                };
+            }
+            Ok(Some(_)) => return None, // 命令执行失败
+            Ok(None) => {
+                // 还在运行，检查超时
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                // 短暂休眠避免忙等待
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(_) => return None,
         }
-    } else {
-        None
     }
 }
 
