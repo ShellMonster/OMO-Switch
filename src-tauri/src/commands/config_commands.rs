@@ -7,8 +7,12 @@ pub fn get_config_path() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn read_omo_config() -> Result<Value, String> {
-    config_service::read_omo_config()
+pub async fn read_omo_config() -> Result<Value, String> {
+    tokio::task::spawn_blocking(|| {
+        config_service::read_omo_config()
+    })
+    .await
+    .map_err(|e| format!("读取配置失败: {}", e))?
 }
 
 #[tauri::command]

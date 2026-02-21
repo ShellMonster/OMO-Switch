@@ -14,17 +14,21 @@ pub fn save_config_snapshot() -> Result<(), String> {
 
 /// 确保快照存在：如果快照不存在则从当前配置创建，已存在则跳过
 #[tauri::command]
-pub fn ensure_snapshot_exists() -> Result<bool, String> {
-    // 检查快照是否已存在
-    if config_cache_service::load_config_snapshot().is_some() {
-        // 快照已存在，无需创建
-        return Ok(false);
-    }
+pub async fn ensure_snapshot_exists() -> Result<bool, String> {
+    tokio::task::spawn_blocking(|| {
+        // 检查快照是否已存在
+        if config_cache_service::load_config_snapshot().is_some() {
+            // 快照已存在，无需创建
+            return Ok(false);
+        }
 
-    // 快照不存在，从当前配置创建
-    let config = config_service::read_omo_config()?;
-    config_cache_service::save_config_snapshot(&config)?;
-    Ok(true) // 返回 true 表示创建了新快照
+        // 快照不存在，从当前配置创建
+        let config = config_service::read_omo_config()?;
+        config_cache_service::save_config_snapshot(&config)?;
+        Ok(true) // 返回 true 表示创建了新快照
+    })
+    .await
+    .map_err(|e| format!("确保快照存在失败: {}", e))?
 }
 
 #[tauri::command]
@@ -33,21 +37,25 @@ pub fn load_config_snapshot() -> Result<Option<ConfigSnapshot>, String> {
 }
 
 #[tauri::command]
-pub fn compare_with_snapshot() -> Result<Vec<ConfigChange>, String> {
-    let current_config = config_service::read_omo_config()?;
-    let snapshot = config_cache_service::load_config_snapshot();
+pub async fn compare_with_snapshot() -> Result<Vec<ConfigChange>, String> {
+    tokio::task::spawn_blocking(|| {
+        let current_config = config_service::read_omo_config()?;
+        let snapshot = config_cache_service::load_config_snapshot();
 
-    match snapshot {
-        Some(snap) => Ok(config_cache_service::compare_configs(
-            &snap.config,
-            &current_config,
-        )),
-        None => {
-            // 快照不存在时，自动创建初始快照并返回空变更列表
-            config_cache_service::save_config_snapshot(&current_config)?;
-            Ok(Vec::new())
+        match snapshot {
+            Some(snap) => Ok(config_cache_service::compare_configs(
+                &snap.config,
+                &current_config,
+            )),
+            None => {
+                // 快照不存在时，自动创建初始快照并返回空变更列表
+                config_cache_service::save_config_snapshot(&current_config)?;
+                Ok(Vec::new())
+            }
         }
-    }
+    })
+    .await
+    .map_err(|e| format!("比较配置失败: {}", e))?
 }
 
 #[tauri::command]

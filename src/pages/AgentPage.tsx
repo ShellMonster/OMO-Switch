@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import { Bot, RefreshCw, ChevronDown, AlertCircle } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { usePreloadStore } from '../store/preloadStore';
 import { usePresetStore } from '../store/presetStore';
 import { getOmoConfig, mergeAndSave, updatePreset } from '../services/tauri';
@@ -104,7 +105,12 @@ function LoadingSkeleton() {
 
 export function AgentPage() {
   const { t } = useTranslation();
-  const { omoConfig, models, loadOmoConfig, refreshModels } = usePreloadStore();
+  
+  // 精确订阅状态，避免不必要的重渲染
+  const { loadOmoConfig, refreshModels } = usePreloadStore();
+  const omoConfig = usePreloadStore(useShallow(state => state.omoConfig));
+  const modelsGrouped = usePreloadStore(state => state.models.grouped);
+  const modelsProviders = usePreloadStore(state => state.models.providers);
 
   const [agentsExpanded, setAgentsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
@@ -224,10 +230,10 @@ export function AgentPage() {
   const config = omoConfig.data;
   const agentsCount = Object.keys(config.agents).length;
   const categoriesCount = Object.keys(config.categories).length;
-  const providerModels: Record<string, string[]> = models.grouped
-    ? Object.fromEntries(models.grouped.map(g => [g.provider, g.models]))
+  const providerModels: Record<string, string[]> = modelsGrouped
+    ? Object.fromEntries(modelsGrouped.map(g => [g.provider, g.models]))
     : {};
-  const connectedProviders = models.providers || [];
+  const connectedProviders = modelsProviders || [];
 
   return (
     <div className="space-y-6">
