@@ -30,19 +30,58 @@ pub fn get_opencode_version() -> Option<String> {
 }
 
 /// Get oh-my-opencode current version
-/// Priority: 1) installed package.json  2) config file (fallback)
+/// 按优先级检查多个位置
 pub fn get_omo_current_version() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
-    
-    // Method 1: From installed package.json
-    let pkg_path = format!("{}/.config/opencode/node_modules/oh-my-opencode/package.json", home);
-    if let Some(version) = read_pkg_version(&pkg_path) {
+
+    // 1. 本地安装: ~/.config/opencode/node_modules/oh-my-opencode/
+    let local_pkg = format!(
+        "{}/.config/opencode/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if let Some(version) = read_pkg_version(&local_pkg) {
         return Some(version);
     }
-    
-    // Method 2: Fallback - from config file
+
+    // 2. 配置文件: opencode.json 的 plugin 字段
     let config_path = format!("{}/.config/opencode/opencode.json", home);
-    read_version_from_config(&config_path)
+    if let Some(version) = read_version_from_config(&config_path) {
+        return Some(version);
+    }
+
+    // 3. bun 全局安装: ~/.bun/install/global/node_modules/oh-my-opencode/
+    let bun_global = format!(
+        "{}/.bun/install/global/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if let Some(version) = read_pkg_version(&bun_global) {
+        return Some(version);
+    }
+
+    // 4. 尝试执行命令获取版本（最后兜底）
+    if let Some(version) = get_version_from_command() {
+        return Some(version);
+    }
+
+    None
+}
+
+/// 通过命令获取版本号（兜底方案）
+fn get_version_from_command() -> Option<String> {
+    // 尝试 bunx oh-my-opencode --version
+    let output = Command::new("bunx")
+        .args(["oh-my-opencode", "--version"])
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !version.is_empty() {
+            return Some(version);
+        }
+    }
+
+    None
 }
 
 fn read_pkg_version(path: &str) -> Option<String> {
@@ -55,9 +94,12 @@ fn read_version_from_config(path: &str) -> Option<String> {
     let content = std::fs::read_to_string(path).ok()?;
     let config: serde_json::Value = serde_json::from_str(&content).ok()?;
     let plugins = config.get("plugin")?.as_array()?;
-    
+
     for plugin in plugins {
-        if let Some(s) = plugin.as_str().and_then(|s| s.strip_prefix("oh-my-opencode@")) {
+        if let Some(s) = plugin
+            .as_str()
+            .and_then(|s| s.strip_prefix("oh-my-opencode@"))
+        {
             return Some(s.to_string());
         }
     }
