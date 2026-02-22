@@ -295,18 +295,12 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
-    // 预设菜单
+    // 预设菜单 - 合并所有预设，当前使用的用 ● 标记
     menu_builder = menu_builder.separator();
-
-    let presets_label = crate::i18n::tr_current("tray_presets");
-    let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
-        .enabled(false)
-        .build(manager)?;
-    menu_builder = menu_builder.item(&presets_header);
 
     let active_preset = preset_service::get_active_preset();
 
-    // 内置预设（当前使用的用 ● 标记）
+    // 内置预设
     let builtin_presets = [
         (
             "official-default",
@@ -323,11 +317,10 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         let item_id = format!("builtin:{}", id);
         let is_active = active_preset.as_ref() == Some(&format!("__builtin__{}", id));
 
-        // 当前使用的预设前面加 ● 标记
         let display_name = if is_active {
             format!("● {}", name)
         } else {
-            name.clone()
+            format!("  {}", name)
         };
 
         let preset_item = MenuItemBuilder::with_id(item_id, display_name).build(manager)?;
@@ -336,23 +329,18 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
 
     // 用户预设
     let user_presets = preset_service::list_presets().unwrap_or_default();
-    if !user_presets.is_empty() {
-        menu_builder = menu_builder.separator();
+    for preset_name in &user_presets {
+        let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
+        let is_active = active_preset.as_ref() == Some(preset_name);
 
-        for preset_name in &user_presets {
-            let item_id = format!("{}:{}", ACTION_SET_PRESET, preset_name);
-            let is_active = active_preset.as_ref() == Some(preset_name);
+        let display_name = if is_active {
+            format!("● {}", preset_name)
+        } else {
+            format!("  {}", preset_name)
+        };
 
-            // 当前使用的预设前面加 ● 标记
-            let display_name = if is_active {
-                format!("● {}", preset_name)
-            } else {
-                preset_name.clone()
-            };
-
-            let preset_item = MenuItemBuilder::with_id(item_id, display_name).build(manager)?;
-            menu_builder = menu_builder.item(&preset_item);
-        }
+        let preset_item = MenuItemBuilder::with_id(item_id, display_name).build(manager)?;
+        menu_builder = menu_builder.item(&preset_item);
     }
 
     menu_builder = menu_builder.separator();
