@@ -330,9 +330,9 @@ export function ConfigDashboard() {
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-white rounded-2xl border border-slate-200 shadow-xl">
-        <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10">
-          <Database className="w-7 h-7 text-white" />
+      <div className="flex items-center gap-4 p-6 bg-white rounded-2xl border border-slate-200">
+        <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center">
+          <Database className="w-7 h-7 text-indigo-600" />
         </div>
         <div>
           <h2 className="text-xl font-bold text-slate-800">{t('configDashboard.title')}</h2>

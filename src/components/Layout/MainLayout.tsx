@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getName, getVersion } from '@tauri-apps/api/app';
 import { cn } from '../common/cn';
-import { 
-  Bot, 
-  Settings, 
-  Bookmark, 
-  Database, 
+import {
+  Bot,
+  Settings,
+  Bookmark,
+  Database,
   Download,
   ChevronLeft,
   ChevronRight,
   Cog,
-  KeyRound,
-  RefreshCw
+  KeyRound
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { usePreloadStore } from '../../store/preloadStore';
@@ -58,8 +57,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   } = useUIStore();
   const startPreload = usePreloadStore(s => s.startPreload);
   const checkUpstreamUpdate = usePreloadStore(s => s.checkUpstreamUpdate);
-  const refreshModels = usePreloadStore(s => s.refreshModels);
-  const loadOmoConfig = usePreloadStore(s => s.loadOmoConfig);
   
   const [appName, setAppName] = useState('OMO Switch');
   const [appVersion, setAppVersion] = useState('0.1.0');
@@ -80,11 +77,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     }, 500);
     return () => clearTimeout(timer);
   }, [startPreload, checkUpstreamUpdate]);
-
-  const handleRefresh = () => {
-    void refreshModels();
-    void loadOmoConfig();
-  };
 
   const currentPageInfo = navItems.find(item => item.id === currentPage);
   const CurrentIcon = currentPageInfo?.icon || Bot;
@@ -182,7 +174,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header with glassmorphism */}
-        <header className="h-16 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 shadow-sm flex items-center justify-between px-6 z-10">
+        <header className="h-16 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 shadow-sm flex items-center px-6 z-10">
           {/* Left: Icon + Title + Description */}
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-indigo-100/80 rounded-xl flex items-center justify-center">
@@ -192,24 +184,6 @@ export function MainLayout({ children }: MainLayoutProps) {
               <h1 className="text-lg font-semibold text-slate-800">{title}</h1>
               <p className="text-xs text-slate-500">{description}</p>
             </div>
-          </div>
-
-          {/* Right: Action Buttons */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleRefresh}
-              className="p-2 rounded-lg bg-white/50 backdrop-blur-sm hover:bg-white/70 border border-slate-200/50 text-slate-500 hover:text-slate-700 transition-colors"
-              title={t('common.refresh')}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentPage('settings')}
-              className="p-2 rounded-lg bg-white/50 backdrop-blur-sm hover:bg-white/70 border border-slate-200/50 text-slate-500 hover:text-slate-700 transition-colors"
-              title={t('common.settings')}
-            >
-              <Cog className="w-4 h-4" />
-            </button>
           </div>
         </header>
 
