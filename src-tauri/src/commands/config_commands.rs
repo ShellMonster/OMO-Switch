@@ -92,3 +92,58 @@ pub fn update_agent_model(
     config_service::write_omo_config(&config)?;
     Ok(config)
 }
+
+/// 批量更新请求结构
+#[derive(Debug, serde::Deserialize)]
+pub struct AgentUpdateRequest {
+    pub agent_name: String,
+    pub model: String,
+    pub variant: Option<String>,
+}
+
+/// 批量更新多个 agent/category 的模型配置
+/// 一次性写入配置文件，避免多次 IO 操作
+#[tauri::command]
+pub fn update_agents_batch(
+    updates: Vec<AgentUpdateRequest>,
+) -> Result<Value, String> {
+    let mut config = config_service::read_omo_config()?;
+
+    for update in updates {
+        // 更新 agents
+        if let Some(agents) = config.get_mut("agents").and_then(|a| a.as_object_mut()) {
+            if let Some(agent) = agents.get_mut(&update.agent_name) {
+                if let Some(obj) = agent.as_object_mut() {
+                    obj.insert("model".to_string(), Value::String(update.model.clone()));
+                    if let Some(ref v) = update.variant {
+                        if v != "none" {
+                            obj.insert("variant".to_string(), Value::String(v.clone()));
+                        } else {
+                            obj.remove("variant");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 更新 categories
+        if let Some(categories) = config.get_mut("categories").and_then(|c| c.as_object_mut()) {
+            if let Some(category) = categories.get_mut(&update.agent_name) {
+                if let Some(obj) = category.as_object_mut() {
+                    obj.insert("model".to_string(), Value::String(update.model.clone()));
+                    if let Some(ref v) = update.variant {
+                        if v != "none" {
+                            obj.insert("variant".to_string(), Value::String(v.clone()));
+                        } else {
+                            obj.remove("variant");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 只写入一次配置文件
+    config_service::write_omo_config(&config)?;
+    Ok(config)
+}

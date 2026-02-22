@@ -33,6 +33,7 @@ fn main() {
             commands::config_commands::write_omo_config,
             commands::config_commands::validate_config,
             commands::config_commands::update_agent_model,
+            commands::config_commands::update_agents_batch,
             commands::preset_commands::save_preset,
             commands::preset_commands::load_preset,
             commands::preset_commands::list_presets,
