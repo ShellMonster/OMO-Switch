@@ -8,6 +8,15 @@
     "importExport": "导入导出",
     "settings": "设置"
   },
+  "pageDescriptions": {
+    "agent": "管理 Agent 模型和强度",
+    "config": "查看配置文件状态",
+    "preset": "创建和管理模型预设",
+    "provider": "管理供应商连接状态",
+    "models": "浏览和管理 AI 模型",
+    "importExport": "备份和恢复配置",
+    "settings": "应用偏好设置"
+  },
   "layout": {
     "title": "首页"
   },

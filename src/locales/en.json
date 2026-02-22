@@ -8,6 +8,15 @@
     "importExport": "Import/Export",
     "settings": "Settings"
   },
+  "pageDescriptions": {
+    "agent": "Manage agent models and intensity",
+    "config": "View configuration file status",
+    "preset": "Create and manage model presets",
+    "provider": "Manage provider connections",
+    "models": "Browse and manage AI models",
+    "importExport": "Backup and restore configs",
+    "settings": "Application preferences"
+  },
   "layout": {
     "title": "Home"
   },

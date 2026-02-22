@@ -11,10 +11,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Cog,
-  KeyRound
+  KeyRound,
+  RefreshCw
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { usePreloadStore } from '../../store/preloadStore';
+import { PresetSelector } from '../Presets/PresetSelector';
 import appLogo from '../../assets/logo.png';
 
 interface NavItem {
@@ -33,25 +35,20 @@ const navItems: NavItem[] = [
   { id: 'settings', labelKey: 'nav.settings', icon: Cog },
 ];
 
+const pageInfo: Record<string, { descriptionKey: string }> = {
+  agent: { descriptionKey: 'pageDescriptions.agent' },
+  config: { descriptionKey: 'pageDescriptions.config' },
+  preset: { descriptionKey: 'pageDescriptions.preset' },
+  provider: { descriptionKey: 'pageDescriptions.provider' },
+  models: { descriptionKey: 'pageDescriptions.models' },
+  'import-export': { descriptionKey: 'pageDescriptions.importExport' },
+  settings: { descriptionKey: 'pageDescriptions.settings' },
+};
+
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-/**
- * 主布局组件
- * 
- * 包含：
- * - 可折叠的左侧边栏
- * - 顶部标题栏
- * - 主内容区域
- * 
- * 侧边栏导航：
- * - Agent 切换
- * - 配置总览
- * - 预设管理
- * - 模型库
- * - 导入导出
- */
 export function MainLayout({ children }: MainLayoutProps) {
   const { t } = useTranslation();
   const { 
@@ -62,8 +59,9 @@ export function MainLayout({ children }: MainLayoutProps) {
   } = useUIStore();
   const startPreload = usePreloadStore(s => s.startPreload);
   const checkUpstreamUpdate = usePreloadStore(s => s.checkUpstreamUpdate);
+  const refreshModels = usePreloadStore(s => s.refreshModels);
+  const loadOmoConfig = usePreloadStore(s => s.loadOmoConfig);
   
-  // 从 Tauri API 动态读取应用名称
   const [appName, setAppName] = useState('OMO Switch');
   const [appVersion, setAppVersion] = useState('0.1.0');
 
@@ -76,9 +74,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       .catch(() => setAppVersion('0.1.0'));
   }, []);
 
-  // App 启动时延迟预加载数据（等待首屏渲染完成）
-  // 优化启动体验：先显示 UI，500ms 后再开始加载数据
-  // 同时后台静默检查上游配置更新（不阻塞、不弹窗）
   useEffect(() => {
     const timer = setTimeout(() => {
       void startPreload();
@@ -87,17 +82,27 @@ export function MainLayout({ children }: MainLayoutProps) {
     return () => clearTimeout(timer);
   }, [startPreload, checkUpstreamUpdate]);
 
+  const handleRefresh = () => {
+    void refreshModels();
+    void loadOmoConfig();
+  };
+
+  const currentPageInfo = navItems.find(item => item.id === currentPage);
+  const CurrentIcon = currentPageInfo?.icon || Bot;
+  const title = t(currentPageInfo?.labelKey || 'layout.title');
+  const description = t(pageInfo[currentPage]?.descriptionKey || 'layout.title');
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* 侧边栏 */}
+      {/* Sidebar with glassmorphism */}
       <aside
         className={cn(
-          'flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out',
+          'flex flex-col transition-all duration-300 ease-in-out z-20',
+          'bg-white/60 backdrop-blur-xl border-r border-slate-200/50',
           isSidebarCollapsed ? 'w-16' : 'w-44'
         )}
       >
-        {/* Logo 区域 - 展开时显示应用名称 */}
-        <div className="flex items-center h-16 px-4 border-b border-slate-100">
+        <div className="flex items-center h-16 px-4 border-b border-slate-200/50">
           <img 
             src={appLogo} 
             alt={appName}
@@ -110,7 +115,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           )}
         </div>
 
-        {/* 导航菜单 - 添加 overflow-hidden 防止文字溢出 */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-hidden">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -126,8 +130,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                   'whitespace-nowrap',
                   isSidebarCollapsed ? 'gap-0 justify-center' : 'gap-3',
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700 font-medium'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-indigo-100/70 text-indigo-700 font-medium'
+                    : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
                 )}
                 title={isSidebarCollapsed ? t(item.labelKey) : undefined}
               >
@@ -135,7 +139,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                   'w-5 h-5 flex-shrink-0',
                   isActive ? 'text-indigo-600' : 'text-slate-400'
                 )} />
-                {/* 使用 opacity 过渡而不是条件渲染，避免布局跳动 */}
                 <span className={cn(
                   'flex-1 text-left text-base font-medium truncate transition-opacity duration-200',
                   isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
@@ -147,8 +150,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           })}
         </nav>
 
-        {/* 底部版本号 */}
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-200/50">
           <div className="text-center">
             {!isSidebarCollapsed && (
               <span className="text-xs text-slate-400">
@@ -159,14 +161,14 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </aside>
 
-      {/* 折叠按钮 - 垂直居中，矩形贴着侧边栏 */}
+      {/* Toggle button */}
       <button
         onClick={toggleSidebar}
         className={cn(
-          'absolute top-1/2 -translate-y-1/2 z-10',
+          'absolute top-1/2 -translate-y-1/2 z-30',
           'w-4 h-14 flex items-center justify-center',
-          'bg-white border border-slate-200 border-l-0 rounded-r-lg shadow-sm',
-          'text-slate-400 hover:text-slate-600 hover:bg-slate-50 hover:shadow',
+          'bg-white/80 backdrop-blur-md border border-slate-200/50 border-l-0 rounded-r-lg shadow-sm',
+          'text-slate-400 hover:text-slate-600 hover:bg-white hover:shadow',
           'transition-all duration-300',
           isSidebarCollapsed ? 'left-16' : 'left-44'
         )}
@@ -178,16 +180,42 @@ export function MainLayout({ children }: MainLayoutProps) {
         )}
       </button>
 
-      {/* 主内容区 */}
+      {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* 顶部标题栏 */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6">
-          <h1 className="text-lg font-semibold text-slate-800">
-            {t(navItems.find(item => item.id === currentPage)?.labelKey || 'layout.title')}
-          </h1>
+        {/* Header with glassmorphism */}
+        <header className="h-16 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 shadow-sm flex items-center justify-between px-6 z-10">
+          {/* Left: Icon + Title + Description */}
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-indigo-100/80 rounded-xl flex items-center justify-center">
+              <CurrentIcon className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-slate-800">{title}</h1>
+              <p className="text-xs text-slate-500">{description}</p>
+            </div>
+          </div>
+
+          {/* Right: Preset Selector + Action Buttons */}
+          <div className="flex items-center gap-3">
+            <PresetSelector compact />
+            <button
+              onClick={handleRefresh}
+              className="p-2 rounded-lg bg-white/50 backdrop-blur-sm hover:bg-white/70 border border-slate-200/50 text-slate-500 hover:text-slate-700 transition-colors"
+              title={t('common.refresh')}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage('settings')}
+              className="p-2 rounded-lg bg-white/50 backdrop-blur-sm hover:bg-white/70 border border-slate-200/50 text-slate-500 hover:text-slate-700 transition-colors"
+              title={t('common.settings')}
+            >
+              <Cog className="w-4 h-4" />
+            </button>
+          </div>
         </header>
 
-        {/* 内容区域 */}
+        {/* Content area */}
         <div className="flex-1 overflow-auto p-6">
           {children}
         </div>
