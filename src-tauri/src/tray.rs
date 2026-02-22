@@ -295,8 +295,15 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
         }
     }
 
-    // 预设菜单 - 合并所有预设，当前使用的用 ● 标记
+    // 预设菜单
     menu_builder = menu_builder.separator();
+
+    // 预设标题
+    let presets_label = crate::i18n::tr_current("tray_presets");
+    let presets_header = MenuItemBuilder::with_id("presets_header", presets_label)
+        .enabled(false)
+        .build(manager)?;
+    menu_builder = menu_builder.item(&presets_header);
 
     let active_preset = preset_service::get_active_preset();
 
