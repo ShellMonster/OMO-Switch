@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { usePreloadStore } from '../../store/preloadStore';
-import { PresetSelector } from '../Presets/PresetSelector';
 import appLogo from '../../assets/logo.png';
 
 interface NavItem {
@@ -195,9 +194,8 @@ export function MainLayout({ children }: MainLayoutProps) {
             </div>
           </div>
 
-          {/* Right: Preset Selector + Action Buttons */}
+          {/* Right: Action Buttons */}
           <div className="flex items-center gap-3">
-            <PresetSelector compact />
             <button
               onClick={handleRefresh}
               className="p-2 rounded-lg bg-white/50 backdrop-blur-sm hover:bg-white/70 border border-slate-200/50 text-slate-500 hover:text-slate-700 transition-colors"
