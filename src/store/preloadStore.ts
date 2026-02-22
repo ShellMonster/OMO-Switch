@@ -337,6 +337,12 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
     if (!state.omoConfig.data) {
       return state;
     }
+
+    // 与后端逻辑保持一致：variant 为 'none' 时不写入该字段
+    const updatedConfig: AgentConfig = config.variant === 'none'
+      ? { model: config.model }
+      : config;
+
     return {
       omoConfig: {
         ...state.omoConfig,
@@ -344,7 +350,7 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
           ...state.omoConfig.data,
           agents: {
             ...state.omoConfig.data.agents,
-            [agentName]: config,
+            [agentName]: updatedConfig,
           },
         },
       },
@@ -359,6 +365,12 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
       if (!state.omoConfig.data) {
         return state;
       }
+
+      // 与后端逻辑保持一致：variant 为 'none' 时不写入该字段
+      const updatedConfig: AgentConfig = config.variant === 'none'
+        ? { model: config.model }
+        : config;
+
       return {
         omoConfig: {
           ...state.omoConfig,
@@ -366,7 +378,7 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
             ...state.omoConfig.data,
             categories: {
               ...state.omoConfig.data.categories,
-              [categoryName]: config,
+              [categoryName]: updatedConfig,
             },
           },
         },
