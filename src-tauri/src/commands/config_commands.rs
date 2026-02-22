@@ -95,6 +95,7 @@ pub fn update_agent_model(
 
 /// 批量更新请求结构
 #[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentUpdateRequest {
     pub agent_name: String,
     pub model: String,
