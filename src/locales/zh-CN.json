@@ -304,17 +304,18 @@
     "cancel": "取消",
     "save": "保存",
     "loading": "加载中...",
-    "defaultPreset": "默认配置（当前）",
+    "defaultPreset": "默认预设",
     "builtinPresets": "内置预设",
     "builtinPresetsDescription": "快速应用官方推荐的配置方案",
     "builtin": "内置",
     "builtinLabel": "内置预设 · 不可修改",
     "apply": "应用",
     "lastSync": "上次同步",
-    "notSynced": "未同步"
+    "notSynced": "未同步",
+    "cannotDeleteLastPreset": "至少保留一个预设"
   },
   "presetSelector": {
-    "default": "(默认配置)",
+    "default": "默认预设",
     "currentPreset": "当前预设",
     "saveAs": "另存为",
     "switchSuccess": "已切换到预设「{{name}}」",
@@ -401,7 +402,11 @@
     "summaryRemoved": "删除 {{path}}",
     "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
     "moreItems": "还有 {{count}} 项变更...",
-    "details": "变更详情"
+    "details": "变更详情",
+    "builtinPresetCannotModify": "内置预设不可修改，请先另存为用户预设",
+    "presetUpdated": "已同步到预设「{{name}}」",
+    "writeConfigFailed": "写入配置失败",
+    "syncPresetFailed": "同步预设失败"
   },
   "settings": {
     "language": {

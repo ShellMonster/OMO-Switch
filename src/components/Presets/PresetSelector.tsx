@@ -19,7 +19,6 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
   const {
     activePreset,
     setActivePreset,
-    clearActivePreset,
     presetList,
     setPresetList,
     isLoadingPresetList,
@@ -67,23 +66,12 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
   }, []);
 
   const handleSelectChange = async (value: string) => {
-    if (value === '') {
-      try {
-        clearActivePreset();
-        toast.success(t('presetSelector.switchSuccess', { name: t('presetSelector.default') }));
-        onLoadPreset?.();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : t('presetSelector.switchFailed'));
-      }
-      return;
-    }
-
     setIsLoading(true);
     try {
       await loadPreset(value);
       await saveConfigSnapshot();
       setActivePreset(value);
-      toast.success(t('presetSelector.switchSuccess', { name: value }));
+      toast.success(t('presetSelector.switchSuccess', { name: value === 'default' ? t('presetSelector.default') : value }));
       onLoadPreset?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('presetSelector.switchFailed'));
@@ -116,11 +104,11 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
   };
 
   const selectOptions = [
-    { value: '', label: t('presetSelector.default') },
-    ...presetList.map((name: string) => ({ value: name, label: name })),
+    { value: 'default', label: t('presetSelector.default') },
+    ...presetList.filter((name: string) => name !== 'default').map((name: string) => ({ value: name, label: name })),
   ];
 
-  const currentValue = activePreset ?? '';
+  const currentValue = activePreset ?? 'default';
 
   // Compact mode with glassmorphism
   if (compact) {

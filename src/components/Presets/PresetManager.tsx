@@ -258,7 +258,7 @@ function BuiltinPresetCard({ preset, agentCount, categoryCount, isActive, isLoad
 
 export function PresetManager() {
   const { t } = useTranslation();
-  const { activePreset, setActivePreset, clearActivePreset } = usePresetStore();
+  const { activePreset, setActivePreset } = usePresetStore();
   // 从 preloadStore 获取已缓存的 omoConfig 数据
   const cachedOmoConfig = usePreloadStore(s => s.omoConfig.data);
   const lastSyncTime = usePreloadStore(s => s.upstreamUpdateStatus.lastChecked);
@@ -401,8 +401,9 @@ export function PresetManager() {
   const handleLoadDefault = async () => {
     try {
       setIsLoading(true);
-      clearActivePreset();
-      await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
+      await loadPreset('default');
+      await saveConfigSnapshot();
+      setActivePreset('default');
       toast.success(t('presetManager.loadSuccess', { name: t('presetManager.defaultPreset') }));
       setError(null);
     } catch (err) {
@@ -442,7 +443,7 @@ export function PresetManager() {
       await deletePreset(selectedPreset);
       
       if (activePreset === selectedPreset) {
-        clearActivePreset();
+        setActivePreset('default');
       }
       
       toast.success(t('presetManager.deleteSuccess', { name: selectedPreset }));
@@ -459,6 +460,11 @@ export function PresetManager() {
   };
 
   const openDeleteModal = (name: string) => {
+    // 检查是否只剩一个预设
+    if (presets.length <= 1) {
+      toast.warning(t('presetManager.cannotDeleteLastPreset'));
+      return;
+    }
     setSelectedPreset(name);
     setShowDeleteModal(true);
   };

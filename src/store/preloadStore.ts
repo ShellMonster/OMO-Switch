@@ -7,11 +7,14 @@ import {
   checkVersions,
   getOmoConfig,
   checkUpstreamUpdate,
+  listPresets,
+  savePreset,
   type ModelInfo,
   type VersionInfo,
   type OmoConfig,
   type AgentConfig,
 } from '../services/tauri';
+import { usePresetStore } from './presetStore';
 
 interface GroupedModels {
   provider: string;
@@ -107,7 +110,7 @@ export const usePreloadStore = create<PreloadState>()(
     error: null,
   },
 
-  startPreload: () => {
+  startPreload: async () => {
     const state = get();
     if (state.preloadComplete || state.isPreloading) {
       return;
@@ -115,11 +118,31 @@ export const usePreloadStore = create<PreloadState>()(
 
     set({ isPreloading: true });
 
-    // 使用 allSettled 保证部分失败不影响其他数据可用性。
-    // refreshVersions 移到 Settings 页面按需加载
-    Promise.allSettled([get().loadOmoConfig(), get().refreshModels()]).finally(() => {
+    try {
+      // 并行加载配置和模型
+      await Promise.allSettled([get().loadOmoConfig(), get().refreshModels()]);
+
+      // 确保 default 预设存在（兼容旧用户升级）
+      try {
+        const presets = await listPresets();
+        if (!presets.includes('default')) {
+          await savePreset('default');
+        }
+
+        // 如果没有活跃预设，设置为 default
+        const currentPreset = usePresetStore.getState().activePreset;
+        if (!currentPreset) {
+          usePresetStore.getState().setActivePreset('default');
+        }
+      } catch (err) {
+        // 预设初始化失败不影响主流程
+        if (import.meta.env.DEV) {
+          console.error('Failed to ensure default preset:', err);
+        }
+      }
+    } finally {
       set({ isPreloading: false, preloadComplete: true });
-    });
+    }
   },
 
 loadOmoConfig: async () => {

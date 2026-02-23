@@ -310,10 +310,11 @@
     "builtinLabel": "Built-in Presets · Read-only",
     "apply": "Apply",
     "lastSync": "Last Sync",
-    "notSynced": "Not Synced"
+    "notSynced": "Not Synced",
+    "cannotDeleteLastPreset": "At least one preset must be kept"
   },
   "presetSelector": {
-    "default": "(Default)",
+    "default": "Default",
     "currentPreset": "Current Preset",
     "saveAs": "Save As",
     "switchSuccess": "Switched to preset \"{{name}}\"",
@@ -399,7 +400,11 @@
     "summaryRemoved": "Removed {{path}}",
     "summaryModified": "{{path}}: {{oldValue}} → {{newValue}}",
     "moreItems": "{{count}} more changes...",
-    "details": "Change Details"
+    "details": "Change Details",
+    "builtinPresetCannotModify": "Built-in presets cannot be modified. Please save as a user preset first",
+    "presetUpdated": "Synced to preset \"{{name}}\"",
+    "writeConfigFailed": "Failed to write configuration",
+    "syncPresetFailed": "Failed to sync preset"
   },
   "settings": {
     "language": {

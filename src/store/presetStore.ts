@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface PresetState {
-  // 当前激活的预设（null = 默认配置）
+  // 当前激活的预设（'default' = 默认预设）
   activePreset: string | null;
   setActivePreset: (name: string | null) => void;
   clearActivePreset: () => void;
@@ -17,9 +17,9 @@ interface PresetState {
 export const usePresetStore = create<PresetState>()(
   persist(
     (set) => ({
-      activePreset: null,
+      activePreset: 'default',
       setActivePreset: (name) => set({ activePreset: name }),
-      clearActivePreset: () => set({ activePreset: null }),
+      clearActivePreset: () => set({ activePreset: 'default' }),
 
       // 预设列表缓存
       presetList: [],

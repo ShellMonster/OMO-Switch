@@ -12,6 +12,7 @@ import { ConfigChangeAlert } from '../components/ConfigChangeAlert';
 import { Button } from '../components/common/Button';
 import { SearchInput } from '../components/common/SearchInput';
 import { cn } from '../components/common/cn';
+import { toast } from '../components/common/Toast';
 import { useConfigChangeDetection } from '../hooks/useConfigChangeDetection';
 
 /**
@@ -182,15 +183,23 @@ export function AgentPage() {
 
   // 忽略变更处理函数：持久化当前配置 → 更新快照 → 同步预设
   const handleIgnoreChanges = useCallback(async () => {
+    const currentPreset = usePresetStore.getState().activePreset;
+
+    // 检查是否为内置预设
+    if (currentPreset?.startsWith('__builtin__')) {
+      toast.warning(t('configChange.builtinPresetCannotModify'));
+      setShowChangeAlert(false);
+      return;
+    }
+
     // 1. 获取当前配置并写入文件（持久化）
     const currentConfig = omoConfig.data;
     if (currentConfig) {
       try {
         await invoke('write_omo_config', { config: currentConfig });
       } catch (err) {
-        if (import.meta.env.DEV) {
-          console.error('写入配置失败:', err);
-        }
+        toast.error(t('configChange.writeConfigFailed'));
+        return;
       }
     }
 
@@ -198,17 +207,17 @@ export function AgentPage() {
     await ignoreChanges();
 
     // 3. 更新预设
-    const currentPreset = usePresetStore.getState().activePreset;
     if (currentPreset) {
       try {
         await updatePreset(currentPreset);
+        toast.success(t('configChange.presetUpdated', { name: currentPreset }));
       } catch (err) {
-        if (import.meta.env.DEV) {
-          console.error('同步预设失败:', err);
-        }
+        toast.error(t('configChange.syncPresetFailed'));
       }
     }
-  }, [ignoreChanges, omoConfig.data]);
+
+    setShowChangeAlert(false);
+  }, [ignoreChanges, omoConfig.data, t]);
 
   const handleCloseAlert = useCallback(() => {
     setShowChangeAlert(false);
