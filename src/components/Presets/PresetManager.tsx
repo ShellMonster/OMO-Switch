@@ -412,69 +412,74 @@ export function PresetManager() {
       )}
 
       {myPresetsExpanded && (
-        <>
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-              <p className="text-slate-500 mt-4">{t('presetManager.loading')}</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {/* 内置预设（置顶） */}
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-2">
-                <Star className="w-3 h-3" />
-                {t('presetManager.builtinLabel')}
+        <div className="relative">
+          {/* Loading Overlay - 遮罩层，避免 DOM 变化导致滚动重置 */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+              <div className="text-center">
+                <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                <p className="text-slate-500 mt-4">{t('presetManager.loading')}</p>
               </div>
-              {builtinPresets.map((preset) => (
-                <BuiltinPresetCard
-                  key={preset.id}
-                  preset={preset}
-                  agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
-                  categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
-                  isActive={activePreset === `__builtin__${preset.id}`}
-                  isLoading={isLoading}
-                  onApply={() => handleApplyBuiltinPreset(preset.id)}
-                  applyLabel={t('presetManager.apply')}
-                />
-              ))}
-
-              {/* 上次同步时间 */}
-              <p className="text-xs text-slate-400 mb-2">
-                {t('presetManager.lastSync')}: {lastSyncTime
-                  ? new Date(lastSyncTime).toLocaleString('zh-CN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }).replace(/\//g, '-')
-                  : t('presetManager.notSynced')}
-              </p>
-
-              {/* 分隔线 */}
-              <div className="border-t border-slate-200 my-2" />
-
-              {presets.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">{t('presetManager.noPresets')}</div>
-              ) : (
-                presets.map((preset) => (
-                  <PresetCard
-                    key={preset.name}
-                    name={preset.name}
-                    agentCount={preset.agentCount}
-                    categoryCount={preset.categoryCount}
-                    updatedAt={preset.updatedAt}
-                    isActive={activePreset === preset.name}
-                    onLoad={() => handleLoadPreset(preset.name)}
-                    onDelete={() => openDeleteModal(preset.name)}
-                    loadLabel={t('presetManager.load')}
-                    deleteLabel={t('presetManager.delete')}
-                  />
-                ))
-              )}
             </div>
           )}
-        </>
+
+          {/* 预设列表 - 始终渲染，不随 loading 状态卸载 */}
+          <div className="flex flex-col gap-3">
+            {/* 内置预设（置顶） */}
+            <div className="text-xs text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-2">
+              <Star className="w-3 h-3" />
+              {t('presetManager.builtinLabel')}
+            </div>
+            {builtinPresets.map((preset) => (
+              <BuiltinPresetCard
+                key={preset.id}
+                preset={preset}
+                agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
+                categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
+                isActive={activePreset === `__builtin__${preset.id}`}
+                isLoading={isLoading}
+                onApply={() => handleApplyBuiltinPreset(preset.id)}
+                applyLabel={t('presetManager.apply')}
+              />
+            ))}
+
+            {/* 上次同步时间 */}
+            <p className="text-xs text-slate-400 mb-2">
+              {t('presetManager.lastSync')}: {lastSyncTime
+                ? new Date(lastSyncTime).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }).replace(/\//g, '-')
+                : t('presetManager.notSynced')}
+            </p>
+
+            {/* 分隔线 */}
+            <div className="border-t border-slate-200 my-2" />
+
+            {/* 用户预设 */}
+            {presets.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">{t('presetManager.noPresets')}</div>
+            ) : (
+              presets.map((preset) => (
+                <PresetCard
+                  key={preset.name}
+                  name={preset.name}
+                  agentCount={preset.agentCount}
+                  categoryCount={preset.categoryCount}
+                  updatedAt={preset.updatedAt}
+                  isActive={activePreset === preset.name}
+                  onLoad={() => handleLoadPreset(preset.name)}
+                  onDelete={() => openDeleteModal(preset.name)}
+                  loadLabel={t('presetManager.load')}
+                  deleteLabel={t('presetManager.delete')}
+                />
+              ))
+            )}
+          </div>
+        </div>
       )}
 
       <Modal

@@ -5,7 +5,8 @@ import { Select } from '../common/Select';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { listPresets, loadPreset, savePreset, saveConfigSnapshot } from '../../services/tauri';
+import { listPresets, loadPreset, savePreset, saveConfigSnapshot, getBuiltinPresets, applyBuiltinPreset } from '../../services/tauri';
+import type { BuiltinPresetInfo } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 
 interface PresetSelectorProps {
@@ -29,6 +30,7 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [builtinPresets, setBuiltinPresets] = useState<BuiltinPresetInfo[]>([]);
   
   // Compact mode dropdown state
   const [showDropdown, setShowDropdown] = useState(false);
@@ -61,17 +63,38 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
     }
   };
 
+  const loadBuiltinPresets = async () => {
+    try {
+      const presets = await getBuiltinPresets();
+      setBuiltinPresets(presets);
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load builtin presets:', err);
+      }
+    }
+  };
+
   useEffect(() => {
     loadPresetListIfNeeded();
+    loadBuiltinPresets();
   }, []);
 
   const handleSelectChange = async (value: string) => {
     setIsLoading(true);
     try {
-      await loadPreset(value);
-      await saveConfigSnapshot();
-      setActivePreset(value);
-      toast.success(t('presetSelector.switchSuccess', { name: value === 'default' ? t('presetSelector.default') : value }));
+      if (value.startsWith('__builtin__')) {
+        const presetId = value.replace('__builtin__', '');
+        await applyBuiltinPreset(presetId);
+        setActivePreset(value);
+        await saveConfigSnapshot();
+        const preset = builtinPresets.find(p => `__builtin__${p.id}` === value);
+        toast.success(t('presetSelector.switchSuccess', { name: preset?.name || value }));
+      } else {
+        await loadPreset(value);
+        await saveConfigSnapshot();
+        setActivePreset(value);
+        toast.success(t('presetSelector.switchSuccess', { name: value === 'default' ? t('presetSelector.default') : value }));
+      }
       onLoadPreset?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('presetSelector.switchFailed'));
@@ -105,6 +128,10 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
 
   const selectOptions = [
     { value: 'default', label: t('presetSelector.default') },
+    ...builtinPresets.map((preset) => ({ 
+      value: `__builtin__${preset.id}`, 
+      label: `${preset.name} (${t('presetSelector.builtin') || 'Built-in'})` 
+    })),
     ...presetList.filter((name: string) => name !== 'default').map((name: string) => ({ value: name, label: name })),
   ];
 

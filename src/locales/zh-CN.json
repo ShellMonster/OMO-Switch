@@ -316,6 +316,7 @@
   },
   "presetSelector": {
     "default": "默认预设",
+    "builtin": "内置",
     "currentPreset": "当前预设",
     "saveAs": "另存为",
     "switchSuccess": "已切换到预设「{{name}}」",

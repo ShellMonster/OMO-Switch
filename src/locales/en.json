@@ -315,6 +315,7 @@
   },
   "presetSelector": {
     "default": "Default",
+    "builtin": "Built-in",
     "currentPreset": "Current Preset",
     "saveAs": "Save As",
     "switchSuccess": "Switched to preset \"{{name}}\"",
