@@ -24,7 +24,8 @@ export function ImportExportPanel() {
   const { t } = useTranslation();
   const loadOmoConfig = usePreloadStore((s) => s.loadOmoConfig);
   const [history, setHistory] = useState<BackupInfo[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
@@ -36,31 +37,50 @@ export function ImportExportPanel() {
   const [maxHistoryInput, setMaxHistoryInput] = useState('10');
 
   useEffect(() => {
-    loadHistory();
-    void (async () => {
-      try {
-        const limit = await getBackupHistoryLimit();
-        setMaxHistoryLimitState(limit);
-        setMaxHistoryInput(String(limit));
-      } catch {
-        setMaxHistoryLimitState(10);
-        setMaxHistoryInput('10');
-      }
-    })();
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setHistoryLoading(true);
+          const [data, limit] = await Promise.all([
+            getImportExportHistory(),
+            getBackupHistoryLimit(),
+          ]);
+          if (cancelled) return;
+          setHistory(data);
+          setMaxHistoryLimitState(limit);
+          setMaxHistoryInput(String(limit));
+        } catch (err) {
+          if (cancelled) return;
+          console.error('Failed to initialize import/export panel:', err);
+          setMaxHistoryLimitState(10);
+          setMaxHistoryInput('10');
+        } finally {
+          if (!cancelled) setHistoryLoading(false);
+        }
+      })();
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   const loadHistory = async () => {
     try {
+      setHistoryLoading(true);
       const data = await getImportExportHistory();
       setHistory(data);
     } catch (err) {
       console.error('Failed to load history:', err);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
   const handleExport = async () => {
     try {
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
 
@@ -70,7 +90,7 @@ export function ImportExportPanel() {
       });
 
       if (!filePath) {
-        setLoading(false);
+        setActionLoading(false);
         return;
       }
 
@@ -80,13 +100,13 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
   const handleImportClick = async () => {
     try {
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
 
@@ -96,7 +116,7 @@ export function ImportExportPanel() {
       });
 
       if (!selected || typeof selected !== 'string') {
-        setLoading(false);
+        setActionLoading(false);
         return;
       }
 
@@ -107,7 +127,7 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -115,7 +135,7 @@ export function ImportExportPanel() {
     if (!importPath) return;
 
     try {
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
       setPreviewModal(false);
@@ -129,7 +149,7 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
       setImportPath(null);
       setPreviewConfig(null);
     }
@@ -151,7 +171,7 @@ export function ImportExportPanel() {
     if (!ok) return;
 
     try {
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
       await restoreBackup(backup.path);
@@ -168,7 +188,7 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -182,7 +202,7 @@ export function ImportExportPanel() {
     if (!ok) return;
 
     try {
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
       await deleteBackup(backup.path);
@@ -196,7 +216,7 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -209,7 +229,7 @@ export function ImportExportPanel() {
 
       if (!targetPath) return;
 
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
       await exportBackup(backup.path, targetPath);
@@ -222,7 +242,7 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -235,7 +255,7 @@ export function ImportExportPanel() {
     if (!ok) return;
 
     try {
-      setLoading(true);
+      setActionLoading(true);
       setError(null);
       setSuccess(null);
       const deleted = await clearBackupHistory();
@@ -249,7 +269,7 @@ export function ImportExportPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -258,7 +278,7 @@ export function ImportExportPanel() {
     const safeValue = Number.isFinite(parsed) ? parsed : maxHistoryLimit;
 
     try {
-      setLoading(true);
+      setActionLoading(true);
       const saved = await setBackupHistoryLimit(safeValue);
       setMaxHistoryLimitState(saved);
       setMaxHistoryInput(String(saved));
@@ -273,7 +293,7 @@ export function ImportExportPanel() {
       setError(err instanceof Error ? err.message : String(err));
       setMaxHistoryInput(String(maxHistoryLimit));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -315,10 +335,10 @@ export function ImportExportPanel() {
             variant="secondary"
             className="w-full"
             onClick={handleImportClick}
-            disabled={loading}
+            disabled={actionLoading}
           >
             <Upload className="w-4 h-4 mr-2" />
-            {loading ? t('importExport.processing') : t('importExport.selectFileImport')}
+            {actionLoading ? t('importExport.processing') : t('importExport.selectFileImport')}
           </Button>
         </div>
 
@@ -337,10 +357,10 @@ export function ImportExportPanel() {
             variant="primary"
             className="w-full"
             onClick={handleExport}
-            disabled={loading}
+            disabled={actionLoading}
           >
             <Download className="w-4 h-4 mr-2" />
-            {loading ? t('importExport.exporting') : t('importExport.export')}
+            {actionLoading ? t('importExport.exporting') : t('importExport.export')}
           </Button>
 
           <label className="flex items-center gap-2 mt-3 text-sm text-slate-600">
@@ -348,7 +368,7 @@ export function ImportExportPanel() {
               type="checkbox"
               checked={recordExportHistory}
               onChange={(e) => setRecordExportHistory(e.target.checked)}
-              disabled={loading}
+              disabled={actionLoading}
               className="rounded border-slate-300"
             />
             {t('importExport.recordExportHistory', { defaultValue: '导出同时记录到备份历史' })}
@@ -387,7 +407,7 @@ export function ImportExportPanel() {
                   void commitHistoryLimit();
                 }
               }}
-              disabled={loading}
+              disabled={actionLoading}
               className="w-16 px-2 py-1 text-xs border border-slate-300 rounded"
             />
             <span className="text-xs text-slate-500">
@@ -397,14 +417,20 @@ export function ImportExportPanel() {
               variant="ghost"
               size="sm"
               onClick={handleClearHistory}
-              disabled={loading || history.length === 0}
+              disabled={actionLoading || history.length === 0 || historyLoading}
             >
               {t('importExport.clearHistory', { defaultValue: '清空历史' })}
             </Button>
           </div>
         </div>
 
-        {history.length === 0 ? (
+        {historyLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-16 bg-slate-100 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : history.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <Clock className="w-5 h-5 text-purple-600" />
             <FileJson className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -443,7 +469,7 @@ export function ImportExportPanel() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleExportBackup(backup)}
-                    disabled={loading}
+                    disabled={actionLoading}
                   >
                     {t('importExport.exportBackup', { defaultValue: '导出' })}
                   </Button>
@@ -451,7 +477,7 @@ export function ImportExportPanel() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleRestoreBackup(backup)}
-                    disabled={loading}
+                    disabled={actionLoading}
                   >
                     {t('importExport.restoreFromBackup', { defaultValue: '恢复' })}
                   </Button>
@@ -459,7 +485,7 @@ export function ImportExportPanel() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteBackup(backup)}
-                    disabled={loading}
+                    disabled={actionLoading}
                     className="text-red-600 hover:text-red-700"
                   >
                     {t('importExport.deleteBackup', { defaultValue: '删除' })}
@@ -521,9 +547,9 @@ export function ImportExportPanel() {
               variant="primary"
               className="flex-1"
               onClick={handleConfirmImport}
-              disabled={loading}
+              disabled={actionLoading}
             >
-              {loading ? t('importExport.importing') : t('importExport.confirmImport')}
+              {actionLoading ? t('importExport.importing') : t('importExport.confirmImport')}
             </Button>
           </div>
         </div>

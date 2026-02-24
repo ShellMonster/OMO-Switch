@@ -35,18 +35,8 @@ pub fn get_omo_cache_dir() -> Result<String, String> {
 
     // 拼接 oh-my-opencode 子目录
     let omo_cache = cache_dir.join("oh-my-opencode");
-
-    // 转换为字符串，使用 ~ 前缀（如果在家目录下）
-    let path_str = omo_cache.to_string_lossy().to_string();
-
-    // 如果路径以家目录开头，替换为 ~/
-    if let Some(home) = std::env::var("HOME").ok() {
-        if path_str.starts_with(&home) {
-            return Ok(path_str.replace(&home, "~"));
-        }
-    }
-
-    Ok(path_str)
+    // 返回绝对路径，供 reveal/open 等 API 直接使用
+    Ok(omo_cache.to_string_lossy().to_string())
 }
 
 #[tauri::command]

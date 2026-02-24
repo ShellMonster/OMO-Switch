@@ -1,6 +1,12 @@
+import { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
-import { ImportExportPanel } from '../components/ImportExport/ImportExportPanel';
+
+const ImportExportPanel = lazy(() =>
+  import('../components/ImportExport/ImportExportPanel').then((m) => ({
+    default: m.ImportExportPanel,
+  }))
+);
 
 export function ImportExportPage() {
   const { t } = useTranslation();
@@ -17,7 +23,19 @@ export function ImportExportPage() {
         </div>
       </div>
 
-      <ImportExportPanel />
+      <Suspense
+        fallback={
+          <div className="p-6 bg-white rounded-2xl border border-slate-200">
+            <div className="animate-pulse space-y-3">
+              <div className="h-5 w-40 bg-slate-200 rounded" />
+              <div className="h-4 w-64 bg-slate-100 rounded" />
+              <div className="h-24 bg-slate-100 rounded-xl" />
+            </div>
+          </div>
+        }
+      >
+        <ImportExportPanel />
+      </Suspense>
     </div>
   );
 }
