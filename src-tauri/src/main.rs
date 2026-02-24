@@ -25,6 +25,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::model_commands::get_available_models,
+            commands::model_commands::get_verified_available_models,
+            commands::model_commands::get_available_models_with_status,
             commands::model_commands::get_connected_providers,
             commands::model_commands::fetch_models_dev,
             commands::config_commands::get_config_path,
@@ -36,12 +38,14 @@ fn main() {
             commands::config_commands::update_agents_batch,
             commands::preset_commands::save_preset,
             commands::preset_commands::load_preset,
+            commands::preset_commands::get_preset_config,
             commands::preset_commands::list_presets,
             commands::preset_commands::delete_preset,
             commands::preset_commands::get_preset_info,
             commands::preset_commands::update_preset,
             commands::preset_commands::get_preset_meta,
             commands::preset_commands::sync_preset_from_config,
+            commands::preset_commands::apply_updates_to_preset,
             commands::provider_commands::get_provider_status,
             commands::provider_commands::set_provider_api_key,
             commands::provider_commands::delete_provider_auth,

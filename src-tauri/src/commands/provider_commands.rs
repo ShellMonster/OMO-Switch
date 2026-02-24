@@ -73,8 +73,13 @@ pub struct ConnectionTestResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct AuthEntry {
     #[serde(rename = "type")]
-    auth_type: String,
-    key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    auth_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    key: Option<String>,
+    /// 保留未知字段，兼容 oauth 等不同认证结构
+    #[serde(flatten)]
+    extra: HashMap<String, Value>,
 }
 
 /// 已连接供应商缓存结构（用于 connected-providers.json）
@@ -303,7 +308,13 @@ pub fn get_provider_status() -> Result<Vec<ProviderInfo>, String> {
     let connected = read_connected_providers()?;
 
     // 3. 从 auth.json 获取已配置 API Key 的供应商
-    let auth_data = read_auth_file()?;
+    let auth_data = match read_auth_file() {
+        Ok(data) => data,
+        Err(err) => {
+            eprintln!("警告：读取 auth.json 失败，降级为空认证数据: {}", err);
+            HashMap::new()
+        }
+    };
 
     // 4. 合并数据
     let mut providers = Vec::new();
@@ -341,8 +352,9 @@ pub fn set_provider_api_key(provider_id: String, api_key: String) -> Result<(), 
 
     // 创建新的认证条目
     let auth_entry = AuthEntry {
-        auth_type: "api".to_string(),
-        key: api_key,
+        auth_type: Some("api".to_string()),
+        key: Some(api_key),
+        extra: HashMap::new(),
     };
 
     // 插入或更新供应商的认证信息
@@ -415,8 +427,9 @@ pub fn add_custom_provider(
     auth_data.insert(
         provider_key.clone(),
         AuthEntry {
-            auth_type: "api".to_string(),
-            key: api_key,
+            auth_type: Some("api".to_string()),
+            key: Some(api_key),
+            extra: HashMap::new(),
         },
     );
 
@@ -703,14 +716,88 @@ mod tests {
         auth.insert(
             "test".to_string(),
             AuthEntry {
-                auth_type: "api".to_string(),
-                key: "sk-test".to_string(),
+                auth_type: Some("api".to_string()),
+                key: Some("sk-test".to_string()),
+                extra: HashMap::new(),
             },
         );
 
         let json = serde_json::to_string(&auth).unwrap();
         assert!(json.contains("test"));
         assert!(json.contains("sk-test"));
+    }
+
+    #[test]
+    fn test_auth_entry_deserialize_oauth_without_key() {
+        let json = r#"{
+            "openai": {
+                "type": "oauth",
+                "refresh": "rt_xxx",
+                "access": "at_xxx"
+            }
+        }"#;
+
+        let auth: HashMap<String, AuthEntry> = serde_json::from_str(json).unwrap();
+        let openai = auth.get("openai").expect("openai should exist");
+
+        assert_eq!(openai.auth_type.as_deref(), Some("oauth"));
+        assert_eq!(openai.key, None);
+        assert!(openai.extra.contains_key("refresh"));
+        assert!(openai.extra.contains_key("access"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_get_provider_status_graceful_when_auth_invalid() {
+        let temp_dir = std::env::temp_dir().join("omo_test_provider_status_auth_invalid");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).expect("创建临时目录失败");
+
+        let original_home = std::env::var("HOME").ok();
+        // SAFETY: 测试中修改 HOME 环境变量是安全的
+        unsafe {
+            std::env::set_var("HOME", &temp_dir);
+        }
+
+        let cache_dir = temp_dir.join(".cache").join("oh-my-opencode");
+        std::fs::create_dir_all(&cache_dir).expect("创建缓存目录失败");
+        std::fs::write(
+            cache_dir.join("provider-models.json"),
+            r#"{"models":{"openai":["gpt-5"]}}"#,
+        )
+        .expect("写入 provider-models.json 失败");
+        std::fs::write(
+            cache_dir.join("connected-providers.json"),
+            r#"{"connected":[],"updatedAt":"2026-02-24T00:00:00.000Z"}"#,
+        )
+        .expect("写入 connected-providers.json 失败");
+
+        let auth_dir = temp_dir.join(".local").join("share").join("opencode");
+        std::fs::create_dir_all(&auth_dir).expect("创建 auth 目录失败");
+        std::fs::write(auth_dir.join("auth.json"), "{invalid json").expect("写入 auth.json 失败");
+
+        let result = get_provider_status();
+
+        // SAFETY: 测试中恢复 HOME 环境变量是安全的
+        unsafe {
+            if let Some(home) = original_home {
+                std::env::set_var("HOME", home);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+
+        assert!(
+            result.is_ok(),
+            "auth.json 异常时应降级，不应阻断 provider 状态: {:?}",
+            result.err()
+        );
+        let providers = result.unwrap();
+        assert_eq!(providers.len(), 1);
+        assert_eq!(providers[0].id, "openai");
+        assert!(!providers[0].is_configured);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
     // ============================================================================

@@ -180,6 +180,30 @@ pub fn load_preset(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// 读取指定预设配置（仅读取，不应用到当前配置）
+/// 会自动过滤 __meta__ 字段
+pub fn get_preset_config(name: &str) -> Result<Value, String> {
+    if name.is_empty() {
+        return Err(i18n::tr_current("preset_name_empty"));
+    }
+
+    let preset_path = get_preset_path(name)?;
+    if !preset_path.exists() {
+        return Err(i18n::tr_current("preset_not_found"));
+    }
+
+    let content = fs::read_to_string(&preset_path)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("read_preset_file_failed"), e))?;
+    let mut preset_config: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_preset_file_failed"), e))?;
+
+    if let Some(obj) = preset_config.as_object_mut() {
+        obj.remove(META_FIELD);
+    }
+
+    Ok(preset_config)
+}
+
 /// 列出所有预设
 /// 返回预设名称列表（不含 .json 后缀）
 ///
@@ -317,6 +341,72 @@ pub fn update_preset(name: &str) -> Result<(), String> {
 
     let preset_with_meta = build_preset_with_meta(&config, &preset_path)?;
 
+    let json_string = serde_json::to_string_pretty(&preset_with_meta)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
+    fs::write(&preset_path, json_string)
+        .map_err(|e| format!("{}: {}", i18n::tr_current("write_preset_file_failed"), e))?;
+
+    Ok(())
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetUpdateRequest {
+    pub agent_name: String,
+    pub model: String,
+    pub variant: Option<String>,
+}
+
+/// 直接将模型更新应用到指定预设文件（不切换当前活动预设）
+/// 规则与 update_agents_batch 保持一致：同名会同时尝试更新 agents 与 categories。
+pub fn apply_updates_to_preset(name: &str, updates: &[PresetUpdateRequest]) -> Result<(), String> {
+    if name.is_empty() {
+        return Err(i18n::tr_current("preset_name_empty"));
+    }
+
+    let preset_path = get_preset_path(name)?;
+    if !preset_path.exists() {
+        return Err(i18n::tr_current("preset_not_found"));
+    }
+
+    let mut preset_config = get_preset_config(name)?;
+
+    for update in updates {
+        if let Some(agents) = preset_config.get_mut("agents").and_then(|a| a.as_object_mut()) {
+            if let Some(agent) = agents.get_mut(&update.agent_name) {
+                if let Some(obj) = agent.as_object_mut() {
+                    obj.insert("model".to_string(), Value::String(update.model.clone()));
+                    if let Some(ref v) = update.variant {
+                        if v != "none" {
+                            obj.insert("variant".to_string(), Value::String(v.clone()));
+                        } else {
+                            obj.remove("variant");
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(categories) = preset_config
+            .get_mut("categories")
+            .and_then(|c| c.as_object_mut())
+        {
+            if let Some(category) = categories.get_mut(&update.agent_name) {
+                if let Some(obj) = category.as_object_mut() {
+                    obj.insert("model".to_string(), Value::String(update.model.clone()));
+                    if let Some(ref v) = update.variant {
+                        if v != "none" {
+                            obj.insert("variant".to_string(), Value::String(v.clone()));
+                        } else {
+                            obj.remove("variant");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let preset_with_meta = build_preset_with_meta(&preset_config, &preset_path)?;
     let json_string = serde_json::to_string_pretty(&preset_with_meta)
         .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
     fs::write(&preset_path, json_string)

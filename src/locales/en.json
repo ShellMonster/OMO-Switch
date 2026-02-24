@@ -122,6 +122,10 @@
     "totalModels": "Total Models",
     "connectedProviders": "Connected Providers",
     "notConnectedProviders": "Not Connected Providers",
+    "modelValidationLoading": "Model validation",
+    "modelValidationHint": "Running `opencode models` in background to validate usable models. The list may update.",
+    "modelValidationFallback": "Using cached models",
+    "modelValidationFallbackHint": "Unable to run `opencode models`; showing cached models.",
     "noConnectedProviders": "No connected providers",
     "noNotConnectedProviders": "No unconnected providers",
     "noData": "No Provider Data",
@@ -629,4 +633,3 @@
          "noResults": "No matching results"
        }
      }
-

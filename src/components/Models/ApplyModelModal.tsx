@@ -8,11 +8,15 @@ import { toast } from '../common/Toast';
 import { usePreloadStore } from '../../store/preloadStore';
 import { usePresetStore } from '../../store/presetStore';
 import {
+  applyUpdatesToPreset,
+  getPresetConfig,
+  listPresets,
   updateAgentsBatch,
   saveConfigSnapshot,
   updatePreset,
   type AgentConfig,
   type AgentUpdateRequest,
+  type OmoConfig,
 } from '../../services/tauri';
 
 interface ApplyModelModalProps {
@@ -44,27 +48,83 @@ export function ApplyModelModal({
   const updateCategoryInConfig = usePreloadStore((state) => state.updateCategoryInConfig);
   const activePreset = usePresetStore((state) => state.activePreset);
 
-  const isBuiltinPreset = activePreset?.startsWith('__builtin__');
-
   const [variant, setVariant] = useState<AgentConfig['variant']>('none');
+  const [presetOptions, setPresetOptions] = useState<string[]>([]);
+  const [targetPreset, setTargetPreset] = useState<string>('');
+  const [draftConfig, setDraftConfig] = useState<OmoConfig | null>(null);
+  const [isPresetLoading, setIsPresetLoading] = useState(false);
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [agentSearch, setAgentSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
   const [isApplying, setIsApplying] = useState(false);
 
+  const loadPresetDraft = useCallback(
+    async (presetName: string) => {
+      if (!presetName) return;
+      setIsPresetLoading(true);
+      try {
+        const config = await getPresetConfig(presetName);
+        setDraftConfig(config);
+      } catch (error) {
+        setDraftConfig(omoConfig.data);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t('applyModel.loadPresetFailed', { defaultValue: '加载预设配置失败' })
+        );
+      } finally {
+        setIsPresetLoading(false);
+      }
+    },
+    [omoConfig.data, t]
+  );
+
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    const initModal = async () => {
       setVariant('none');
       setSelectedAgents(new Set());
       setSelectedCategories(new Set());
       setAgentSearch('');
       setCategorySearch('');
-    }
-  }, [isOpen]);
+      setDraftConfig(null);
 
-  const agents = omoConfig.data?.agents || {};
-  const categories = omoConfig.data?.categories || {};
+      try {
+        const presets = await listPresets();
+        const editablePresets = presets.filter((name) => !name.startsWith('__builtin__'));
+        const options = editablePresets.length > 0 ? editablePresets : ['default'];
+        if (cancelled) return;
+        setPresetOptions(options);
+
+        const initialPreset =
+          activePreset && options.includes(activePreset) && !activePreset.startsWith('__builtin__')
+            ? activePreset
+            : options.includes('default')
+              ? 'default'
+              : options[0];
+
+        setTargetPreset(initialPreset);
+        await loadPresetDraft(initialPreset);
+      } catch {
+        if (cancelled) return;
+        setPresetOptions(['default']);
+        setTargetPreset('default');
+        await loadPresetDraft('default');
+      }
+    };
+
+    void initModal();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, activePreset, loadPresetDraft]);
+
+  const agents = draftConfig?.agents || {};
+  const categories = draftConfig?.categories || {};
 
   const filteredAgents = useMemo(() => {
     const entries = Object.entries(agents);
@@ -130,8 +190,10 @@ export function ApplyModelModal({
       return;
     }
 
-    if (isBuiltinPreset) {
-      toast.info(t('agentList.builtinPresetEditHint'));
+    if (!targetPreset) {
+      toast.error(
+        t('applyModel.presetRequired', { defaultValue: '请先选择目标预设' })
+      );
       return;
     }
 
@@ -157,19 +219,24 @@ export function ApplyModelModal({
         updateCategoryInConfig(categoryName, { model: fullModelPath, variant });
       });
 
-      await updateAgentsBatch(updates);
-      await saveConfigSnapshot();
+      const currentEditablePreset =
+        activePreset && !activePreset.startsWith('__builtin__') ? activePreset : null;
 
-      if (activePreset && !activePreset.startsWith('__builtin__')) {
-        try {
-          await updatePreset(activePreset);
-        } catch (error) {
-          console.error('Failed to sync preset:', error);
-        }
+      if (currentEditablePreset && targetPreset === currentEditablePreset) {
+        await updateAgentsBatch(updates);
+        await saveConfigSnapshot();
+        await updatePreset(targetPreset);
+      } else {
+        await applyUpdatesToPreset(targetPreset, updates);
       }
 
       toast.success(
-        t('applyModel.success', { model: modelName, count: totalSelected })
+        t('applyModel.successToPreset', {
+          model: modelName,
+          count: totalSelected,
+          preset: targetPreset,
+          defaultValue: `已将 ${modelName} 应用到预设 ${targetPreset}`,
+        })
       );
       onClose();
     } catch (error) {
@@ -230,6 +297,29 @@ export function ApplyModelModal({
       }
     >
       <div className="space-y-5">
+        <Select
+          label={t('applyModel.targetPreset', { defaultValue: '目标预设' })}
+          value={targetPreset}
+          onChange={(value) => {
+            setTargetPreset(value);
+            setSelectedAgents(new Set());
+            setSelectedCategories(new Set());
+            setAgentSearch('');
+            setCategorySearch('');
+            void loadPresetDraft(value);
+          }}
+          options={presetOptions.map((preset) => ({
+            value: preset,
+            label: preset,
+          }))}
+        />
+
+        {isPresetLoading && (
+          <p className="text-xs text-slate-500 -mt-2">
+            {t('applyModel.loadingPreset', { defaultValue: '正在加载所选预设配置...' })}
+          </p>
+        )}
+
         <Select
           label={t('applyModel.intensityLevel')}
           value={variant || 'none'}

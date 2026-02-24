@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   getAvailableModels,
+  getAvailableModelsWithStatus,
   getConnectedProviders,
   fetchModelsDev,
   checkVersions,
@@ -32,6 +33,10 @@ interface PreloadState {
     grouped: GroupedModels[] | null;
     providers: string[];
     infos: Record<string, ModelInfo>;
+    source: 'verified' | 'cache_fallback' | null;
+    fallbackReason: string | null;
+    validatedAt: string | null;
+    validating: boolean;
     loading: boolean;
     error: string | null;
   };
@@ -83,6 +88,10 @@ export const usePreloadStore = create<PreloadState>()(
     grouped: null,
     providers: [],
     infos: {},
+    source: null,
+    fallbackReason: null,
+    validatedAt: null,
+    validating: false,
     loading: false,
     error: null,
   },
@@ -197,17 +206,56 @@ refreshModels: async () => {
 
   // 乐观更新模式：已有数据时静默刷新，不显示 loading
   if (isFirstLoad) {
-    set({ _modelsRefreshing: true, models: { grouped: null, providers: [], infos: {}, loading: true, error: null } });
+    set({
+      _modelsRefreshing: true,
+      models: {
+        grouped: null,
+        providers: [],
+        infos: {},
+        source: null,
+        fallbackReason: null,
+        validatedAt: null,
+        validating: false,
+        loading: true,
+        error: null
+      }
+    });
   } else {
     set({ _modelsRefreshing: true });
   }
 
   try {
-    // 先获取本地数据（快速响应，不等待网络请求）
-    const [modelsData, providersData] = await Promise.all([
+    const [cachedModelsData, providersData] = await Promise.all([
       getAvailableModels(),
       getConnectedProviders(),
     ]);
+
+    // 先展示缓存模型，避免首屏等待 `opencode models`
+    const groupedFromCache: GroupedModels[] = Object.entries(cachedModelsData)
+      .map(([provider, models]) => ({ provider, models }))
+      .sort((a, b) => {
+        if (b.models.length !== a.models.length) {
+          return b.models.length - a.models.length;
+        }
+        return a.provider.localeCompare(b.provider);
+      });
+
+    set({
+      models: {
+        grouped: groupedFromCache,
+        providers: providersData,
+        infos: state.models.infos,
+        source: 'cache_fallback',
+        fallbackReason: null,
+        validatedAt: null,
+        validating: true,
+        loading: false,
+        error: null
+      },
+    });
+
+    const modelsResult = await getAvailableModelsWithStatus();
+    const modelsData = modelsResult.models;
 
     // 稳定排序：先按模型数量降序，数量相同按 provider 名称升序
     const grouped: GroupedModels[] = Object.entries(modelsData)
@@ -221,7 +269,17 @@ refreshModels: async () => {
 
     // 立即更新 UI（不等待 fetchModelsDev）
     set({
-      models: { grouped, providers: providersData, infos: {}, loading: false, error: null },
+      models: {
+        grouped,
+        providers: providersData,
+        infos: {},
+        source: modelsResult.source === 'verified' ? 'verified' : 'cache_fallback',
+        fallbackReason: modelsResult.fallback_reason,
+        validatedAt: modelsResult.validated_at,
+        validating: false,
+        loading: false,
+        error: null
+      },
       _modelsRefreshing: false,
     });
 
@@ -243,6 +301,7 @@ refreshModels: async () => {
     set((current) => ({
       models: {
         ...current.models,
+        validating: false,
         loading: false,
         error: error instanceof Error ? error.message : '加载模型数据失败'
       },
@@ -454,6 +513,10 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
       grouped: state.models.grouped,
       providers: state.models.providers,
       infos: state.models.infos,
+      source: state.models.source,
+      fallbackReason: state.models.fallbackReason,
+      validatedAt: state.models.validatedAt,
+      validating: false,
       loading: false,
       error: null,
     },

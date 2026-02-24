@@ -48,6 +48,10 @@
     "totalModels": "模型總數",
     "connectedProviders": "已連線供應商",
     "notConnectedProviders": "未連線供應商",
+    "modelValidationLoading": "可用模型校驗中",
+    "modelValidationHint": "正在背景執行 `opencode models` 校驗可用模型，清單可能會更新",
+    "modelValidationFallback": "使用快取模型",
+    "modelValidationFallbackHint": "無法執行 `opencode models`，目前顯示快取模型",
     "noConnectedProviders": "暫無已連線的供應商",
     "noNotConnectedProviders": "暫無未連線的供應商"
   },

@@ -48,6 +48,10 @@
     "totalModels": "총 모델",
     "connectedProviders": "연결된 제공업체",
     "notConnectedProviders": "연결되지 않은 제공업체",
+    "modelValidationLoading": "사용 가능 모델 검증 중",
+    "modelValidationHint": "백그라운드에서 `opencode models`를 실행해 사용 가능한 모델을 검증 중입니다. 목록이 업데이트될 수 있습니다.",
+    "modelValidationFallback": "캐시 모델 사용 중",
+    "modelValidationFallbackHint": "`opencode models` 실행에 실패하여 캐시 모델을 표시합니다.",
     "noConnectedProviders": "연결된 제공업체가 없습니다",
     "noNotConnectedProviders": "연결되지 않은 제공업체가 없습니다"
   },

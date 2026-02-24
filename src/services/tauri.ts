@@ -118,6 +118,21 @@ export async function getAvailableModels(): Promise<Record<string, string[]>> {
   return invoke<Record<string, string[]>>('get_available_models');
 }
 
+export async function getVerifiedAvailableModels(): Promise<Record<string, string[]>> {
+  return invoke<Record<string, string[]>>('get_verified_available_models');
+}
+
+export interface AvailableModelsWithStatus {
+  models: Record<string, string[]>;
+  source: 'verified' | 'cache_fallback' | string;
+  fallback_reason: string | null;
+  validated_at: string;
+}
+
+export async function getAvailableModelsWithStatus(): Promise<AvailableModelsWithStatus> {
+  return invoke<AvailableModelsWithStatus>('get_available_models_with_status');
+}
+
 export async function getConnectedProviders(): Promise<string[]> {
   return invoke<string[]>('get_connected_providers');
 }
@@ -212,6 +227,10 @@ export async function loadPreset(name: string): Promise<void> {
   return invoke<void>('load_preset', { name });
 }
 
+export async function getPresetConfig(name: string): Promise<OmoConfig> {
+  return invoke<OmoConfig>('get_preset_config', { name });
+}
+
 export async function listPresets(): Promise<string[]> {
   return invoke<string[]>('list_presets');
 }
@@ -239,6 +258,13 @@ export async function getPresetMeta(name: string): Promise<PresetMeta> {
 
 export async function updatePreset(name: string): Promise<void> {
   return invoke<void>('update_preset', { name });
+}
+
+export async function applyUpdatesToPreset(
+  name: string,
+  updates: AgentUpdateRequest[]
+): Promise<void> {
+  return invoke<void>('apply_updates_to_preset', { name, updates });
 }
 
 /**

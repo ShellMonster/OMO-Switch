@@ -48,6 +48,10 @@
     "totalModels": "モデル合計",
     "connectedProviders": "接続済みプロバイダー",
     "notConnectedProviders": "未接続プロバイダー",
+    "modelValidationLoading": "利用可能モデルを検証中",
+    "modelValidationHint": "バックグラウンドで `opencode models` を実行して利用可能モデルを検証中です。一覧は更新される場合があります。",
+    "modelValidationFallback": "キャッシュモデルを使用中",
+    "modelValidationFallbackHint": "`opencode models` を実行できないため、キャッシュモデルを表示しています。",
     "noConnectedProviders": "接続済みプロバイダーがありません",
     "noNotConnectedProviders": "未接続プロバイダーがありません"
   },

@@ -1,9 +1,13 @@
 use crate::i18n;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::env;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 /// 模型信息结构体 - 从 models.dev API 获取的模型详细信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +27,7 @@ pub struct ModelPricing {
 }
 
 /// 本地缓存的模型列表结构 - 对应 provider-models.json
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct ProviderModelsCache {
     models: HashMap<String, Vec<String>>,
 }
@@ -77,6 +81,46 @@ fn get_opencode_config_path() -> Result<PathBuf, String> {
                 .join("opencode.json")
         })
         .map_err(|_| "无法获取 HOME 环境变量".to_string())
+}
+
+/// 获取 OpenCode auth 文件路径
+/// 路径: ~/.local/share/opencode/auth.json
+fn get_auth_file_path() -> Result<PathBuf, String> {
+    std::env::var("HOME")
+        .map(|home| {
+            PathBuf::from(home)
+                .join(".local")
+                .join("share")
+                .join("opencode")
+                .join("auth.json")
+        })
+        .map_err(|_| "无法获取 HOME 环境变量".to_string())
+}
+
+/// 从 auth.json 提取 provider ID 列表（兼容 api/oauth 等结构）
+fn get_auth_provider_ids() -> Vec<String> {
+    let Ok(auth_path) = get_auth_file_path() else {
+        return Vec::new();
+    };
+    if !auth_path.exists() {
+        return Vec::new();
+    }
+
+    let Ok(content) = fs::read_to_string(&auth_path) else {
+        return Vec::new();
+    };
+    if content.trim().is_empty() {
+        return Vec::new();
+    }
+
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(&content) else {
+        return Vec::new();
+    };
+    let Some(obj) = value.as_object() else {
+        return Vec::new();
+    };
+
+    obj.keys().cloned().collect()
 }
 
 /// 获取自定义模型配置
@@ -135,14 +179,196 @@ pub fn get_custom_models() -> HashMap<String, Vec<String>> {
     result
 }
 
-/// 获取可用模型列表，按提供商分组
+/// 获取可用模型列表，按提供商分组（缓存快照）
 ///
-/// 合并两个来源的模型：
+/// 来源：
 /// 1. ~/.cache/oh-my-opencode/provider-models.json - CLI 缓存的模型
 /// 2. ~/.config/opencode/opencode.json 的 provider.{name}.models - 自定义模型
 ///
 /// 返回格式: { "provider_name": ["model1", "model2", ...] }
-pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
+const OPENCODE_MODELS_TIMEOUT_SECS: u64 = 3;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AvailableModelsWithStatus {
+    pub models: HashMap<String, Vec<String>>,
+    /// verified | cache_fallback
+    pub source: String,
+    pub fallback_reason: Option<String>,
+    pub validated_at: String,
+}
+
+fn parse_opencode_models_output(output: &str) -> HashMap<String, Vec<String>> {
+    let mut result: HashMap<String, Vec<String>> = HashMap::new();
+
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let Some((provider_id, model_id)) = trimmed.split_once('/') else {
+            continue;
+        };
+        if provider_id.is_empty() || model_id.is_empty() {
+            continue;
+        }
+
+        let entry = result.entry(provider_id.to_string()).or_default();
+        let model = model_id.to_string();
+        if !entry.contains(&model) {
+            entry.push(model);
+        }
+    }
+
+    result
+}
+
+fn build_opencode_path_env() -> Option<String> {
+    let home = env::var("HOME").ok()?;
+    let opencode_bin = PathBuf::from(home).join(".opencode").join("bin");
+    let opencode_bin_str = opencode_bin.to_string_lossy().to_string();
+    let current_path = env::var("PATH").unwrap_or_default();
+    if current_path
+        .split(':')
+        .any(|p| p == opencode_bin.as_os_str().to_string_lossy())
+    {
+        Some(current_path)
+    } else if current_path.is_empty() {
+        Some(opencode_bin_str)
+    } else {
+        Some(format!("{}:{}", opencode_bin_str, current_path))
+    }
+}
+
+fn build_opencode_candidates() -> Vec<String> {
+    let mut candidates: Vec<String> = Vec::new();
+
+    if let Ok(path) = env::var("OPENCODE_BIN") {
+        let trimmed = path.trim();
+        if !trimmed.is_empty() {
+            candidates.push(trimmed.to_string());
+        }
+    }
+
+    if let Ok(home) = env::var("HOME") {
+        let home_candidate = PathBuf::from(home)
+            .join(".opencode")
+            .join("bin")
+            .join("opencode");
+        if home_candidate.exists() {
+            candidates.push(home_candidate.to_string_lossy().to_string());
+        }
+    }
+
+    // 最后回退 PATH 查找
+    candidates.push("opencode".to_string());
+
+    candidates
+}
+
+fn run_opencode_models_with_command(binary: &str) -> Result<HashMap<String, Vec<String>>, String> {
+    let mut cmd = if Path::new(binary).is_absolute() || binary.contains('/') {
+        Command::new(binary)
+    } else {
+        Command::new(binary)
+    };
+
+    cmd.args(["models"]).stdout(Stdio::piped()).stderr(Stdio::null());
+
+    if let Some(path_env) = build_opencode_path_env() {
+        cmd.env("PATH", path_env);
+    }
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("启动 `{}` 失败: {}", binary, e))?;
+
+    let timeout = Duration::from_secs(OPENCODE_MODELS_TIMEOUT_SECS);
+    let start = Instant::now();
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    return Err(format!("`opencode models` 退出码异常: {:?}", status.code()));
+                }
+                let output = child
+                    .wait_with_output()
+                    .map_err(|e| format!("读取 `{}` 输出失败: {}", binary, e))?;
+                let parsed = parse_opencode_models_output(&String::from_utf8_lossy(&output.stdout));
+                if parsed.is_empty() {
+                    return Err(format!("`{}` 输出为空或无法解析", binary));
+                }
+                return Ok(parsed);
+            }
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "`{}` 执行超时（{}s）",
+                        binary, OPENCODE_MODELS_TIMEOUT_SECS
+                    ));
+                }
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(e) => {
+                return Err(format!("轮询 `{}` 状态失败: {}", binary, e));
+            }
+        }
+    }
+}
+
+fn get_available_models_from_opencode_cmd() -> Result<HashMap<String, Vec<String>>, String> {
+    // 单元测试中使用临时 HOME 文件验证缓存逻辑，避免依赖外部命令结果
+    if cfg!(test) {
+        return Err("tests_skip_opencode_models_command".to_string());
+    }
+
+    let mut errors = Vec::new();
+    for binary in build_opencode_candidates() {
+        match run_opencode_models_with_command(&binary) {
+            Ok(result) => return Ok(result),
+            Err(err) => errors.push(err),
+        }
+    }
+
+    Err(format!(
+        "执行 `opencode models` 失败（已尝试候选路径）：{}",
+        errors.join(" | ")
+    ))
+}
+
+fn merge_custom_models(result: &mut HashMap<String, Vec<String>>) {
+    let custom_models = get_custom_models();
+    for (provider_id, models) in custom_models {
+        let entry = result.entry(provider_id).or_default();
+        for model_id in models {
+            if !entry.contains(&model_id) {
+                entry.push(model_id);
+            }
+        }
+    }
+}
+
+fn read_verified_models_override() -> HashMap<String, Vec<String>> {
+    let Ok(cache_dir) = get_cache_dir() else {
+        return HashMap::new();
+    };
+    let cache_file = cache_dir.join("verified-provider-models.json");
+    if !cache_file.exists() {
+        return HashMap::new();
+    }
+
+    let Ok(content) = fs::read_to_string(&cache_file) else {
+        return HashMap::new();
+    };
+    let Ok(cache) = serde_json::from_str::<ProviderModelsCache>(&content) else {
+        return HashMap::new();
+    };
+    cache.models
+}
+
+fn get_cached_available_models() -> Result<HashMap<String, Vec<String>>, String> {
     let cache_file = get_cache_dir()?.join("provider-models.json");
 
     // 1. 从缓存文件读取模型列表
@@ -158,20 +384,83 @@ pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
         HashMap::new()
     };
 
-    // 2. 从 opencode.json 读取自定义模型并合并
-    let custom_models = get_custom_models();
-    for (provider_id, models) in custom_models {
-        // 获取或创建该 provider 的模型列表
-        let entry = result.entry(provider_id).or_insert_with(Vec::new);
-        // 添加自定义模型（去重）
-        for model_id in models {
-            if !entry.contains(&model_id) {
-                entry.push(model_id);
-            }
-        }
+    // 2. 应用校验缓存覆盖（仅覆盖模型列表，不变更 provider 总表来源）
+    for (provider_id, models) in read_verified_models_override() {
+        result.insert(provider_id, models);
     }
 
+    // 3. 从 opencode.json 读取自定义模型并合并
+    merge_custom_models(&mut result);
+
     Ok(result)
+}
+
+fn write_verified_models_override(models: &HashMap<String, Vec<String>>) -> Result<(), String> {
+    let cache_dir = get_cache_dir()?;
+    fs::create_dir_all(&cache_dir)
+        .map_err(|e| format!("创建模型缓存目录失败 {:?}: {}", cache_dir, e))?;
+
+    let cache_file = cache_dir.join("verified-provider-models.json");
+    let payload = ProviderModelsCache {
+        models: models.clone(),
+    };
+    let content = serde_json::to_string_pretty(&payload)
+        .map_err(|e| format!("序列化模型缓存失败: {}", e))?;
+    fs::write(&cache_file, content)
+        .map_err(|e| format!("写入模型缓存文件失败 {:?}: {}", cache_file, e))?;
+    Ok(())
+}
+
+pub fn get_available_models() -> Result<HashMap<String, Vec<String>>, String> {
+    get_cached_available_models()
+}
+
+/// 获取通过 `opencode models` 校验后的可用模型列表
+/// 用于异步校验阶段，避免缓存中包含不在 opencode 可用集合内的旧模型。
+pub fn get_verified_available_models() -> Result<HashMap<String, Vec<String>>, String> {
+    let mut result = get_available_models_from_opencode_cmd()?;
+    merge_custom_models(&mut result);
+    Ok(result)
+}
+
+/// 统一返回模型及其来源状态（方案三：后端单一裁决）
+pub fn get_available_models_with_status() -> Result<AvailableModelsWithStatus, String> {
+    let validated_at = Utc::now().to_rfc3339();
+
+    match get_available_models_from_opencode_cmd() {
+        Ok(mut verified_models) => {
+            // 校验结果只用于覆盖对应 provider，避免把总表收缩成“仅可用 provider”
+            let mut merged_models = get_cached_available_models()?;
+            for (provider_id, models) in &verified_models {
+                merged_models.insert(provider_id.clone(), models.clone());
+            }
+
+            // 先落盘“校验覆盖层”（仅写校验返回子集），再合并自定义模型用于展示
+            if let Err(e) = write_verified_models_override(&verified_models) {
+                eprintln!("警告：写入 verified-provider-models.json 失败: {}", e);
+            }
+
+            merge_custom_models(&mut merged_models);
+            merge_custom_models(&mut verified_models);
+
+            Ok(AvailableModelsWithStatus {
+                models: merged_models,
+                source: "verified".to_string(),
+                fallback_reason: None,
+                validated_at,
+            })
+        }
+        Err(err) => {
+            let mut models = get_cached_available_models()?;
+            merge_custom_models(&mut models);
+            Ok(AvailableModelsWithStatus {
+                models,
+                source: "cache_fallback".to_string(),
+                fallback_reason: Some(err),
+                validated_at,
+            })
+        }
+    }
 }
 
 /// 获取已连接的提供商列表
@@ -182,19 +471,28 @@ pub fn get_connected_providers() -> Result<Vec<String>, String> {
     let cache_file = get_cache_dir()?.join("connected-providers.json");
 
     // 文件不存在时返回空结果
-    if !cache_file.exists() {
-        return Ok(Vec::new());
+    let mut providers = if !cache_file.exists() {
+        Vec::new()
+    } else {
+        // 读取文件内容
+        let content = fs::read_to_string(&cache_file)
+            .map_err(|e| format!("无法读取已连接提供商文件 {:?}: {}", cache_file, e))?;
+
+        // 解析 JSON
+        let cache: ConnectedProvidersCache =
+            serde_json::from_str(&content).map_err(|e| format!("解析已连接提供商文件失败: {}", e))?;
+
+        cache.connected
+    };
+
+    // 与 auth.json 的 provider 做并集，统一“已连接”口径（兼容 OAuth 授权）
+    for provider_id in get_auth_provider_ids() {
+        if !providers.iter().any(|p| p == &provider_id) {
+            providers.push(provider_id);
+        }
     }
 
-    // 读取文件内容
-    let content = fs::read_to_string(&cache_file)
-        .map_err(|e| format!("无法读取已连接提供商文件 {:?}: {}", cache_file, e))?;
-
-    // 解析 JSON
-    let cache: ConnectedProvidersCache =
-        serde_json::from_str(&content).map_err(|e| format!("解析已连接提供商文件失败: {}", e))?;
-
-    Ok(cache.connected)
+    Ok(providers)
 }
 
 /// models.dev 缓存文件路径
@@ -327,6 +625,21 @@ mod tests {
     use serial_test::serial;
 
     #[test]
+    fn test_parse_opencode_models_output() {
+        let output = r#"
+openai/gpt-5.3-codex
+openai/gpt-5.2
+anthropic/claude-sonnet-4-6
+invalid-line
+"#;
+
+        let parsed = parse_opencode_models_output(output);
+        assert_eq!(parsed.get("openai").map(|v| v.len()), Some(2));
+        assert_eq!(parsed.get("anthropic").map(|v| v.len()), Some(1));
+        assert!(!parsed.contains_key("invalid-line"));
+    }
+
+    #[test]
     fn test_get_available_models() {
         // 测试读取本地缓存的模型列表
         // 修复后：文件不存在时返回 Ok(空 HashMap) 而不是 Err
@@ -358,6 +671,58 @@ mod tests {
         } else {
             println!("已连接的提供商: {:?}", providers);
         }
+    }
+
+    #[test]
+    #[serial]
+    fn test_get_connected_providers_merge_auth() {
+        // 验证：connected-providers.json 与 auth.json 做并集（兼容 OAuth 授权 provider）
+        let temp_dir = std::env::temp_dir().join("omo_test_connected_merge_auth");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).expect("创建临时目录失败");
+
+        let original_home = std::env::var("HOME").ok();
+        // SAFETY: 测试中修改 HOME 环境变量是安全的
+        unsafe {
+            std::env::set_var("HOME", &temp_dir);
+        }
+
+        let cache_dir = temp_dir.join(".cache").join("oh-my-opencode");
+        std::fs::create_dir_all(&cache_dir).expect("创建缓存目录失败");
+        std::fs::write(
+            cache_dir.join("connected-providers.json"),
+            r#"{"connected":["kimi-for-coding"],"updatedAt":"2026-02-24T00:00:00.000Z"}"#,
+        )
+        .expect("写入 connected-providers.json 失败");
+
+        let auth_dir = temp_dir.join(".local").join("share").join("opencode");
+        std::fs::create_dir_all(&auth_dir).expect("创建 auth 目录失败");
+        std::fs::write(
+            auth_dir.join("auth.json"),
+            r#"{
+                "openai": {"type":"oauth","refresh":"rt_xxx","access":"at_xxx"},
+                "kimi-for-coding": {"type":"api","key":"sk_xxx"}
+            }"#,
+        )
+        .expect("写入 auth.json 失败");
+
+        let result = get_connected_providers();
+
+        // SAFETY: 测试中恢复 HOME 环境变量是安全的
+        unsafe {
+            if let Some(home) = original_home {
+                std::env::set_var("HOME", home);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+
+        assert!(result.is_ok(), "获取 connected providers 应成功");
+        let providers = result.unwrap();
+        assert!(providers.contains(&"kimi-for-coding".to_string()));
+        assert!(providers.contains(&"openai".to_string()));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
     #[test]

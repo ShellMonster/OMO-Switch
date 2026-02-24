@@ -122,6 +122,10 @@
     "totalModels": "模型总数",
     "connectedProviders": "已连接供应商",
     "notConnectedProviders": "未连接供应商",
+    "modelValidationLoading": "可用模型校验中",
+    "modelValidationHint": "正在异步执行 opencode models 校验可用模型，列表可能会更新",
+    "modelValidationFallback": "使用缓存模型",
+    "modelValidationFallbackHint": "未能执行 opencode models，当前展示的是缓存模型",
     "noConnectedProviders": "暂无已连接的供应商",
     "noNotConnectedProviders": "暂无未连接的供应商",
     "noData": "暂无供应商数据",
@@ -631,4 +635,3 @@
          "noResults": "无匹配结果"
        }
      }
-

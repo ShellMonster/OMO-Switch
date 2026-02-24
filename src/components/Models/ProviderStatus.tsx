@@ -12,15 +12,12 @@ import {
   Plus,
   X,
   Zap,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '../common/cn';
-import { getConnectedProviders, getAvailableModels, getCustomModels, removeCustomModel } from '../../services/tauri';
+import { getCustomModels, removeCustomModel } from '../../services/tauri';
 import { usePreloadStore } from '../../store/preloadStore';
-
-// 获取 store 方法（在组件外使用，避免 hook 规则限制）
-const updateProviderModels = (provider: string, models: string[]) => {
-  usePreloadStore.getState().updateProviderModels(provider, models);
-};
 
 const removeProviderModel = (provider: string, modelId: string) => {
   usePreloadStore.getState().removeProviderModel(provider, modelId);
@@ -37,6 +34,34 @@ interface ProviderStatus {
   name: string;
   isConnected: boolean;
   modelCount: number;
+}
+
+type GroupedProviderModels = { provider: string; models: string[] };
+
+function compareProviderName(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { sensitivity: 'base' });
+}
+
+function sortModelNames(models: string[]): string[] {
+  return [...models].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  );
+}
+
+function normalizeAndSortGroupedModels(
+  groupedModels: GroupedProviderModels[]
+): GroupedProviderModels[] {
+  return groupedModels
+    .map((group) => ({
+      provider: group.provider,
+      models: sortModelNames(group.models),
+    }))
+    .sort((a, b) => {
+      if (b.models.length !== a.models.length) {
+        return b.models.length - a.models.length;
+      }
+      return compareProviderName(a.provider, b.provider);
+    });
 }
 
 /**
@@ -308,6 +333,12 @@ function ProviderGroup({
   customModels,
   emptyMessage,
   onModelAdded,
+  showValidationLoading = false,
+  validationLoadingLabel,
+  validationHint,
+  showValidationFallback = false,
+  validationFallbackLabel,
+  validationFallbackHint,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -317,6 +348,12 @@ function ProviderGroup({
   customModels: Record<string, string[]>;
   emptyMessage: string;
   onModelAdded: () => void;
+  showValidationLoading?: boolean;
+  validationLoadingLabel?: string;
+  validationHint?: string;
+  showValidationFallback?: boolean;
+  validationFallbackLabel?: string;
+  validationFallbackHint?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -337,8 +374,26 @@ function ProviderGroup({
           </div>
           <div>
             <h3 className="font-semibold text-slate-800">{title}</h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 flex items-center gap-2">
               {providers.length} {title.includes('已') ? '个已连接' : '个未连接'}
+              {showValidationLoading && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] text-indigo-600"
+                  title={validationHint}
+                >
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {validationLoadingLabel}
+                </span>
+              )}
+              {showValidationFallback && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] text-amber-600"
+                  title={validationFallbackHint}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  {validationFallbackLabel}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -389,84 +444,42 @@ function ProviderGroup({
  */
 export function ProviderStatus() {
   const { t } = useTranslation();
-  const preloadedModels = usePreloadStore((s) => s.models);
-  // refreshModels 已移除，不再在此组件中调用
+  const groupedModels = usePreloadStore((s) => s.models.grouped);
+  const connectedProviderIds = usePreloadStore((s) => s.models.providers);
+  const validating = usePreloadStore((s) => s.models.validating);
+  const source = usePreloadStore((s) => s.models.source);
+  const fallbackReason = usePreloadStore((s) => s.models.fallbackReason);
+  const refreshModels = usePreloadStore((s) => s.refreshModels);
 
-  // 状态
-  const [providers, setProviders] = useState<ProviderStatus[]>([]);
-  const [providerModels, setProviderModels] = useState<Record<string, string[]>>(
-    {}
-  );
   const [customModelsData, setCustomModelsData] = useState<Record<string, string[]>>(
     {}
   );
-  const [loading, setLoading] = useState(true);
+  const [customModelsLoaded, setCustomModelsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadData() {
+    refreshModels().catch(() => {
+      // 校验失败由后续加载逻辑兜底
+    });
+  }, [refreshModels]);
+
+  useEffect(() => {
+    async function loadCustomModels() {
       try {
-        setLoading(true);
         setError(null);
-
-        if (preloadedModels.grouped && preloadedModels.providers) {
-          const modelMap = Object.fromEntries(
-            preloadedModels.grouped.map((group) => [group.provider, group.models])
-          );
-          setProviderModels(modelMap);
-
-          const providerData = buildProviderStatus(
-            preloadedModels.grouped,
-            preloadedModels.providers
-          );
-          setProviders(providerData);
-
-          // 即使使用 preloadedModels，也要获取 customModels
-          try {
-            const customModels = await getCustomModels();
-            setCustomModelsData(customModels);
-          } catch {
-            // 忽略错误
-          }
-
-          setLoading(false);
-
-          return;
-        }
-
-        const [modelsData, connectedProviders, customModels] = await Promise.all([
-          getAvailableModels(),
-          getConnectedProviders(),
-          getCustomModels(),
-        ]);
-
-        const grouped = Object.entries(modelsData).map(([provider, models]) => ({
-          provider,
-          models,
-        }));
-
-        grouped.sort((a, b) => b.models.length - a.models.length);
-
-        const modelMap = Object.fromEntries(
-          grouped.map((group) => [group.provider, group.models])
-        );
-        setProviderModels(modelMap);
+        const customModels = await getCustomModels();
         setCustomModelsData(customModels);
-
-        const providerData = buildProviderStatus(grouped, connectedProviders);
-        setProviders(providerData);
+        setCustomModelsLoaded(true);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : t('providerStatus.loadFailed')
         );
-      } finally {
-        setLoading(false);
       }
     }
 
-    loadData();
+    loadCustomModels();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preloadedModels]);
+  }, []);
 
   // 构建供应商状态数据
   function buildProviderStatus(
@@ -482,6 +495,21 @@ export function ProviderStatus() {
     }));
   }
 
+  const grouped = useMemo(
+    () => normalizeAndSortGroupedModels(groupedModels || []),
+    [groupedModels]
+  );
+
+  const providerModels = useMemo(
+    () => Object.fromEntries(grouped.map((group) => [group.provider, group.models])),
+    [grouped]
+  );
+
+  const providers = useMemo(
+    () => buildProviderStatus(grouped, connectedProviderIds || []),
+    [grouped, connectedProviderIds]
+  );
+
   const { connected, notConnected } = useMemo(() => {
     return {
       connected: providers.filter((p) => p.isConnected),
@@ -491,38 +519,17 @@ export function ProviderStatus() {
 
   async function handleModelAdded() {
     try {
-      // 需要刷新两个数据源：
-      // 1. providerModels（用于显示模型列表）
-      // 2. customModelsData（用于判断哪些是自定义模型）
-      const [modelsData, customModels] = await Promise.all([
-        getAvailableModels(),
-        getCustomModels(),
-      ]);
-
-      // 更新 providerModels
-      const grouped = Object.entries(modelsData).map(([provider, models]) => ({
-        provider,
-        models,
-      }));
-      grouped.sort((a, b) => b.models.length - a.models.length);
-      const modelMap = Object.fromEntries(
-        grouped.map((group) => [group.provider, group.models])
-      );
-      setProviderModels(modelMap);
-
-      // 更新 customModelsData
+      await refreshModels();
+      const customModels = await getCustomModels();
       setCustomModelsData(customModels);
-
-      // 同步更新 zustand store（供 AgentPage 使用）
-      Object.entries(modelsData).forEach(([provider, models]) => {
-        updateProviderModels(provider, models);
-      });
     } catch (error) {
       console.error('[ProviderStatus] Failed to refresh models:', error);
     }
   }
 
-  if (loading) {
+  const initialLoading = (!groupedModels || !connectedProviderIds || !customModelsLoaded) && !error;
+
+  if (initialLoading) {
     return <ProviderStatusSkeleton />;
   }
 
@@ -540,7 +547,7 @@ export function ProviderStatus() {
     );
   }
 
-  if (!loading && providers.length === 0) {
+  if (providers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -624,6 +631,14 @@ export function ProviderStatus() {
         customModels={customModelsData}
         emptyMessage={t('providerStatus.noConnectedProviders')}
         onModelAdded={handleModelAdded}
+        showValidationLoading={validating}
+        validationLoadingLabel={t('providerStatus.modelValidationLoading')}
+        validationHint={t('providerStatus.modelValidationHint')}
+        showValidationFallback={!validating && source === 'cache_fallback'}
+        validationFallbackLabel={t('providerStatus.modelValidationFallback')}
+        validationFallbackHint={
+          fallbackReason || t('providerStatus.modelValidationFallbackHint')
+        }
       />
 
       <ProviderGroup

@@ -1,5 +1,7 @@
 use crate::services::preset_service;
+use crate::services::preset_service::PresetUpdateRequest;
 use crate::services::preset_service::PresetMeta;
+use serde_json::Value;
 
 #[tauri::command]
 pub fn save_preset(name: String) -> Result<(), String> {
@@ -9,6 +11,11 @@ pub fn save_preset(name: String) -> Result<(), String> {
 #[tauri::command]
 pub fn load_preset(name: String) -> Result<(), String> {
     preset_service::load_preset(&name)
+}
+
+#[tauri::command]
+pub fn get_preset_config(name: String) -> Result<Value, String> {
+    preset_service::get_preset_config(&name)
 }
 
 #[tauri::command]
@@ -33,6 +40,17 @@ pub fn update_preset(name: String) -> Result<(), String> {
         return Err("内置预设不可修改".to_string());
     }
     preset_service::update_preset(&name)
+}
+
+#[tauri::command]
+pub fn apply_updates_to_preset(
+    name: String,
+    updates: Vec<PresetUpdateRequest>,
+) -> Result<(), String> {
+    if name.starts_with("__builtin__") {
+        return Err("内置预设不可修改".to_string());
+    }
+    preset_service::apply_updates_to_preset(&name, &updates)
 }
 
 /// 获取预设元数据（供 UI 显示更新时间）
