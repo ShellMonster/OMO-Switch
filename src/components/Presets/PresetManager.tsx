@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Plus, Trash2, Power, CheckCircle2, Settings, Star, Zap, Coins, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { Bookmark, Plus, Trash2, Power, CheckCircle2, Star, Zap, Coins, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, getConfigModificationTime, saveConfigSnapshot } from '../../services/tauri';
+import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, saveConfigSnapshot } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 import { usePreloadStore } from '../../store/preloadStore';
 import type { BuiltinPresetInfo } from '../../services/tauri';
@@ -44,8 +44,8 @@ function PresetCard({ name, agentCount, categoryCount, updatedAt, isActive, onLo
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-slate-800 truncate" title={name}>
-            {name}
+          <h3 className="font-semibold text-slate-800 truncate" title={name === 'default' ? t('presetManager.defaultPreset') : name}>
+            {name === 'default' ? t('presetManager.defaultPreset') : name}
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             {t('presetCard.lastUpdated')}: {formatUpdatedTime(updatedAt)}
@@ -99,74 +99,6 @@ interface PresetWithInfo {
   categoryCount: number;
   createdAt: string;
   updatedAt: number | null;
-}
-
-interface DefaultPresetCardProps {
-  isActive: boolean;
-  agentCount: number;
-  categoryCount: number;
-  modifiedTime: number | null;
-  onLoad?: () => void;
-  loadLabel?: string;
-}
-
-function DefaultPresetCard({ isActive, agentCount, categoryCount, modifiedTime, onLoad, loadLabel }: DefaultPresetCardProps) {
-  const { t } = useTranslation();
-
-  const formatModifiedTime = (timestamp: number | null): string => {
-    if (!timestamp) return t('presetCard.unknown');
-    const date = new Date(timestamp);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).replace(/\//g, '-');
-  };
-
-  return (
-    <div 
-      className="group bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md hover:border-indigo-200 transition-all duration-200 cursor-pointer"
-      onClick={!isActive ? onLoad : undefined}
-    >
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-          <Settings className="w-5 h-5 text-white" />
-        </div>
-        <h3 className="font-semibold text-slate-800 truncate flex-1 min-w-0">
-          {t('presetManager.defaultPreset')}
-        </h3>
-        <div className="flex flex-col items-end gap-1">
-          <span className="whitespace-nowrap text-sm text-slate-500">
-            {agentCount} agents, {categoryCount} categories
-          </span>
-          <p className="text-xs text-slate-400">
-            {t('presetCard.lastUpdated')}: {formatModifiedTime(modifiedTime)}
-          </p>
-        </div>
-        {isActive ? (
-          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            {t('presetCard.active')}
-          </span>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onLoad?.();
-            }}
-            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-          >
-            <Power className="w-4 h-4" />
-            <span className="hidden sm:inline">{loadLabel}</span>
-          </Button>
-        )}
-      </div>
-    </div>
-  );
 }
 
 // 内置预设卡片属性
@@ -273,11 +205,6 @@ export function PresetManager() {
   const [newPresetName, setNewPresetName] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [defaultPresetInfo, setDefaultPresetInfo] = useState({
-    agentCount: 0,
-    categoryCount: 0
-  });
-  const [configModifiedTime, setConfigModifiedTime] = useState<number | null>(null);
   const [builtinPresets, setBuiltinPresets] = useState<BuiltinPresetInfo[]>([]);
   const [builtinPresetStats, setBuiltinPresetStats] = useState<Record<string, { agentCount: number; categoryCount: number }>>({});
   const [myPresetsExpanded, setMyPresetsExpanded] = useState(true);
@@ -310,23 +237,6 @@ export function PresetManager() {
     }
   };
 
-  const loadDefaultPresetInfo = async () => {
-    try {
-      // 优先使用缓存数据，避免重复请求
-      const config = cachedOmoConfig || await getOmoConfig();
-      setDefaultPresetInfo({
-        agentCount: Object.keys(config.agents || {}).length,
-        categoryCount: Object.keys(config.categories || {}).length
-      });
-      const modifiedTime = await getConfigModificationTime();
-      setConfigModifiedTime(modifiedTime);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Failed to load default preset info:', error);
-      }
-    }
-  };
-
   const loadBuiltinPresets = async () => {
     try {
       const presets = await getBuiltinPresets();
@@ -355,7 +265,6 @@ export function PresetManager() {
 
   useEffect(() => {
     loadPresetList();
-    loadDefaultPresetInfo();
     loadBuiltinPresets();
   }, []);
 
@@ -386,25 +295,6 @@ export function PresetManager() {
       setActivePreset(name);
       await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
       toast.success(t('presetManager.loadSuccess', { name }));
-      setError(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('presetManager.loadFailed'));
-      setError(err instanceof Error ? err.message : t('presetManager.loadFailed'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * 加载默认预设
-   */
-  const handleLoadDefault = async () => {
-    try {
-      setIsLoading(true);
-      await loadPreset('default');
-      await saveConfigSnapshot();
-      setActivePreset('default');
-      toast.success(t('presetManager.loadSuccess', { name: t('presetManager.defaultPreset') }));
       setError(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('presetManager.loadFailed'));
@@ -564,15 +454,6 @@ export function PresetManager() {
               {/* 分隔线 */}
               <div className="border-t border-slate-200 my-2" />
 
-              {/* 默认预设 */}
-              <DefaultPresetCard
-                isActive={activePreset === null}
-                agentCount={defaultPresetInfo.agentCount}
-                categoryCount={defaultPresetInfo.categoryCount}
-                modifiedTime={configModifiedTime}
-                onLoad={handleLoadDefault}
-                loadLabel={t('presetManager.load')}
-              />
               {presets.length === 0 ? (
                 <div className="text-center py-8 text-slate-500">{t('presetManager.noPresets')}</div>
               ) : (
