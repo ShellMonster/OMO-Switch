@@ -20,7 +20,11 @@ export const usePresetStore = create<PresetState>()(
   persist(
     (set, get) => ({
       activePreset: 'default',
-      setActivePreset: (name) => set({ activePreset: name }),
+      setActivePreset: (name) =>
+        set({
+          activePreset:
+            name && name.startsWith('__builtin__') ? 'default' : name,
+        }),
       clearActivePreset: () => set({ activePreset: 'default' }),
 
       // 预设列表缓存

@@ -56,7 +56,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     toggleSidebar 
   } = useUIStore();
   const startPreload = usePreloadStore(s => s.startPreload);
-  const checkUpstreamUpdate = usePreloadStore(s => s.checkUpstreamUpdate);
   
   const [appName, setAppName] = useState('OMO Switch');
   const [appVersion, setAppVersion] = useState('0.1.0');
@@ -75,24 +74,10 @@ export function MainLayout({ children }: MainLayoutProps) {
       void startPreload();
     }, 300);
 
-    const upstreamTimer = setTimeout(() => {
-      const idleWindow = window as Window & {
-        requestIdleCallback?: (cb: IdleRequestCallback) => number;
-      };
-      if (idleWindow.requestIdleCallback) {
-        idleWindow.requestIdleCallback(() => {
-          void checkUpstreamUpdate().catch(() => {});
-        });
-      } else {
-        void checkUpstreamUpdate().catch(() => {});
-      }
-    }, 4000);
-
     return () => {
       clearTimeout(preloadTimer);
-      clearTimeout(upstreamTimer);
     };
-  }, [startPreload, checkUpstreamUpdate]);
+  }, [startPreload]);
 
   const currentPageInfo = navItems.find(item => item.id === currentPage);
   const CurrentIcon = currentPageInfo?.icon || Bot;

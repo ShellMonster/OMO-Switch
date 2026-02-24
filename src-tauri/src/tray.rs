@@ -69,25 +69,6 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 return;
             }
 
-            // 内置预设切换
-            if let Some(preset_id) = id.strip_prefix("builtin:") {
-                if let Err(err) = crate::commands::upstream_sync_commands::apply_builtin_preset(
-                    preset_id.to_string(),
-                ) {
-                    eprintln!("托盘切换内置预设失败: {}", err);
-                    return;
-                }
-                if let Err(err) =
-                    preset_service::set_active_preset(&format!("__builtin__{}", preset_id))
-                {
-                    eprintln!("设置当前预设失败: {}", err);
-                }
-                if let Err(err) = rebuild_tray_menu(app_handle) {
-                    eprintln!("托盘菜单刷新失败: {}", err);
-                }
-                return;
-            }
-
             // 用户预设切换
             if let Some(preset_name) = id
                 .strip_prefix(ACTION_SET_PRESET)
@@ -306,33 +287,6 @@ fn build_tray_menu<R: Runtime, M: Manager<R>>(
     menu_builder = menu_builder.item(&presets_header);
 
     let active_preset = preset_service::get_active_preset();
-
-    // 内置预设
-    let builtin_presets = [
-        (
-            "official-default",
-            crate::i18n::tr_current("preset_official_default"),
-        ),
-        ("economy", crate::i18n::tr_current("preset_economy")),
-        (
-            "high-performance",
-            crate::i18n::tr_current("preset_high_performance"),
-        ),
-    ];
-
-    for (id, name) in &builtin_presets {
-        let item_id = format!("builtin:{}", id);
-        let is_active = active_preset.as_ref() == Some(&format!("__builtin__{}", id));
-
-        let display_name = if is_active {
-            format!("● {}", name)
-        } else {
-            format!("  {}", name)
-        };
-
-        let preset_item = MenuItemBuilder::with_id(item_id, display_name).build(manager)?;
-        menu_builder = menu_builder.item(&preset_item);
-    }
 
     // 用户预设
     let user_presets = preset_service::list_presets().unwrap_or_default();

@@ -143,13 +143,12 @@ export function ApplyModelModal({
 
       try {
         const presets = await refreshPresetList(true);
-        const editablePresets = presets.filter((name) => !name.startsWith('__builtin__'));
-        const options = editablePresets.length > 0 ? editablePresets : ['default'];
+        const options = presets.length > 0 ? presets : ['default'];
         if (cancelled) return;
         setPresetOptions(options);
 
         const initialPreset =
-          activePreset && options.includes(activePreset) && !activePreset.startsWith('__builtin__')
+          activePreset && options.includes(activePreset)
             ? activePreset
             : options.includes('default')
               ? 'default'
@@ -290,8 +289,7 @@ export function ApplyModelModal({
         updateCategoryInConfig(categoryName, { model: fullModelPath, variant });
       });
 
-      const currentEditablePreset =
-        activePreset && !activePreset.startsWith('__builtin__') ? activePreset : null;
+      const currentEditablePreset = activePreset || null;
 
       if (currentEditablePreset && targetPreset === currentEditablePreset) {
         await updateAgentsBatch(updates);

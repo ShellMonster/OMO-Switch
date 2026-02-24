@@ -35,10 +35,6 @@ pub fn get_preset_info(name: String) -> Result<(usize, usize, String), String> {
 
 #[tauri::command]
 pub fn update_preset(name: String) -> Result<(), String> {
-    // 检查是否为内置预设，内置预设不可修改
-    if name.starts_with("__builtin__") {
-        return Err("内置预设不可修改".to_string());
-    }
     preset_service::update_preset(&name)
 }
 
@@ -47,9 +43,6 @@ pub fn apply_updates_to_preset(
     name: String,
     updates: Vec<PresetUpdateRequest>,
 ) -> Result<(), String> {
-    if name.starts_with("__builtin__") {
-        return Err("内置预设不可修改".to_string());
-    }
     preset_service::apply_updates_to_preset(&name, &updates)
 }
 
@@ -63,4 +56,10 @@ pub fn get_preset_meta(name: String) -> Result<PresetMeta, String> {
 #[tauri::command]
 pub fn sync_preset_from_config(name: String) -> Result<(), String> {
     preset_service::sync_preset_from_config(&name)
+}
+
+/// 设置当前激活预设名称（仅更新 active_preset 标记，不加载配置）
+#[tauri::command]
+pub fn set_active_preset(name: String) -> Result<(), String> {
+    preset_service::set_active_preset(&name)
 }

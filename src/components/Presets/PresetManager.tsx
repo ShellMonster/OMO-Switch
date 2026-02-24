@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Plus, Trash2, Power, CheckCircle2, Star, Zap, Coins, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { Bookmark, Plus, Trash2, Power, CheckCircle2, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { savePreset, loadPreset, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, saveConfigSnapshot } from '../../services/tauri';
+import { savePreset, loadPreset, deletePreset, getPresetInfo, getPresetMeta, saveConfigSnapshot } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 import { usePreloadStore } from '../../store/preloadStore';
-import type { BuiltinPresetInfo } from '../../services/tauri';
 
 interface PresetCardProps {
   name: string;
@@ -101,99 +100,9 @@ interface PresetWithInfo {
   updatedAt: number | null;
 }
 
-// 内置预设卡片属性
-interface BuiltinPresetCardProps {
-  preset: BuiltinPresetInfo;
-  agentCount: number;
-  categoryCount: number;
-  isActive?: boolean;
-  isLoading?: boolean;
-  onApply: () => void;
-  applyLabel: string;
-}
-
-// 内置预设卡片组件 - 带特殊样式，无删除按钮
-function BuiltinPresetCard({ preset, agentCount, categoryCount, isActive, isLoading, onApply, applyLabel }: BuiltinPresetCardProps) {
-  const { t } = useTranslation();
-
-  // 根据预设类型选择图标和颜色
-  const getIconAndColor = (id: string) => {
-    switch (id) {
-      case 'official-default':
-        return { Icon: Star, gradient: 'from-amber-400 to-orange-500' };
-      case 'economy':
-        return { Icon: Coins, gradient: 'from-emerald-400 to-teal-500' };
-      case 'high-performance':
-        return { Icon: Zap, gradient: 'from-violet-500 to-purple-600' };
-      default:
-        return { Icon: Star, gradient: 'from-slate-400 to-slate-500' };
-    }
-  };
-
-  const { Icon, gradient } = getIconAndColor(preset.id);
-
-  return (
-    <div className="group bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-amber-200/60 p-3 hover:shadow-md hover:border-amber-300 transition-all duration-200 relative overflow-hidden">
-      {/* 装饰性背景 */}
-      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-200/20 to-transparent rounded-bl-full" />
-
-      <div className="flex items-center gap-3 relative">
-        <div className={`w-10 h-10 bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center shadow-sm flex-shrink-0`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-slate-800 truncate" title={preset.name}>
-              {preset.name}
-            </h3>
-            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded font-medium">
-              {t('presetManager.builtin')}
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-0.5 truncate" title={preset.description}>
-            {preset.description}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 text-sm text-slate-500 flex-shrink-0">
-          <span className="whitespace-nowrap">
-            {agentCount} agents, {categoryCount} categories
-          </span>
-
-          {isActive && (
-            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              {t('presetCard.active')}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {!isActive && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onApply}
-              disabled={isLoading}
-              className="flex items-center gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-            >
-              <Power className="w-4 h-4" />
-              <span className="hidden sm:inline">{applyLabel}</span>
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function PresetManager() {
   const { t } = useTranslation();
   const { activePreset, setActivePreset, refreshPresetList } = usePresetStore();
-  // 从 preloadStore 获取已缓存的 omoConfig 数据
-  const cachedOmoConfig = usePreloadStore(s => s.omoConfig.data);
-  const lastSyncTime = usePreloadStore(s => s.upstreamUpdateStatus.lastChecked);
   // 获取版本信息，检测 Oh My OpenCode 是否已安装
   const versions = usePreloadStore(s => s.versions.data);
   const omoInfo = versions?.find(v => v.name === 'Oh My OpenCode');
@@ -205,8 +114,6 @@ export function PresetManager() {
   const [newPresetName, setNewPresetName] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [builtinPresets, setBuiltinPresets] = useState<BuiltinPresetInfo[]>([]);
-  const [builtinPresetStats, setBuiltinPresetStats] = useState<Record<string, { agentCount: number; categoryCount: number }>>({});
   const [myPresetsExpanded, setMyPresetsExpanded] = useState(true);
 
   const loadPresetList = async () => {
@@ -237,35 +144,8 @@ export function PresetManager() {
     }
   };
 
-  const loadBuiltinPresets = async () => {
-    try {
-      const presets = await getBuiltinPresets();
-      setBuiltinPresets(presets);
-
-      // 优先使用缓存数据，避免重复请求
-      const config = cachedOmoConfig || await getOmoConfig();
-      const currentAgentCount = Object.keys(config.agents || {}).length;
-      const currentCategoryCount = Object.keys(config.categories || {}).length;
-
-      // 为每个内置预设设置相同的统计信息（基于当前配置）
-      const stats: Record<string, { agentCount: number; categoryCount: number }> = {};
-      presets.forEach(preset => {
-        stats[preset.id] = {
-          agentCount: currentAgentCount,
-          categoryCount: currentCategoryCount
-        };
-      });
-      setBuiltinPresetStats(stats);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Failed to load builtin presets:', error);
-      }
-    }
-  };
-
   useEffect(() => {
     void loadPresetList();
-    loadBuiltinPresets();
   }, [refreshPresetList]);
 
   const handleSavePreset = async () => {
@@ -295,27 +175,6 @@ export function PresetManager() {
       setActivePreset(name);
       await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
       toast.success(t('presetManager.loadSuccess', { name }));
-      setError(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('presetManager.loadFailed'));
-      setError(err instanceof Error ? err.message : t('presetManager.loadFailed'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * 应用内置预设
-   */
-  const handleApplyBuiltinPreset = async (presetId: string) => {
-    try {
-      setIsLoading(true);
-      await applyBuiltinPreset(presetId);
-      setActivePreset(`__builtin__${presetId}`);
-      await saveConfigSnapshot();  // 新增：更新配置快照，避免误报"配置被外部修改"
-
-      const preset = builtinPresets.find(p => p.id === presetId);
-      toast.success(t('presetManager.loadSuccess', { name: preset?.name || presetId }));
       setError(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('presetManager.loadFailed'));
@@ -425,41 +284,6 @@ export function PresetManager() {
 
           {/* 预设列表 - 始终渲染，不随 loading 状态卸载 */}
           <div className="flex flex-col gap-3">
-            {/* 内置预设（置顶） */}
-            <div className="text-xs text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-2">
-              <Star className="w-3 h-3" />
-              {t('presetManager.builtinLabel')}
-            </div>
-            {builtinPresets.map((preset) => (
-              <BuiltinPresetCard
-                key={preset.id}
-                preset={preset}
-                agentCount={builtinPresetStats[preset.id]?.agentCount || 0}
-                categoryCount={builtinPresetStats[preset.id]?.categoryCount || 0}
-                isActive={activePreset === `__builtin__${preset.id}`}
-                isLoading={isLoading}
-                onApply={() => handleApplyBuiltinPreset(preset.id)}
-                applyLabel={t('presetManager.apply')}
-              />
-            ))}
-
-            {/* 上次同步时间 */}
-            <p className="text-xs text-slate-400 mb-2">
-              {t('presetManager.lastSync')}: {lastSyncTime
-                ? new Date(lastSyncTime).toLocaleString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }).replace(/\//g, '-')
-                : t('presetManager.notSynced')}
-            </p>
-
-            {/* 分隔线 */}
-            <div className="border-t border-slate-200 my-2" />
-
-            {/* 用户预设 */}
             {presets.length === 0 ? (
               <div className="text-center py-8 text-slate-500">{t('presetManager.noPresets')}</div>
             ) : (

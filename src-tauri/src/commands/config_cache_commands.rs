@@ -120,17 +120,26 @@ pub async fn accept_external_changes() -> Result<AcceptExternalChangesResult, St
         config_service::validate_config(&config)?;
         config_cache_service::save_config_snapshot(&config)?;
 
-        let active_preset = preset_service::get_active_preset();
+        let mut active_preset = preset_service::get_active_preset();
         let mut preset_synced = false;
         let mut preset_sync_error: Option<String> = None;
 
         if let Some(name) = active_preset.as_ref() {
-            if !name.starts_with("__builtin__") {
-                if let Err(err) = preset_service::update_preset(name) {
+            // 兼容旧版本遗留的内置预设标识，统一回退到 default
+            if name.starts_with("__builtin__") {
+                if let Err(err) = preset_service::set_active_preset("default") {
                     preset_sync_error = Some(err);
                 } else {
-                    preset_synced = true;
+                    active_preset = Some("default".to_string());
                 }
+            }
+        }
+
+        if let Some(name) = active_preset.as_ref() {
+            if let Err(err) = preset_service::update_preset(name) {
+                preset_sync_error = Some(err);
+            } else {
+                preset_synced = true;
             }
         }
 

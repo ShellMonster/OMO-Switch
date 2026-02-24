@@ -196,29 +196,6 @@ export interface PresetInfo {
   createdAt: string;
 }
 
-// ==================== 内置预设相关接口 ====================
-
-/**
- * 内置预设信息
- */
-export interface BuiltinPresetInfo {
-  id: string;          // 预设 ID（如 "official-default", "economy", "high-performance"）
-  name: string;        // 显示名称
-  description: string; // 描述
-  icon?: string;       // 图标名称（可选）
-}
-
-/**
- * 内置预设详细数据
- */
-export interface BuiltinPresetData {
-  id: string;
-  name: string;
-  description: string;
-  agents: Record<string, AgentConfig>;     // Agent 配置
-  categories: Record<string, AgentConfig>; // Category 配置
-}
-
 export async function savePreset(name: string): Promise<void> {
   return invoke<void>('save_preset', { name });
 }
@@ -267,59 +244,8 @@ export async function applyUpdatesToPreset(
   return invoke<void>('apply_updates_to_preset', { name, updates });
 }
 
-/**
- * 获取内置预设列表
- * 返回三套内置预设：官方默认、经济模式、高性能模式
- */
-export async function getBuiltinPresets(): Promise<BuiltinPresetInfo[]> {
-  return invoke<BuiltinPresetInfo[]>('get_builtin_presets');
-}
-
-/**
- * 应用指定内置预设到配置文件
- * @param presetId 预设ID (official-default/economy/high-performance)
- */
-export async function applyBuiltinPreset(presetId: string): Promise<void> {
-  return invoke<void>('apply_builtin_preset', { presetId });
-}
-
-// ==================== 上游配置同步接口 ====================
-
-/**
- * Category 默认配置
- * 对应上游配置中的 DEFAULT_CATEGORIES
- */
-export interface CategoryDefault {
-  model: string;
-  variant?: string;
-}
-
-/**
- * Fallback 条目
- * 对应上游配置中的 FallbackEntry
- */
-export interface FallbackEntry {
-  providers: string[];
-  model: string;
-  variant?: string;
-}
-
-/**
- * 上游同步结果
- */
-export interface UpstreamSyncResult {
-  has_update: boolean;
-  categories: Record<string, CategoryDefault>;
-  agent_requirements: Record<string, FallbackEntry[]>;
-  content_hash: string;
-}
-
-/**
- * 检查上游配置是否有更新
- * 从 GitHub Raw 获取最新配置并对比哈希
- */
-export async function checkUpstreamUpdate(): Promise<UpstreamSyncResult> {
-  return invoke<UpstreamSyncResult>('check_upstream_update');
+export async function setActivePreset(name: string): Promise<void> {
+  return invoke<void>('set_active_preset', { name });
 }
 
 export interface BackupInfo {
@@ -450,6 +376,7 @@ const tauriService = {
   deletePreset,
   getPresetInfo,
   updatePreset,
+  setActivePreset,
   exportOmoConfig,
   importOmoConfig,
   validateImport,
@@ -465,10 +392,6 @@ const tauriService = {
   saveConfigSnapshot,
   mergeAndSave,
   acceptExternalChanges,
-
-  // 内置预设
-  getBuiltinPresets,
-  applyBuiltinPreset,
 
   // 自定义模型管理
   addCustomModel,

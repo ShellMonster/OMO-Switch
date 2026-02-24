@@ -7,9 +7,9 @@ import {
   fetchModelsDev,
   checkVersions,
   getOmoConfig,
-  checkUpstreamUpdate,
   listPresets,
   savePreset,
+  setActivePreset as persistActivePreset,
   type ModelInfo,
   type VersionInfo,
   type OmoConfig,
@@ -45,25 +45,16 @@ interface PreloadState {
     loading: boolean;
     error: string | null;
   };
-  // 上游配置更新状态
-  upstreamUpdateStatus: {
-    hasUpdate: boolean | null;  // null = 未检查，true = 有更新，false = 无更新
-    lastChecked: string | null; // ISO 时间戳
-    loading: boolean;
-    error: string | null;
-  };
   isPreloading: boolean;
   preloadComplete: boolean;
   // 请求锁 - 防止重复请求（内部状态，不对外暴露）
   _modelsRefreshing: boolean;
   _omoConfigRefreshing: boolean;
   _versionsRefreshing: boolean;
-  _upstreamRefreshing: boolean;
   startPreload: () => void;
   loadOmoConfig: () => Promise<void>;
   refreshModels: () => Promise<void>;
   refreshVersions: () => Promise<void>;
-  checkUpstreamUpdate: (options?: { force?: boolean }) => Promise<void>;  // 检查上游配置更新
   softRefreshAll: () => void;
   retryAll: () => void;
   // 更新 omoConfig 中特定 agent 或 category 的配置
@@ -109,15 +100,6 @@ export const usePreloadStore = create<PreloadState>()(
   _modelsRefreshing: false,
   _omoConfigRefreshing: false,
   _versionsRefreshing: false,
-  _upstreamRefreshing: false,
-
-  // 上游配置更新状态初始值
-  upstreamUpdateStatus: {
-    hasUpdate: null,
-    lastChecked: null,
-    loading: false,
-    error: null,
-  },
 
   startPreload: async () => {
     const state = get();
@@ -140,8 +122,9 @@ export const usePreloadStore = create<PreloadState>()(
 
         // 如果没有活跃预设，设置为 default
         const currentPreset = usePresetStore.getState().activePreset;
-        if (!currentPreset) {
+        if (!currentPreset || currentPreset.startsWith('__builtin__')) {
           usePresetStore.getState().setActivePreset('default');
+          await persistActivePreset('default');
         }
       } catch (err) {
         // 预设初始化失败不影响主流程
@@ -351,51 +334,6 @@ refreshVersions: async () => {
   }
 },
 
-// 检查上游配置更新（静默执行，用于启动时后台检查）
-checkUpstreamUpdate: async (options = {}) => {
-  const state = get();
-  const force = Boolean(options.force);
-
-  // 防止重复请求
-  if (state._upstreamRefreshing) {
-    return;
-  }
-
-  if (!force && state.upstreamUpdateStatus.lastChecked) {
-    const last = Date.parse(state.upstreamUpdateStatus.lastChecked);
-    const now = Date.now();
-    if (!Number.isNaN(last) && now - last < 30 * 60 * 1000) {
-      return;
-    }
-  }
-
-  set({ _upstreamRefreshing: true, upstreamUpdateStatus: { ...state.upstreamUpdateStatus, loading: true } });
-
-  try {
-    const result = await checkUpstreamUpdate();
-    set({
-      upstreamUpdateStatus: {
-        hasUpdate: result.has_update,
-        lastChecked: new Date().toISOString(),
-        loading: false,
-        error: null,
-      },
-      _upstreamRefreshing: false,
-    });
-  } catch (error) {
-    // 静默失败，网络不可用时不影响应用
-    set({
-      upstreamUpdateStatus: {
-        hasUpdate: null,
-        lastChecked: null,
-        loading: false,
-        error: error instanceof Error ? error.message : '检查上游更新失败',
-      },
-      _upstreamRefreshing: false,
-    });
-  }
-},
-
 // 软刷新所有数据（非阻塞后台刷新，用于页面进入时）
 softRefreshAll: () => {
   // 并行调用三个刷新方法，全部为非阻塞后台刷新
@@ -535,12 +473,6 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
       error: null,
     },
     versions: { data: state.versions.data, loading: false, error: null },
-    upstreamUpdateStatus: {
-      hasUpdate: state.upstreamUpdateStatus.hasUpdate,
-      lastChecked: state.upstreamUpdateStatus.lastChecked,
-      loading: false,
-      error: null,
-    },
   }),
 }
   )

@@ -21,7 +21,6 @@ import { toast } from '../components/common/Toast';
 import { supportedLanguages } from '../i18n';
 import { usePreloadStore } from '../store/preloadStore';
 import { useUpdaterStore } from '../store/updaterStore';
-import { UpstreamSyncPanel } from '../components/UpstreamSync/UpstreamSyncPanel';
 import appLogo from '../assets/logo.png';
 
 /**
@@ -484,9 +483,6 @@ onClick={async () => {
           </div>
         </div>
       </div>
-
-      {/* 上游配置同步卡片 */}
-      <UpstreamSyncPanel />
 
       {/* 软件更新卡片 */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
