@@ -216,6 +216,9 @@ pub fn apply_builtin_preset(preset_id: String) -> Result<(), String> {
     config_service::validate_config(&config)?;
     config_service::write_omo_config(&config)?;
 
+    // 9. 记录当前激活的内置预设（用于托盘菜单显示）
+    crate::services::preset_service::set_active_preset(&format!("__builtin__{}", preset_id))?;
+
     Ok(())
 }
 
