@@ -4,7 +4,7 @@ import { Bookmark, Plus, Trash2, Power, CheckCircle2, Star, Zap, Coins, ChevronD
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { savePreset, loadPreset, listPresets, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, saveConfigSnapshot } from '../../services/tauri';
+import { savePreset, loadPreset, deletePreset, getPresetInfo, getPresetMeta, getOmoConfig, getBuiltinPresets, applyBuiltinPreset, saveConfigSnapshot } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 import { usePreloadStore } from '../../store/preloadStore';
 import type { BuiltinPresetInfo } from '../../services/tauri';
@@ -190,7 +190,7 @@ function BuiltinPresetCard({ preset, agentCount, categoryCount, isActive, isLoad
 
 export function PresetManager() {
   const { t } = useTranslation();
-  const { activePreset, setActivePreset } = usePresetStore();
+  const { activePreset, setActivePreset, refreshPresetList } = usePresetStore();
   // 从 preloadStore 获取已缓存的 omoConfig 数据
   const cachedOmoConfig = usePreloadStore(s => s.omoConfig.data);
   const lastSyncTime = usePreloadStore(s => s.upstreamUpdateStatus.lastChecked);
@@ -212,7 +212,7 @@ export function PresetManager() {
   const loadPresetList = async () => {
     try {
       setIsLoading(true);
-      const names = await listPresets();
+      const names = await refreshPresetList(true);
 
       const presetsWithInfo = await Promise.all(
         names.map(async (name) => {
@@ -264,9 +264,9 @@ export function PresetManager() {
   };
 
   useEffect(() => {
-    loadPresetList();
+    void loadPresetList();
     loadBuiltinPresets();
-  }, []);
+  }, [refreshPresetList]);
 
   const handleSavePreset = async () => {
     if (!newPresetName.trim()) {

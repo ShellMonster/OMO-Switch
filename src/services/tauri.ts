@@ -326,11 +326,13 @@ export interface BackupInfo {
   filename: string;
   path: string;
   created_at: string;
+  created_at_ts: number;
   size: number;
+  operation: string;
 }
 
-export async function exportOmoConfig(path: string): Promise<void> {
-  return invoke<void>('export_omo_config', { path });
+export async function exportOmoConfig(path: string, recordHistory = false): Promise<void> {
+  return invoke<void>('export_omo_config', { path, recordHistory });
 }
 
 export async function importOmoConfig(path: string): Promise<void> {
@@ -343,6 +345,30 @@ export async function validateImport(path: string): Promise<OmoConfig> {
 
 export async function getImportExportHistory(): Promise<BackupInfo[]> {
   return invoke<BackupInfo[]>('get_import_export_history');
+}
+
+export async function restoreBackup(path: string): Promise<void> {
+  return invoke<void>('restore_backup', { path });
+}
+
+export async function deleteBackup(path: string): Promise<void> {
+  return invoke<void>('delete_backup', { path });
+}
+
+export async function exportBackup(path: string, targetPath: string): Promise<void> {
+  return invoke<void>('export_backup', { path, targetPath });
+}
+
+export async function clearBackupHistory(): Promise<number> {
+  return invoke<number>('clear_backup_history');
+}
+
+export async function getBackupHistoryLimit(): Promise<number> {
+  return invoke<number>('get_backup_history_limit');
+}
+
+export async function setBackupHistoryLimit(limit: number): Promise<number> {
+  return invoke<number>('set_backup_history_limit', { limit });
 }
 
 // ==================== 配置快照相关接口 ====================
@@ -370,6 +396,20 @@ export async function getConfigModificationTime(): Promise<number | null> {
  */
 export async function mergeAndSave(): Promise<void> {
   return invoke<void>('merge_and_save');
+}
+
+export interface AcceptExternalChangesResult {
+  config: OmoConfig;
+  active_preset: string | null;
+  preset_synced: boolean;
+  preset_sync_error: string | null;
+}
+
+/**
+ * 接受外部配置变更并同步快照/当前预设
+ */
+export async function acceptExternalChanges(): Promise<AcceptExternalChangesResult> {
+  return invoke<AcceptExternalChangesResult>('accept_external_changes');
 }
 
 // ==================== 版本检查接口 ====================
@@ -414,10 +454,17 @@ const tauriService = {
   importOmoConfig,
   validateImport,
   getImportExportHistory,
+  restoreBackup,
+  deleteBackup,
+  exportBackup,
+  clearBackupHistory,
+  getBackupHistoryLimit,
+  setBackupHistoryLimit,
 
   // 配置快照
   saveConfigSnapshot,
   mergeAndSave,
+  acceptExternalChanges,
 
   // 内置预设
   getBuiltinPresets,

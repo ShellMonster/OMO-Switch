@@ -1,10 +1,116 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ExternalLink, Trash2, Settings, Plus, ChevronDown, Edit } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { Button } from '../common/Button';
 import { cn } from '../common/cn';
+
+const ICON_REQUEST_CONCURRENCY = 4;
+const ICON_FAIL_TTL_MS = 6 * 60 * 60 * 1000;
+const ICON_FAIL_CACHE_KEY = 'omo.providerIconFailCache.v1';
+
+const iconPathCache = new Map<string, string | null>();
+const iconInflight = new Map<string, Promise<string | null>>();
+let iconQueueRunning = 0;
+const iconQueueWaiters: Array<() => void> = [];
+
+function runWithIconQueue<T>(task: () => Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      iconQueueRunning += 1;
+      void task()
+        .then(resolve)
+        .catch(reject)
+        .finally(() => {
+          iconQueueRunning = Math.max(0, iconQueueRunning - 1);
+          const next = iconQueueWaiters.shift();
+          if (next) next();
+        });
+    };
+
+    if (iconQueueRunning < ICON_REQUEST_CONCURRENCY) {
+      run();
+      return;
+    }
+    iconQueueWaiters.push(run);
+  });
+}
+
+function readIconFailCache(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(ICON_FAIL_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed ? parsed as Record<string, number> : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeIconFailCache(cache: Record<string, number>) {
+  try {
+    localStorage.setItem(ICON_FAIL_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function shouldSkipIconLoad(providerId: string): boolean {
+  const cache = readIconFailCache();
+  const failedAt = cache[providerId];
+  if (!failedAt) return false;
+  return Date.now() - failedAt < ICON_FAIL_TTL_MS;
+}
+
+function markIconLoadFailed(providerId: string) {
+  const cache = readIconFailCache();
+  cache[providerId] = Date.now();
+  writeIconFailCache(cache);
+}
+
+function clearIconLoadFailed(providerId: string) {
+  const cache = readIconFailCache();
+  if (!(providerId in cache)) return;
+  delete cache[providerId];
+  writeIconFailCache(cache);
+}
+
+async function getProviderIconPath(providerId: string): Promise<string | null> {
+  if (iconPathCache.has(providerId)) {
+    return iconPathCache.get(providerId) ?? null;
+  }
+
+  if (shouldSkipIconLoad(providerId)) {
+    iconPathCache.set(providerId, null);
+    return null;
+  }
+
+  const existing = iconInflight.get(providerId);
+  if (existing) return existing;
+
+  const request = runWithIconQueue(async () => {
+    try {
+      const path = await invoke<string | null>('get_provider_icon', { providerId });
+      if (path) {
+        clearIconLoadFailed(providerId);
+      } else {
+        markIconLoadFailed(providerId);
+      }
+      iconPathCache.set(providerId, path ?? null);
+      return path ?? null;
+    } catch {
+      markIconLoadFailed(providerId);
+      iconPathCache.set(providerId, null);
+      return null;
+    } finally {
+      iconInflight.delete(providerId);
+    }
+  });
+
+  iconInflight.set(providerId, request);
+  return request;
+}
 
 export interface ProviderInfo {
   id: string;
@@ -81,58 +187,85 @@ function CollapsibleSection({
 }
 
 function ProviderIcon({ providerId, name }: { providerId: string; name: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
   const [iconPath, setIconPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldLoad(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '120px' });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldLoad) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function loadIcon() {
+      setLoading(true);
       try {
-        const path = await invoke<string | null>('get_provider_icon', { providerId });
+        const path = await getProviderIconPath(providerId);
         if (!cancelled) {
           if (path) {
             setIconPath(path);
+            setError(false);
           } else {
             setError(true);
+            setIconPath(null);
           }
           setLoading(false);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setError(true);
+          setIconPath(null);
           setLoading(false);
         }
       }
     }
 
-    loadIcon();
+    void loadIcon();
     return () => { cancelled = true; };
-  }, [providerId]);
-
-  if (loading) {
-    return (
-      <div className="w-12 h-12 rounded-xl bg-slate-100 animate-pulse flex-shrink-0" />
-    );
-  }
-
-  if (error || !iconPath) {
-    return (
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-        <span className="text-white font-bold text-lg">
-          {name.charAt(0).toUpperCase()}
-        </span>
-      </div>
-    );
-  }
+  }, [providerId, shouldLoad]);
 
   return (
-    <img
-      src={convertFileSrc(iconPath)}
-      alt={name}
-      className="w-12 h-12 rounded-xl object-contain bg-white p-1 flex-shrink-0 shadow-sm"
-    />
+    <div ref={containerRef} className="w-12 h-12 flex-shrink-0">
+      {!shouldLoad || loading ? (
+        <div className="w-12 h-12 rounded-xl bg-slate-100 animate-pulse" />
+      ) : error || !iconPath ? (
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+          <span className="text-white font-bold text-lg">
+            {name.charAt(0).toUpperCase()}
+          </span>
+        </div>
+      ) : (
+        <img
+          src={convertFileSrc(iconPath)}
+          alt={name}
+          className="w-12 h-12 rounded-xl object-contain bg-white p-1 shadow-sm"
+        />
+      )}
+    </div>
   );
 }
 
@@ -258,6 +391,7 @@ export function ProviderList({
         icon={CheckCircle2}
         iconColor="bg-emerald-500"
         count={configuredProviders.length}
+        defaultExpanded={configuredProviders.length > 0}
       >
         {configuredProviders.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -283,7 +417,7 @@ export function ProviderList({
         icon={Settings}
         iconColor="bg-indigo-500"
         count={unconfiguredProviders.length}
-        defaultExpanded={true}
+        defaultExpanded={configuredProviders.length === 0}
       >
         {unconfiguredProviders.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

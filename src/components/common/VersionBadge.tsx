@@ -153,7 +153,7 @@ export function VersionBadge() {
     }
     
     // 正在检查中，跳过
-    if (manualHint === 'checking') return;
+    if (manualHint === 'checking' || status === 'checking') return;
 
     // 检测是否在 Tauri 环境中
     const isTauri = isTauriEnvironment();
@@ -170,8 +170,12 @@ export function VersionBadge() {
       // 忽略错误
     }
 
-    // 检查更新后的状态
-    const latest = useUpdaterStore.getState();
+    // 检查更新后的状态（兜底：等待 store 从 checking 进入终态）
+    let latest = useUpdaterStore.getState();
+    if (latest.status === 'checking') {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      latest = useUpdaterStore.getState();
+    }
     if (latest.status === 'available' && latest.update) {
       setHintWithAutoClear('available', 2500);
       openUpdater();

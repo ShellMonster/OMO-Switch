@@ -5,7 +5,7 @@ import { Select } from '../common/Select';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { listPresets, loadPreset, savePreset, saveConfigSnapshot, getBuiltinPresets, applyBuiltinPreset } from '../../services/tauri';
+import { loadPreset, savePreset, saveConfigSnapshot, getBuiltinPresets, applyBuiltinPreset } from '../../services/tauri';
 import type { BuiltinPresetInfo } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 
@@ -21,9 +21,7 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
     activePreset,
     setActivePreset,
     presetList,
-    setPresetList,
-    isLoadingPresetList,
-    setIsLoadingPresetList,
+    refreshPresetList,
   } = usePresetStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -47,22 +45,6 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const loadPresetListIfNeeded = async () => {
-    if (presetList.length > 0 || isLoadingPresetList) {
-      return;
-    }
-
-    setIsLoadingPresetList(true);
-    try {
-      const names = await listPresets();
-      setPresetList(names);
-    } catch (err) {
-      console.error('Failed to load preset list:', err);
-    } finally {
-      setIsLoadingPresetList(false);
-    }
-  };
-
   const loadBuiltinPresets = async () => {
     try {
       const presets = await getBuiltinPresets();
@@ -75,9 +57,9 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
   };
 
   useEffect(() => {
-    loadPresetListIfNeeded();
+    void refreshPresetList(true);
     loadBuiltinPresets();
-  }, []);
+  }, [refreshPresetList]);
 
   const handleSelectChange = async (value: string) => {
     setIsLoading(true);
@@ -114,8 +96,7 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
     try {
       await savePreset(name);
       setActivePreset(name);
-      const names = await listPresets();
-      setPresetList(names);
+      await refreshPresetList(true);
       setShowSaveModal(false);
       setNewPresetName('');
       toast.success(t('presetSelector.saveSuccess', { name }));

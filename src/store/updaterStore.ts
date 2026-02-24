@@ -103,10 +103,10 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
   checkForUpdates: async (options) => {
     // 非 Tauri 环境不执行
     if (!isTauriEnvironment()) return;
-    // 正在检查中，跳过
-    if (get().status === 'checking') return;
     // 有正在进行的检查，返回同一个 Promise
     if (inFlightCheck) return inFlightCheck;
+    // 正在检查中但 Promise 尚未挂载时，返回一个已完成 Promise，保证调用方 await 语义稳定
+    if (get().status === 'checking') return Promise.resolve();
 
     const silent = Boolean(options?.silent);
     const openIfAvailable = options?.openIfAvailable !== false;

@@ -197,132 +197,8 @@ export function ConfigDashboard() {
     });
   };
 
-  // 加载中状态
-  if (omoConfig.loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-white rounded-2xl border border-slate-200">
-          <div className="w-14 h-14 bg-slate-200 rounded-xl animate-pulse" />
-          <div className="space-y-2">
-            <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
-            <div className="h-4 w-48 bg-slate-200 rounded animate-pulse" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="p-6 bg-white rounded-2xl border border-slate-200">
-              <div className="flex items-start justify-between">
-                <div className="space-y-3">
-                  <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-8 w-12 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
-                </div>
-                <div className="w-12 h-12 bg-slate-200 rounded-xl animate-pulse" />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
-              <div className="h-5 w-24 bg-slate-200 rounded animate-pulse" />
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="space-y-2">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
-              <div className="h-12 w-full bg-slate-100 rounded-xl border border-slate-200 animate-pulse" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
-                <div className="h-12 w-full bg-slate-100 rounded-xl border border-slate-200 animate-pulse" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
-                <div className="h-12 w-full bg-slate-100 rounded-xl border border-slate-200 animate-pulse" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
-                <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
-              </div>
-              <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
-                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
-              <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3 p-4 bg-slate-100 rounded-xl border border-slate-200">
-                  <div className="w-10 h-10 bg-slate-200 rounded-lg animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
-                    <div className="h-3 w-12 bg-slate-200 rounded animate-pulse" />
-                  </div>
-                  <div className="w-4 h-4 bg-slate-200 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 错误状态 - 带重试按钮
-  if (omoConfig.error || !omoConfig.data) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-4 text-center max-w-md">
-          <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-rose-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('configDashboard.loadFailed')}</h3>
-            <p className="text-slate-500 text-sm">{omoConfig.error || t('configDashboard.configNotFound')}</p>
-          </div>
-          <button
-            onClick={() => loadOmoConfig()}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {t('common.retry')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isConfigLoading = !omoConfig.data && omoConfig.loading;
+  const hasConfigError = !omoConfig.data && Boolean(omoConfig.error);
 
   const agentList = getAgentModelList();
   const uniqueModels = getUniqueModelCount();
@@ -342,36 +218,62 @@ export function ConfigDashboard() {
 
       {/* 统计卡片网格 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Agent总数 */}
-        <StatCard
-          icon={Users}
-          label={t('configDashboard.totalAgents')}
-          value={agentList.length}
-          color="cyan"
-          subtitle={t('configDashboard.configuredAgents')}
-        />
-        
-        {/* 模型数 */}
-        <StatCard
-          icon={Cpu}
-          label={t('configDashboard.configuredModels')}
-          value={uniqueModels}
-          color="violet"
-          subtitle={t('configDashboard.uniqueModels')}
-        />
-        
-        {/* 提供商数 */}
-        <StatCard
-          icon={Server}
-          label={t('configDashboard.connectedProviders')}
-          value={providers.length}
-          color="emerald"
-          subtitle={t('configDashboard.availableSources')}
-        />
-        
-        {/* 验证状态 */}
-        <ValidationCard validation={validation} t={t} />
+        {isConfigLoading ? (
+          [1, 2, 3, 4].map((i) => (
+            <div key={i} className="p-6 bg-white rounded-2xl border border-slate-200 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="space-y-3">
+                  <div className="h-4 w-20 bg-slate-200 rounded" />
+                  <div className="h-8 w-12 bg-slate-200 rounded" />
+                  <div className="h-3 w-16 bg-slate-200 rounded" />
+                </div>
+                <div className="w-12 h-12 bg-slate-200 rounded-xl" />
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            <StatCard
+              icon={Users}
+              label={t('configDashboard.totalAgents')}
+              value={agentList.length}
+              color="cyan"
+              subtitle={t('configDashboard.configuredAgents')}
+            />
+            <StatCard
+              icon={Cpu}
+              label={t('configDashboard.configuredModels')}
+              value={uniqueModels}
+              color="violet"
+              subtitle={t('configDashboard.uniqueModels')}
+            />
+            <StatCard
+              icon={Server}
+              label={t('configDashboard.connectedProviders')}
+              value={providers.length}
+              color="emerald"
+              subtitle={t('configDashboard.availableSources')}
+            />
+            <ValidationCard validation={validation} t={t} />
+          </>
+        )}
       </div>
+
+      {hasConfigError && (
+        <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <AlertCircle className="w-5 h-5 text-rose-600" />
+          <div className="flex-1 text-sm text-rose-700">
+            {omoConfig.error || t('configDashboard.configNotFound')}
+          </div>
+          <button
+            onClick={() => loadOmoConfig()}
+            className="flex items-center gap-2 px-3 py-1.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
 
       {/* 配置文件元数据 */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -483,7 +385,15 @@ export function ConfigDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {agentList.length === 0 ? (
+              {isConfigLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={`skeleton-${i}`}>
+                    <td colSpan={4} className="px-6 py-3">
+                      <div className="h-8 bg-slate-100 rounded animate-pulse" />
+                    </td>
+                  </tr>
+                ))
+              ) : agentList.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -574,7 +484,19 @@ export function ConfigDashboard() {
         </div>
 
         <div className="p-6">
-          {providers.length === 0 ? (
+          {isConfigLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 p-4 bg-slate-100 rounded-xl border border-slate-200 animate-pulse">
+                  <div className="w-10 h-10 bg-slate-200 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-20 bg-slate-200 rounded" />
+                    <div className="h-3 w-12 bg-slate-200 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : providers.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8">
               <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                 <Server className="w-6 h-6 text-slate-600" />

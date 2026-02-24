@@ -446,56 +446,9 @@ export function ModelBrowser({
     onSelectModel?.(modelId, provider);
   }, [onSelectModel]);
 
-  // 首次加载中（无数据）显示骨架屏
-  if (models.loading && !models.grouped) {
-    return <ModelBrowserSkeleton />;
-  }
-
-  // 加载失败且无数据时显示错误
-  if (models.error && !models.grouped) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
-          <Info className="w-8 h-8 text-rose-500" />
-        </div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">
-          {t('modelBrowser.loadFailed')}
-        </h3>
-        <p className="text-slate-500 text-center max-w-md mb-4">
-          {models.error}
-        </p>
-        <button
-          onClick={() => refreshModels()}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {t('modelBrowser.retry')}
-        </button>
-      </div>
-    );
-  }
-
-  // 空数据状态提示（非加载中且无数据）
-  if (!models.loading && groupedModels.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-          <Database className="w-8 h-8 text-slate-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">
-          {t('modelBrowser.noData')}
-        </h3>
-        <p className="text-slate-500 text-center max-w-md mb-4">
-          {t('modelBrowser.noDataHint')}
-        </p>
-        <button
-          onClick={() => refreshModels()}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {t('modelBrowser.retry')}
-        </button>
-      </div>
-    );
-  }
+  const showInitialLoading = models.loading && !models.grouped;
+  const showLoadError = !!models.error && !models.grouped;
+  const showNoData = !models.loading && groupedModels.length === 0;
 
   return (
     <div className="space-y-6">
@@ -560,7 +513,45 @@ export function ModelBrowser({
       </div>
 
       {/* 模型列表 */}
-      {filteredGroups.length === 0 ? (
+      {showInitialLoading ? (
+        <ModelBrowserSkeleton />
+      ) : showLoadError ? (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
+            <Info className="w-8 h-8 text-rose-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">
+            {t('modelBrowser.loadFailed')}
+          </h3>
+          <p className="text-slate-500 text-center max-w-md mb-4">
+            {models.error}
+          </p>
+          <button
+            onClick={() => refreshModels()}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {t('modelBrowser.retry')}
+          </button>
+        </div>
+      ) : showNoData ? (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <Database className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">
+            {t('modelBrowser.noData')}
+          </h3>
+          <p className="text-slate-500 text-center max-w-md mb-4">
+            {t('modelBrowser.noDataHint')}
+          </p>
+          <button
+            onClick={() => refreshModels()}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {t('modelBrowser.retry')}
+          </button>
+        </div>
+      ) : filteredGroups.length === 0 ? (
         <div className="text-center py-16">
           <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-700 mb-2">

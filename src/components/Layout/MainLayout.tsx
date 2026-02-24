@@ -71,11 +71,27 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const preloadTimer = setTimeout(() => {
       void startPreload();
-      void checkUpstreamUpdate().catch(() => {});
-    }, 500);
-    return () => clearTimeout(timer);
+    }, 300);
+
+    const upstreamTimer = setTimeout(() => {
+      const idleWindow = window as Window & {
+        requestIdleCallback?: (cb: IdleRequestCallback) => number;
+      };
+      if (idleWindow.requestIdleCallback) {
+        idleWindow.requestIdleCallback(() => {
+          void checkUpstreamUpdate().catch(() => {});
+        });
+      } else {
+        void checkUpstreamUpdate().catch(() => {});
+      }
+    }, 4000);
+
+    return () => {
+      clearTimeout(preloadTimer);
+      clearTimeout(upstreamTimer);
+    };
   }, [startPreload, checkUpstreamUpdate]);
 
   const currentPageInfo = navItems.find(item => item.id === currentPage);

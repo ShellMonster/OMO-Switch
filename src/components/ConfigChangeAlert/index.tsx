@@ -9,7 +9,7 @@ interface ConfigChangeAlertProps {
   changes: ConfigChange[];
   onRestore: () => void;
   onRestoreFromPreset: () => void;
-  onIgnore: () => void;
+  onAccept: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -17,7 +17,7 @@ export function ConfigChangeAlert({
   changes,
   onRestore,
   onRestoreFromPreset,
-  onIgnore,
+  onAccept,
   onClose,
 }: ConfigChangeAlertProps) {
   const { t } = useTranslation();
@@ -50,10 +50,17 @@ export function ConfigChangeAlert({
     }
   };
 
-  const handleIgnore = () => {
-    onIgnore();
-    toast.info(t('configChange.ignored', { defaultValue: '已忽略变更' }));
-    onClose();
+  const handleAccept = async () => {
+    setIsProcessing(true);
+    try {
+      await onAccept();
+      toast.success(t('configChange.accepted', { defaultValue: '已接受外部变更' }));
+      onClose();
+    } catch {
+      toast.error(t('configChange.acceptFailed', { defaultValue: '接受外部变更失败' }));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const toggleDetails = () => {
@@ -129,10 +136,10 @@ export function ConfigChangeAlert({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleIgnore}
+            onClick={handleAccept}
             disabled={isProcessing}
           >
-            {t('configChange.ignore', { defaultValue: '忽略' })}
+            {t('configChange.accept', { defaultValue: '接受外部变更' })}
           </Button>
         </div>
       }

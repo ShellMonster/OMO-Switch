@@ -81,7 +81,13 @@ pub struct ModelConfig {
 /// - agent_requirements: 解析后的 agent 模型需求
 /// - content_hash: 内容哈希
 #[tauri::command]
-pub fn check_upstream_update() -> Result<UpstreamSyncResult, String> {
+pub async fn check_upstream_update() -> Result<UpstreamSyncResult, String> {
+    tokio::task::spawn_blocking(check_upstream_update_sync)
+        .await
+        .map_err(|e| format!("检查上游更新任务失败: {}", e))?
+}
+
+fn check_upstream_update_sync() -> Result<UpstreamSyncResult, String> {
     // 1. 从上游获取配置文件
     let ts_content = fetch_upstream_file(UPSTREAM_CONFIG_URL)?;
 

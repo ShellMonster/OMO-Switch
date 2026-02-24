@@ -131,98 +131,113 @@ jobs:
             *由 GitHub Actions 自动构建发布 - ${{ env.BUILD_TIME }}*
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: false
+          includeUpdaterJson: true
           includeRelease: true
 
       - name: 生成 Updater 签名 (macOS)
         if: matrix.platform == 'macos-latest'
-        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
+
           if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
-            echo "No signing key, skip signature generation"
-            exit 0
+            echo "TAURI_SIGNING_PRIVATE_KEY is empty, cannot sign updater bundles." >&2
+            exit 1
           fi
-          
-          # 解析 target
-          if [[ "${{ matrix.tauriArgs }}" == *"universal"* ]]; then
-            TARGET="universal-apple-darwin"
-          else
-            TARGET="aarch64-apple-darwin"
-          fi
-          
-          # 尝试多个可能的目录
-          for BUNDLE_DIR in \
-            "src-tauri/target/$TARGET/release/bundle/macos" \
-            "src-tauri/target/release/bundle/macos"
-          do
-            if [ -d "$BUNDLE_DIR" ]; then
-              echo "Found bundle dir: $BUNDLE_DIR"
-              UPDATE_BUNDLE=$(ls -1 "$BUNDLE_DIR"/*.app.tar.gz 2>/dev/null | head -n 1 || true)
-              if [ -n "$UPDATE_BUNDLE" ]; then
-                break
-              fi
-            fi
-          done
-          
-          if [ -z "${UPDATE_BUNDLE:-}" ]; then
-            echo "No updater bundle found, skipping"
-            exit 0
-          fi
-          
-          # 使用环境变量签名
-          npm run -s tauri -- signer sign -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" "$UPDATE_BUNDLE"
-          echo "Signature generated: ${UPDATE_BUNDLE}.sig"
-          
-          # 上传签名文件
+
           TAG="${{ github.ref_name }}"
           REPO="${{ github.repository }}"
-          gh release upload "$TAG" "${UPDATE_BUNDLE}.sig" --clobber --repo "$REPO"
+          TARGET_TRIPLE="$(echo "${{ matrix.tauriArgs }}" | sed -E 's/.*--target[[:space:]]+([^[:space:]]+).*/\1/')"
+          BUNDLE_DIR="src-tauri/target/$TARGET_TRIPLE/release/bundle/macos"
+          UPDATE_BUNDLE="$(ls -1 "$BUNDLE_DIR"/*.app.tar.gz 2>/dev/null | head -n 1 || true)"
+          if [ -z "$UPDATE_BUNDLE" ]; then
+            echo "Updater bundle not found in: $BUNDLE_DIR" >&2
+            ls -la "$BUNDLE_DIR" || true
+            exit 1
+          fi
+
+          KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
+          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
+          npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
+          SIG_PATH="${UPDATE_BUNDLE}.sig"
+          if [ ! -f "$SIG_PATH" ]; then
+            echo "Signature not generated: $SIG_PATH" >&2
+            exit 1
+          fi
+
+          if [ "$TARGET_TRIPLE" = "universal-apple-darwin" ]; then
+            MATCH_RE="universal.*\\.app\\.tar\\.gz$"
+          else
+            MATCH_RE="aarch64.*\\.app\\.tar\\.gz$"
+          fi
+          REMOTE_BUNDLE_NAME="$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name' | grep -iE "$MATCH_RE" | head -n 1 || true)"
+          if [ -z "$REMOTE_BUNDLE_NAME" ]; then
+            REMOTE_BUNDLE_NAME="$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name' | grep -iE '\\.app\\.tar\\.gz$' | head -n 1 || true)"
+          fi
+          if [ -z "$REMOTE_BUNDLE_NAME" ]; then
+            echo "Cannot find uploaded updater bundle in GitHub Release assets for $TAG" >&2
+            gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name' || true
+            exit 1
+          fi
+
+          REMOTE_SIG_NAME="${REMOTE_BUNDLE_NAME}.sig"
+          cp "$SIG_PATH" "$REMOTE_SIG_NAME"
+          gh release upload "$TAG" "$REMOTE_SIG_NAME" --clobber --repo "$REPO"
 
       - name: 生成 Updater 签名 (Windows)
         if: matrix.platform == 'windows-latest'
-        continue-on-error: true
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
+          $ErrorActionPreference = "Stop"
+
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
-            Write-Host "No signing key, skip signature generation"
-            exit 0
+            throw "TAURI_SIGNING_PRIVATE_KEY is empty, cannot sign updater bundle."
           }
-          
-          # 尝试多个可能的目录
+
           $targetDirs = @(
             "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis",
             "src-tauri\target\release\bundle\nsis"
           )
-          
+
           $setupExe = $null
           foreach ($dir in $targetDirs) {
             if (Test-Path $dir) {
-              Write-Host "Found bundle dir: $dir"
               $setupExe = Get-ChildItem -Path $dir -Filter "*_x64-setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
               if ($setupExe) { break }
             }
           }
-          
+
           if (-not $setupExe) {
-            Write-Host "No setup exe found, skipping"
-            exit 0
+            throw "No setup exe found for updater signing."
           }
-          
-          # 使用环境变量签名
-          npm run tauri -- signer sign -p $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $setupExe.FullName
-          Write-Host "Signature generated: $($setupExe.FullName).sig"
-          
-          # 上传签名文件
-          gh release upload "${{ github.ref_name }}" "$($setupExe.FullName).sig" --clobber --repo "${{ github.repository }}"
+
+          $keyPath = Join-Path $env:RUNNER_TEMP "tauri-updater.key"
+          Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
+          npm run -s tauri -- signer sign -f $keyPath -p $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $setupExe.FullName
+
+          $sigPath = "$($setupExe.FullName).sig"
+          if (-not (Test-Path $sigPath)) {
+            throw "Signature not generated: $sigPath"
+          }
+
+          $tag = "${{ github.ref_name }}"
+          $repo = "${{ github.repository }}"
+          $remoteExeName = gh release view $tag --repo $repo --json assets --jq '.assets[].name' | Where-Object { $_ -match '_x64-setup\.exe$' } | Select-Object -First 1
+          if (-not $remoteExeName) {
+            throw "Cannot find uploaded setup exe in release assets."
+          }
+
+          $remoteSigName = "$remoteExeName.sig"
+          Copy-Item -Path $sigPath -Destination $remoteSigName -Force
+          gh release upload $tag $remoteSigName --clobber --repo $repo
 
   publish-updater-json:
     name: 发布 Updater latest.json
@@ -237,6 +252,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
           TAG="${{ github.ref_name }}"
           REPO="${{ github.repository }}"
           
@@ -244,7 +261,7 @@ jobs:
           gh api -H 'Accept: application/vnd.github+json' "repos/${REPO}/releases/tags/${TAG}" > release.json
           
           python3 - <<'PY'
-          import json, re, urllib.request, sys
+          import json, re, urllib.request
           
           with open("release.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -264,9 +281,9 @@ jobs:
             return None
           
           # macOS bundles (tauri-action 生成的命名)
-          mac_arm = find_asset([r"aarch64.*\.app\.tar\.gz$", r"OMO.*aarch64.*\.app\.tar\.gz$"])
-          mac_universal = find_asset([r"universal.*\.app\.tar\.gz$", r"OMO.*universal.*\.app\.tar\.gz$"])
-          win_exe = find_asset([r"_x64-setup\.exe$", r"OMO.*x64.*\.exe$"])
+          mac_arm = find_asset([r"(?i)aarch64.*\.app\.tar\.gz$", r"(?i)\.app\.tar\.gz$.*aarch64"])
+          mac_universal = find_asset([r"(?i)universal.*\.app\.tar\.gz$", r"(?i)\.app\.tar\.gz$.*universal"])
+          win_exe = find_asset([r"(?i)_x64-setup\.exe$"])
           
           def sig_for(asset):
             if not asset:
@@ -279,52 +296,41 @@ jobs:
           win_sig = sig_for(win_exe)
           
           def fetch_text(url):
-            try:
-              with urllib.request.urlopen(url, timeout=30) as f:
-                return f.read().decode("utf-8").strip()
-            except Exception as e:
-              print(f"Warning: Failed to fetch {url}: {e}", file=sys.stderr)
-              return ""
+            with urllib.request.urlopen(url, timeout=30) as f:
+              return f.read().decode("utf-8").strip()
           
           platforms = {}
           
           # Apple Silicon: 优先 aarch64，fallback 到 universal
           if mac_arm and mac_arm_sig:
-            sig_content = fetch_text(mac_arm_sig["browser_download_url"])
-            if sig_content:
-              platforms["darwin-aarch64"] = {
-                "url": mac_arm["browser_download_url"],
-                "signature": sig_content
-              }
+            platforms["darwin-aarch64"] = {
+              "url": mac_arm["browser_download_url"],
+              "signature": fetch_text(mac_arm_sig["browser_download_url"])
+            }
           elif mac_universal and mac_universal_sig:
-            sig_content = fetch_text(mac_universal_sig["browser_download_url"])
-            if sig_content:
-              platforms["darwin-aarch64"] = {
-                "url": mac_universal["browser_download_url"],
-                "signature": sig_content
-              }
+            platforms["darwin-aarch64"] = {
+              "url": mac_universal["browser_download_url"],
+              "signature": fetch_text(mac_universal_sig["browser_download_url"])
+            }
           
           # Intel Mac: 使用 universal
           if mac_universal and mac_universal_sig:
-            sig_content = fetch_text(mac_universal_sig["browser_download_url"])
-            if sig_content:
-              platforms["darwin-x86_64"] = {
-                "url": mac_universal["browser_download_url"],
-                "signature": sig_content
-              }
+            platforms["darwin-x86_64"] = {
+              "url": mac_universal["browser_download_url"],
+              "signature": fetch_text(mac_universal_sig["browser_download_url"])
+            }
           
           # Windows
           if win_exe and win_sig:
-            sig_content = fetch_text(win_sig["browser_download_url"])
-            if sig_content:
-              platforms["windows-x86_64"] = {
-                "url": win_exe["browser_download_url"],
-                "signature": sig_content
-              }
-          
-          if not platforms:
-            print("ERROR: No platforms collected", file=sys.stderr)
-            sys.exit(1)
+            platforms["windows-x86_64"] = {
+              "url": win_exe["browser_download_url"],
+              "signature": fetch_text(win_sig["browser_download_url"])
+            }
+
+          required = ["darwin-aarch64", "darwin-x86_64", "windows-x86_64"]
+          missing = [k for k in required if k not in platforms]
+          if missing:
+            raise SystemExit(f"missing required platforms in latest.json: {', '.join(missing)}")
           
           pub_date = data.get("published_at") or data.get("created_at") or ""
           notes = data.get("body") or ""

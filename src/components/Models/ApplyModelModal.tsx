@@ -10,7 +10,6 @@ import { usePresetStore } from '../../store/presetStore';
 import {
   applyUpdatesToPreset,
   getPresetConfig,
-  listPresets,
   updateAgentsBatch,
   saveConfigSnapshot,
   updatePreset,
@@ -33,6 +32,14 @@ const VARIANT_OPTIONS = [
   { value: 'low', label: 'Low' },
   { value: 'none', label: 'None' },
 ] as const;
+const VARIANT_PRIORITY: AgentConfig['variant'][] = ['max', 'high', 'medium', 'low', 'none'];
+
+function normalizeVariant(value?: string): AgentConfig['variant'] {
+  if (value === 'max' || value === 'high' || value === 'medium' || value === 'low' || value === 'none') {
+    return value;
+  }
+  return 'none';
+}
 
 export function ApplyModelModal({
   isOpen,
@@ -47,6 +54,7 @@ export function ApplyModelModal({
   const updateAgentInConfig = usePreloadStore((state) => state.updateAgentInConfig);
   const updateCategoryInConfig = usePreloadStore((state) => state.updateCategoryInConfig);
   const activePreset = usePresetStore((state) => state.activePreset);
+  const refreshPresetList = usePresetStore((state) => state.refreshPresetList);
 
   const [variant, setVariant] = useState<AgentConfig['variant']>('none');
   const [presetOptions, setPresetOptions] = useState<string[]>([]);
@@ -59,20 +67,62 @@ export function ApplyModelModal({
   const [categorySearch, setCategorySearch] = useState('');
   const [isApplying, setIsApplying] = useState(false);
 
+  const resolveDefaultVariant = useCallback(
+    (config?: OmoConfig | null): AgentConfig['variant'] => {
+      if (!config) return 'none';
+      const allConfigs = [
+        ...Object.values(config.agents || {}),
+        ...Object.values(config.categories || {}),
+      ];
+      const variants = allConfigs
+        .filter((item) => item?.model === fullModelPath)
+        .map((item) => normalizeVariant(item.variant));
+
+      if (variants.length === 0) {
+        return 'none';
+      }
+
+      const unique = new Set(variants);
+      if (unique.size === 1) {
+        return variants[0];
+      }
+
+      const counts = new Map<AgentConfig['variant'], number>();
+      variants.forEach((item) => {
+        counts.set(item, (counts.get(item) || 0) + 1);
+      });
+
+      let best: AgentConfig['variant'] = 'none';
+      let bestCount = -1;
+      VARIANT_PRIORITY.forEach((candidate) => {
+        const count = counts.get(candidate) || 0;
+        if (count > bestCount) {
+          best = candidate;
+          bestCount = count;
+        }
+      });
+      return best;
+    },
+    [fullModelPath]
+  );
+
   const loadPresetDraft = useCallback(
-    async (presetName: string) => {
-      if (!presetName) return;
+    async (presetName: string): Promise<OmoConfig | null> => {
+      if (!presetName) return null;
       setIsPresetLoading(true);
       try {
         const config = await getPresetConfig(presetName);
         setDraftConfig(config);
+        return config;
       } catch (error) {
-        setDraftConfig(omoConfig.data);
+        const fallbackConfig = omoConfig.data || null;
+        setDraftConfig(fallbackConfig);
         toast.error(
           error instanceof Error
             ? error.message
             : t('applyModel.loadPresetFailed', { defaultValue: '加载预设配置失败' })
         );
+        return fallbackConfig;
       } finally {
         setIsPresetLoading(false);
       }
@@ -85,7 +135,6 @@ export function ApplyModelModal({
     let cancelled = false;
 
     const initModal = async () => {
-      setVariant('none');
       setSelectedAgents(new Set());
       setSelectedCategories(new Set());
       setAgentSearch('');
@@ -93,7 +142,7 @@ export function ApplyModelModal({
       setDraftConfig(null);
 
       try {
-        const presets = await listPresets();
+        const presets = await refreshPresetList(true);
         const editablePresets = presets.filter((name) => !name.startsWith('__builtin__'));
         const options = editablePresets.length > 0 ? editablePresets : ['default'];
         if (cancelled) return;
@@ -107,12 +156,18 @@ export function ApplyModelModal({
               : options[0];
 
         setTargetPreset(initialPreset);
-        await loadPresetDraft(initialPreset);
+        const presetConfig = await loadPresetDraft(initialPreset);
+        if (!cancelled) {
+          setVariant(resolveDefaultVariant(presetConfig));
+        }
       } catch {
         if (cancelled) return;
         setPresetOptions(['default']);
         setTargetPreset('default');
-        await loadPresetDraft('default');
+        const presetConfig = await loadPresetDraft('default');
+        if (!cancelled) {
+          setVariant(resolveDefaultVariant(presetConfig));
+        }
       }
     };
 
@@ -121,7 +176,7 @@ export function ApplyModelModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, activePreset, loadPresetDraft]);
+  }, [isOpen, activePreset, loadPresetDraft, refreshPresetList, resolveDefaultVariant]);
 
   const agents = draftConfig?.agents || {};
   const categories = draftConfig?.categories || {};
@@ -130,14 +185,30 @@ export function ApplyModelModal({
     const entries = Object.entries(agents);
     if (!agentSearch.trim()) return entries;
     const query = agentSearch.toLowerCase();
-    return entries.filter(([name]) => name.toLowerCase().includes(query));
+    return entries.filter(([name, config]) => {
+      const model = (config.model || '').toLowerCase();
+      const shortModel = model.split('/').pop() || '';
+      return (
+        name.toLowerCase().includes(query) ||
+        model.includes(query) ||
+        shortModel.includes(query)
+      );
+    });
   }, [agents, agentSearch]);
 
   const filteredCategories = useMemo(() => {
     const entries = Object.entries(categories);
     if (!categorySearch.trim()) return entries;
     const query = categorySearch.toLowerCase();
-    return entries.filter(([name]) => name.toLowerCase().includes(query));
+    return entries.filter(([name, config]) => {
+      const model = (config.model || '').toLowerCase();
+      const shortModel = model.split('/').pop() || '';
+      return (
+        name.toLowerCase().includes(query) ||
+        model.includes(query) ||
+        shortModel.includes(query)
+      );
+    });
   }, [categories, categorySearch]);
 
   const selectedAgentCount = selectedAgents.size;
@@ -253,7 +324,12 @@ export function ApplyModelModal({
     isSelected: boolean,
     onToggle: () => void
   ) => {
-    const currentModelShort = config.model.split('/').pop() || config.model;
+    const modelPath = config.model || '';
+    const modelSegments = modelPath.split('/');
+    const hasProvider = modelSegments.length > 1;
+    const providerName = hasProvider ? modelSegments[0] : 'unknown';
+    const modelId = hasProvider ? modelSegments.slice(1).join('/') : modelPath;
+
     return (
       <label
         key={name}
@@ -267,8 +343,16 @@ export function ApplyModelModal({
           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
         />
         <span className="flex-1 text-sm font-medium text-slate-700">{name}</span>
-        <span className="text-xs text-slate-400 truncate max-w-[150px]">
-          {t('applyModel.currentModel', { model: currentModelShort })}
+        <span
+          className="flex items-center gap-1.5 max-w-[220px] min-w-0"
+          title={t('applyModel.currentModel', { model: `${providerName}/${modelId}` })}
+        >
+          <span className="px-1.5 py-0.5 rounded border border-indigo-100 bg-indigo-50 text-[10px] font-medium uppercase tracking-wide text-indigo-700 shrink-0">
+            {providerName}
+          </span>
+          <span className="text-xs text-slate-500 truncate">
+            {modelId}
+          </span>
         </span>
       </label>
     );
@@ -306,7 +390,10 @@ export function ApplyModelModal({
             setSelectedCategories(new Set());
             setAgentSearch('');
             setCategorySearch('');
-            void loadPresetDraft(value);
+            void (async () => {
+              const presetConfig = await loadPresetDraft(value);
+              setVariant(resolveDefaultVariant(presetConfig));
+            })();
           }}
           options={presetOptions.map((preset) => ({
             value: preset,
@@ -323,7 +410,7 @@ export function ApplyModelModal({
         <Select
           label={t('applyModel.intensityLevel')}
           value={variant || 'none'}
-          onChange={(value) => setVariant(value as AgentConfig['variant'])}
+          onChange={(value) => setVariant(normalizeVariant(value))}
           options={VARIANT_OPTIONS.map((opt) => ({
             value: opt.value,
             label: t(`variantOptions.${opt.value}`),

@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
 import { Bot, RefreshCw, ChevronDown, AlertCircle } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { usePreloadStore } from '../store/preloadStore';
-import { usePresetStore } from '../store/presetStore';
-import { getOmoConfig, mergeAndSave, updatePreset } from '../services/tauri';
+import { getOmoConfig, mergeAndSave, acceptExternalChanges } from '../services/tauri';
 import { AgentList } from '../components/AgentList';
 import { PresetSelector } from '../components/Presets';
 import { ConfigChangeAlert } from '../components/ConfigChangeAlert';
@@ -27,79 +25,6 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
         <RefreshCw className="w-4 h-4 mr-2" />
         重试
       </Button>
-    </div>
-  );
-}
-
-/**
- * 骨架屏组件 - 加载中显示
- */
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 rounded-2xl border border-indigo-100/50">
-        <div className="w-12 h-12 bg-slate-200 rounded-xl" />
-        <div className="flex-1 space-y-2">
-          <div className="h-6 bg-slate-200 rounded w-48" />
-          <div className="h-4 bg-slate-200 rounded w-96" />
-        </div>
-        <div className="h-8 w-20 bg-slate-200 rounded-lg" />
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="w-full sm:w-2/3 h-10 bg-slate-200 rounded-lg" />
-        <div className="w-full sm:w-1/3 h-10 bg-slate-200 rounded-lg" />
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-slate-200 rounded" />
-            <div className="h-6 bg-slate-200 rounded w-24" />
-          </div>
-          <div className="h-4 bg-slate-200 rounded w-16" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-200 rounded-lg" />
-                <div className="flex-1 space-y-1">
-                  <div className="h-4 bg-slate-200 rounded w-20" />
-                  <div className="h-3 bg-slate-200 rounded w-16" />
-                </div>
-              </div>
-              <div className="h-9 bg-slate-200 rounded-lg" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="border-t border-slate-200 my-8" />
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-slate-200 rounded" />
-            <div className="h-6 bg-slate-200 rounded w-24" />
-          </div>
-          <div className="h-4 bg-slate-200 rounded w-16" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-200 rounded-lg" />
-                <div className="flex-1 space-y-1">
-                  <div className="h-4 bg-slate-200 rounded w-24" />
-                  <div className="h-3 bg-slate-200 rounded w-12" />
-                </div>
-              </div>
-              <div className="h-9 bg-slate-200 rounded-lg" />
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -137,17 +62,16 @@ export function AgentPage() {
   useEffect(() => {
     const { omoConfig, models } = usePreloadStore.getState();
     
-    // 不再主动刷新模型数据，依赖缓存
-    // 数据更新通过 ProviderStatus 的本地同步实现
-    
     if (!omoConfig.data) {
-      loadOmoConfig();
+      void loadOmoConfig();
     }
     if (!models.grouped) {
-      // 只有在数据完全为空时才加载（首次启动）
-      refreshModels();
+      // 首屏先出配置，模型列表延后后台刷新，避免启动瞬间堆积任务
+      setTimeout(() => {
+        void refreshModels();
+      }, 1200);
     }
-    checkChanges();
+    void checkChanges();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,12 +83,12 @@ export function AgentPage() {
 
   // 数据准备好后，关闭初始加载状态
   useEffect(() => {
-    if (omoConfig.data && modelsGrouped && isInitialLoad) {
+    if (omoConfig.data && isInitialLoad) {
       requestAnimationFrame(() => {
         setIsInitialLoad(false);
       });
     }
-  }, [omoConfig.data, modelsGrouped, isInitialLoad]);
+  }, [omoConfig.data, isInitialLoad]);
 
   const handleRestoreFromCache = useCallback(async () => {
     try {
@@ -181,43 +105,33 @@ export function AgentPage() {
     setShowChangeAlert(false);
   }, []);
 
-  // 忽略变更处理函数：持久化当前配置 → 更新快照 → 同步预设
-  const handleIgnoreChanges = useCallback(async () => {
-    const currentPreset = usePresetStore.getState().activePreset;
+  // 接受外部变更：以磁盘配置为准，原子同步快照和当前预设，并立即刷新 UI
+  const handleAcceptChanges = useCallback(async () => {
+    const result = await acceptExternalChanges();
 
-    // 检查是否为内置预设
-    if (currentPreset?.startsWith('__builtin__')) {
-      toast.warning(t('configChange.builtinPresetCannotModify'));
-      setShowChangeAlert(false);
-      return;
-    }
+    usePreloadStore.setState((state) => ({
+      omoConfig: {
+        ...state.omoConfig,
+        data: result.config,
+        loading: false,
+        error: null,
+      },
+    }));
 
-    // 1. 获取当前配置并写入文件（持久化）
-    const currentConfig = omoConfig.data;
-    if (currentConfig) {
-      try {
-        await invoke('write_omo_config', { config: currentConfig });
-      } catch (err) {
-        toast.error(t('configChange.writeConfigFailed'));
-        return;
-      }
-    }
-
-    // 2. 更新快照
     await ignoreChanges();
 
-    // 3. 更新预设
-    if (currentPreset) {
-      try {
-        await updatePreset(currentPreset);
-        toast.success(t('configChange.presetUpdated', { name: currentPreset }));
-      } catch (err) {
-        toast.error(t('configChange.syncPresetFailed'));
-      }
+    if (result.preset_sync_error) {
+      toast.warning(
+        t('configChange.acceptedButPresetSyncFailed', {
+          defaultValue: '已接受外部变更，但同步预设失败',
+        })
+      );
+    } else if (result.preset_synced && result.active_preset) {
+      toast.success(t('configChange.presetUpdated', { name: result.active_preset }));
     }
 
     setShowChangeAlert(false);
-  }, [ignoreChanges, omoConfig.data, t]);
+  }, [ignoreChanges, t]);
 
   const handleCloseAlert = useCallback(() => {
     setShowChangeAlert(false);
@@ -240,24 +154,11 @@ export function AgentPage() {
     return config;
   }, [loadOmoConfig]);
 
-  // 首次加载或加载中 - 显示骨架屏
-  if (isInitialLoad || omoConfig.loading) {
-    return <LoadingSkeleton />;
-  }
-
-  // 加载失败状态
-  if (omoConfig.error || !omoConfig.data) {
-    return (
-      <ErrorState
-        error={omoConfig.error || '配置文件不存在'}
-        onRetry={() => loadOmoConfig()}
-      />
-    );
-  }
-
   const config = omoConfig.data;
-  const agentsCount = Object.keys(config.agents).length;
-  const categoriesCount = Object.keys(config.categories).length;
+  const isSectionLoading = isInitialLoad || (!config && omoConfig.loading);
+  const hasLoadError = Boolean(omoConfig.error) && !config;
+  const agentsCount = Object.keys(config?.agents || {}).length;
+  const categoriesCount = Object.keys(config?.categories || {}).length;
   const providerModels: Record<string, string[]> = modelsGrouped
     ? Object.fromEntries(modelsGrouped.map(g => [g.provider, g.models]))
     : {};
@@ -270,7 +171,7 @@ export function AgentPage() {
           changes={changes}
           onRestore={handleRestoreFromCache}
           onRestoreFromPreset={handleRestoreFromPreset}
-          onIgnore={handleIgnoreChanges}
+          onAccept={handleAcceptChanges}
           onClose={handleCloseAlert}
         />
       )}
@@ -284,8 +185,8 @@ export function AgentPage() {
           <h2 className="text-xl font-semibold text-slate-800">{t('agentPage.title')}</h2>
           <p className="text-slate-600 mt-1">{t('agentPage.description')}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={omoConfig.loading}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', omoConfig.loading && 'animate-spin')} />
+        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSectionLoading}>
+          <RefreshCw className={cn('w-4 h-4 mr-2', isSectionLoading && 'animate-spin')} />
           {t('agentList.refresh')}
         </Button>
       </div>
@@ -297,12 +198,20 @@ export function AgentPage() {
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder={t('agentPage.searchPlaceholder')}
+            disabled={isSectionLoading}
           />
         </div>
         <div className="w-full sm:w-1/3">
           <PresetSelector onLoadPreset={handlePresetLoad} />
         </div>
       </div>
+
+      {hasLoadError && (
+        <ErrorState
+          error={omoConfig.error || '配置文件不存在'}
+          onRetry={() => loadOmoConfig()}
+        />
+      )}
 
       {/* Agents 区域 */}
       <div>
@@ -324,10 +233,11 @@ export function AgentPage() {
         {agentsExpanded && (
           <AgentList
             dataSource="agents"
-            data={config.agents}
+            data={config?.agents || {}}
             providerModels={providerModels}
             connectedProviders={connectedProviders}
             searchQuery={searchQuery}
+            isLoading={isSectionLoading}
             extraStats={{ count: categoriesCount, label: 'categories' }}
           />
         )}
@@ -356,10 +266,11 @@ export function AgentPage() {
         {categoriesExpanded && (
           <AgentList
             dataSource="categories"
-            data={config.categories}
+            data={config?.categories || {}}
             providerModels={providerModels}
             connectedProviders={connectedProviders}
             searchQuery={searchQuery}
+            isLoading={isSectionLoading}
           />
         )}
       </div>

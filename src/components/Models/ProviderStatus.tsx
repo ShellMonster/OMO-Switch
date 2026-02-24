@@ -37,6 +37,7 @@ interface ProviderStatus {
 }
 
 type GroupedProviderModels = { provider: string; models: string[] };
+const CUSTOM_MODELS_CACHE_KEY = 'omo-custom-models-cache-v1';
 
 function compareProviderName(a: string, b: string): number {
   return a.localeCompare(b, undefined, { sensitivity: 'base' });
@@ -464,22 +465,41 @@ export function ProviderStatus() {
   }, [refreshModels]);
 
   useEffect(() => {
+    let hasLocalCache = false;
+
+    try {
+      const cached = localStorage.getItem(CUSTOM_MODELS_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Record<string, string[]>;
+        if (parsed && typeof parsed === 'object') {
+          setCustomModelsData(parsed);
+          setCustomModelsLoaded(true);
+          hasLocalCache = true;
+        }
+      }
+    } catch {
+      // ignore cache parse error
+    }
+
     async function loadCustomModels() {
       try {
         setError(null);
         const customModels = await getCustomModels();
         setCustomModelsData(customModels);
         setCustomModelsLoaded(true);
+        localStorage.setItem(CUSTOM_MODELS_CACHE_KEY, JSON.stringify(customModels));
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : t('providerStatus.loadFailed')
-        );
+        if (!hasLocalCache) {
+          setError(
+            err instanceof Error ? err.message : t('providerStatus.loadFailed')
+          );
+        }
+        setCustomModelsLoaded(true);
       }
     }
 
-    loadCustomModels();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void loadCustomModels();
+  }, [t]);
 
   // 构建供应商状态数据
   function buildProviderStatus(
@@ -529,10 +549,6 @@ export function ProviderStatus() {
 
   const initialLoading = (!groupedModels || !connectedProviderIds || !customModelsLoaded) && !error;
 
-  if (initialLoading) {
-    return <ProviderStatusSkeleton />;
-  }
-
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
@@ -547,7 +563,7 @@ export function ProviderStatus() {
     );
   }
 
-  if (providers.length === 0) {
+  if (!initialLoading && providers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -580,7 +596,11 @@ export function ProviderStatus() {
             </div>
             <div>
               <p className="text-indigo-100 text-sm">{t('providerStatus.totalProviders')}</p>
-              <p className="text-2xl font-bold">{totalProviders}</p>
+              {initialLoading ? (
+                <div className="h-8 w-10 bg-white/30 rounded animate-pulse" />
+              ) : (
+                <p className="text-2xl font-bold">{totalProviders}</p>
+              )}
             </div>
           </div>
         </div>
@@ -592,7 +612,11 @@ export function ProviderStatus() {
             </div>
             <div>
               <p className="text-emerald-100 text-sm">{t('providerStatus.connected')}</p>
-              <p className="text-2xl font-bold">{connectedCount}</p>
+              {initialLoading ? (
+                <div className="h-8 w-10 bg-white/30 rounded animate-pulse" />
+              ) : (
+                <p className="text-2xl font-bold">{connectedCount}</p>
+              )}
             </div>
           </div>
         </div>
@@ -604,7 +628,11 @@ export function ProviderStatus() {
             </div>
             <div>
               <p className="text-slate-100 text-sm">{t('providerStatus.notConnected')}</p>
-              <p className="text-2xl font-bold">{notConnectedCount}</p>
+              {initialLoading ? (
+                <div className="h-8 w-10 bg-white/30 rounded animate-pulse" />
+              ) : (
+                <p className="text-2xl font-bold">{notConnectedCount}</p>
+              )}
             </div>
           </div>
         </div>
@@ -616,41 +644,50 @@ export function ProviderStatus() {
             </div>
             <div>
               <p className="text-amber-100 text-sm">{t('providerStatus.totalModels')}</p>
-              <p className="text-2xl font-bold">{totalModels}</p>
+              {initialLoading ? (
+                <div className="h-8 w-10 bg-white/30 rounded animate-pulse" />
+              ) : (
+                <p className="text-2xl font-bold">{totalModels}</p>
+              )}
             </div>
           </div>
         </div>
       </div>
+      {initialLoading ? (
+        <ProviderStatusSkeleton />
+      ) : (
+        <>
+          <ProviderGroup
+            title={t('providerStatus.connectedProviders')}
+            icon={Wifi}
+            iconColor="bg-emerald-500"
+            providers={connected}
+            providerModels={providerModels}
+            customModels={customModelsData}
+            emptyMessage={t('providerStatus.noConnectedProviders')}
+            onModelAdded={handleModelAdded}
+            showValidationLoading={validating}
+            validationLoadingLabel={t('providerStatus.modelValidationLoading')}
+            validationHint={t('providerStatus.modelValidationHint')}
+            showValidationFallback={!validating && source === 'cache_fallback'}
+            validationFallbackLabel={t('providerStatus.modelValidationFallback')}
+            validationFallbackHint={
+              fallbackReason || t('providerStatus.modelValidationFallbackHint')
+            }
+          />
 
-      <ProviderGroup
-        title={t('providerStatus.connectedProviders')}
-        icon={Wifi}
-        iconColor="bg-emerald-500"
-        providers={connected}
-        providerModels={providerModels}
-        customModels={customModelsData}
-        emptyMessage={t('providerStatus.noConnectedProviders')}
-        onModelAdded={handleModelAdded}
-        showValidationLoading={validating}
-        validationLoadingLabel={t('providerStatus.modelValidationLoading')}
-        validationHint={t('providerStatus.modelValidationHint')}
-        showValidationFallback={!validating && source === 'cache_fallback'}
-        validationFallbackLabel={t('providerStatus.modelValidationFallback')}
-        validationFallbackHint={
-          fallbackReason || t('providerStatus.modelValidationFallbackHint')
-        }
-      />
-
-      <ProviderGroup
-        title={t('providerStatus.notConnectedProviders')}
-        icon={WifiOff}
-        iconColor="bg-slate-500"
-        providers={notConnected}
-        providerModels={providerModels}
-        customModels={customModelsData}
-        emptyMessage={t('providerStatus.noNotConnectedProviders')}
-        onModelAdded={handleModelAdded}
-      />
+          <ProviderGroup
+            title={t('providerStatus.notConnectedProviders')}
+            icon={WifiOff}
+            iconColor="bg-slate-500"
+            providers={notConnected}
+            providerModels={providerModels}
+            customModels={customModelsData}
+            emptyMessage={t('providerStatus.noNotConnectedProviders')}
+            onModelAdded={handleModelAdded}
+          />
+        </>
+      )}
     </div>
   );
 }

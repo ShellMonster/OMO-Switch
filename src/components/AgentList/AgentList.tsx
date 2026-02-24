@@ -60,7 +60,7 @@ export function AgentList({
 }: AgentListProps) {
   const { t } = useTranslation();
   const { updateAgentInConfig, updateCategoryInConfig } = usePreloadStore();
-  const { setActivePreset, activePreset } = usePresetStore();
+  const { setActivePreset, refreshPresetList, activePreset } = usePresetStore();
 
   // 判断当前是否为内置预设（内置预设不可编辑）
   const isBuiltinPreset = activePreset?.startsWith('__builtin__');
@@ -135,6 +135,7 @@ export function AgentList({
     try {
       await savePreset(name);
       setActivePreset(name);
+      await refreshPresetList(true);
       setShowSaveModal(false);
       setNewPresetName('');
       toast.success(t('presetSelector.saveSuccess', { name }));
@@ -143,9 +144,28 @@ export function AgentList({
     } finally {
       setIsSavingPreset(false);
     }
-  }, [newPresetName, setActivePreset, t]);
+  }, [newPresetName, setActivePreset, refreshPresetList, t]);
 
   const selectedAgentConfig = selectedAgent ? data[selectedAgent] : undefined;
+
+  const items = useMemo(() => {
+    const allItems = Object.entries(data);
+    if (!searchQuery.trim()) return allItems;
+
+    const query = searchQuery.toLowerCase();
+    return allItems.filter(([name, config]) => {
+      // 检查原名
+      const nameMatch = name.toLowerCase().includes(query);
+      // 检查模型名称
+      const modelMatch = config.model?.toLowerCase().includes(query);
+      // 检查 i18n 名称（agentNames 或 categoryNames）
+      const i18nKey = dataSource === 'agents' ? 'agentNames' : 'categoryNames';
+      const i18nName = t(`${i18nKey}.${name}`);
+      const i18nMatch = i18nName.toLowerCase().includes(query);
+
+      return nameMatch || modelMatch || i18nMatch;
+    });
+  }, [data, searchQuery, t, dataSource]);
 
   if (isLoading) {
     return (
@@ -175,25 +195,6 @@ export function AgentList({
       </div>
     );
   }
-
-  const items = useMemo(() => {
-    const allItems = Object.entries(data);
-    if (!searchQuery.trim()) return allItems;
-    
-    const query = searchQuery.toLowerCase();
-    return allItems.filter(([name, config]) => {
-      // 检查原名
-      const nameMatch = name.toLowerCase().includes(query);
-      // 检查模型名称
-      const modelMatch = config.model?.toLowerCase().includes(query);
-      // 检查 i18n 名称（agentNames 或 categoryNames）
-      const i18nKey = dataSource === 'agents' ? 'agentNames' : 'categoryNames';
-      const i18nName = t(`${i18nKey}.${name}`);
-      const i18nMatch = i18nName.toLowerCase().includes(query);
-      
-      return nameMatch || modelMatch || i18nMatch;
-    });
-  }, [data, searchQuery, t, dataSource]);
 
   return (
     <>

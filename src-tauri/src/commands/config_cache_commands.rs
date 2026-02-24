@@ -3,6 +3,8 @@
 use crate::services::config_cache_service;
 use crate::services::config_cache_service::{ConfigChange, ConfigSnapshot};
 use crate::services::config_service;
+use crate::services::preset_service;
+use serde::Serialize;
 use serde_json::Value;
 use std::fs;
 
@@ -94,4 +96,51 @@ pub fn get_config_modification_time() -> Result<Option<u64>, String> {
         .map_err(|e| format!("时间转换失败: {}", e))?;
 
     Ok(Some(duration.as_millis() as u64))
+}
+
+#[derive(Debug, Serialize)]
+pub struct AcceptExternalChangesResult {
+    pub config: Value,
+    pub active_preset: Option<String>,
+    pub preset_synced: bool,
+    pub preset_sync_error: Option<String>,
+}
+
+/// 接受外部配置变更（原子流程）
+///
+/// 流程：
+/// 1. 读取磁盘当前配置（外部变更后的最新值）
+/// 2. 更新配置快照（避免重复弹出“外部修改”提示）
+/// 3. 若当前激活的是用户预设，则同步该预设到最新配置
+/// 4. 返回最终配置给前端用于即时刷新 UI
+#[tauri::command]
+pub async fn accept_external_changes() -> Result<AcceptExternalChangesResult, String> {
+    tokio::task::spawn_blocking(|| {
+        let config = config_service::read_omo_config()?;
+        config_service::validate_config(&config)?;
+        config_cache_service::save_config_snapshot(&config)?;
+
+        let active_preset = preset_service::get_active_preset();
+        let mut preset_synced = false;
+        let mut preset_sync_error: Option<String> = None;
+
+        if let Some(name) = active_preset.as_ref() {
+            if !name.starts_with("__builtin__") {
+                if let Err(err) = preset_service::update_preset(name) {
+                    preset_sync_error = Some(err);
+                } else {
+                    preset_synced = true;
+                }
+            }
+        }
+
+        Ok(AcceptExternalChangesResult {
+            config,
+            active_preset,
+            preset_synced,
+            preset_sync_error,
+        })
+    })
+    .await
+    .map_err(|e| format!("接受外部变更失败: {}", e))?
 }

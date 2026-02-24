@@ -63,7 +63,7 @@ interface PreloadState {
   loadOmoConfig: () => Promise<void>;
   refreshModels: () => Promise<void>;
   refreshVersions: () => Promise<void>;
-  checkUpstreamUpdate: () => Promise<void>;  // 检查上游配置更新
+  checkUpstreamUpdate: (options?: { force?: boolean }) => Promise<void>;  // 检查上游配置更新
   softRefreshAll: () => void;
   retryAll: () => void;
   // 更新 omoConfig 中特定 agent 或 category 的配置
@@ -128,8 +128,8 @@ export const usePreloadStore = create<PreloadState>()(
     set({ isPreloading: true });
 
     try {
-      // 并行加载配置和模型
-      await Promise.allSettled([get().loadOmoConfig(), get().refreshModels()]);
+      // 启动首屏仅加载配置，模型与版本改为后台异步，降低首屏阻塞感
+      await get().loadOmoConfig();
 
       // 确保 default 预设存在（兼容旧用户升级）
       try {
@@ -149,6 +149,11 @@ export const usePreloadStore = create<PreloadState>()(
           console.error('Failed to ensure default preset:', err);
         }
       }
+
+      // 首屏渲染后再后台刷新模型/版本，避免启动阶段堆积重任务
+      setTimeout(() => {
+        Promise.allSettled([get().refreshModels(), get().refreshVersions()]);
+      }, 1200);
     } finally {
       set({ isPreloading: false, preloadComplete: true });
     }
@@ -347,12 +352,21 @@ refreshVersions: async () => {
 },
 
 // 检查上游配置更新（静默执行，用于启动时后台检查）
-checkUpstreamUpdate: async () => {
+checkUpstreamUpdate: async (options = {}) => {
   const state = get();
+  const force = Boolean(options.force);
 
   // 防止重复请求
   if (state._upstreamRefreshing) {
     return;
+  }
+
+  if (!force && state.upstreamUpdateStatus.lastChecked) {
+    const last = Date.parse(state.upstreamUpdateStatus.lastChecked);
+    const now = Date.now();
+    if (!Number.isNaN(last) && now - last < 30 * 60 * 1000) {
+      return;
+    }
   }
 
   set({ _upstreamRefreshing: true, upstreamUpdateStatus: { ...state.upstreamUpdateStatus, loading: true } });
@@ -521,6 +535,12 @@ updateAgentInConfig: (agentName: string, config: AgentConfig) => {
       error: null,
     },
     versions: { data: state.versions.data, loading: false, error: null },
+    upstreamUpdateStatus: {
+      hasUpdate: state.upstreamUpdateStatus.hasUpdate,
+      lastChecked: state.upstreamUpdateStatus.lastChecked,
+      loading: false,
+      error: null,
+    },
   }),
 }
   )

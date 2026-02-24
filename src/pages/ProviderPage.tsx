@@ -10,33 +10,48 @@ import { ApiKeyModal } from '../components/Providers/ApiKeyModal';
 import { CustomProviderModal } from '../components/Providers/CustomProviderModal';
 import { KeyRound, Wifi, Settings, RefreshCw } from 'lucide-react';
 import { cn } from '../components/common/cn';
-import { ProviderStatusSkeleton } from '../components/common/Skeleton';
+import { usePreloadStore } from '../store/preloadStore';
 
 type TabType = 'status' | 'config';
 
 export function ProviderPage() {
   const { t } = useTranslation();
+  const refreshModels = usePreloadStore((s) => s.refreshModels);
   const [activeTab, setActiveTab] = useState<TabType>('status');
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const [isConfigRefreshing, setIsConfigRefreshing] = useState(false);
+  const [isStatusRefreshing, setIsStatusRefreshing] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ProviderInfo | null>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<ProviderInfo | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (activeTab === 'config' && !configLoaded) {
+      void loadData();
+    }
+  }, [activeTab, configLoaded]);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (silent) {
+      setIsConfigRefreshing(true);
+    } else {
+      setIsConfigLoading(true);
+    }
     try {
       const providerList = await invoke<ProviderInfo[]>('get_provider_status');
       setProviders(providerList);
+      setConfigLoaded(true);
     } catch (err) {
       toast.error(t('provider.loadFailed'));
       console.error('Failed to load provider data:', err);
     } finally {
-      setIsLoading(false);
+      if (silent) {
+        setIsConfigRefreshing(false);
+      } else {
+        setIsConfigLoading(false);
+      }
     }
   };
 
@@ -57,7 +72,8 @@ export function ProviderPage() {
     try {
       await invoke('delete_provider_auth', { providerId: deleteConfirm.id });
       toast.success(t('provider.deleteSuccess'));
-      loadData();
+      await loadData({ silent: configLoaded });
+      await refreshModels();
     } catch (err) {
       toast.error(t('provider.deleteFailed'));
       console.error('Failed to delete provider auth:', err);
@@ -71,46 +87,31 @@ export function ProviderPage() {
   };
 
   const handleSuccess = () => {
-    loadData();
+    void Promise.allSettled([
+      loadData({ silent: configLoaded }),
+      refreshModels(),
+    ]);
+  };
+
+  const handleRefresh = async () => {
+    if (activeTab === 'status') {
+      setIsStatusRefreshing(true);
+      try {
+        await refreshModels();
+      } catch (err) {
+        toast.error(t('provider.loadFailed'));
+        console.error('Failed to refresh provider status models:', err);
+      } finally {
+        setIsStatusRefreshing(false);
+      }
+      return;
+    }
+
+    await loadData({ silent: configLoaded });
   };
 
   const configuredProviders = providers.filter(p => p.is_configured);
   const unconfiguredProviders = providers.filter(p => !p.is_configured && p.is_builtin);
-
-  if (isLoading) {
-    return (
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* 页面头部骨架 */}
-        <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 rounded-2xl border border-indigo-100/50 animate-pulse">
-          <div className="w-12 h-12 bg-slate-200 rounded-xl" />
-          <div className="flex-1 space-y-2">
-            <div className="h-6 bg-slate-200 rounded w-48" />
-            <div className="h-4 bg-slate-200 rounded w-64" />
-          </div>
-        </div>
-
-        {/* Tab 骨架 */}
-        <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit animate-pulse">
-          <div className="h-10 w-24 bg-slate-200 rounded-lg" />
-          <div className="h-10 w-24 bg-slate-200 rounded-lg" />
-        </div>
-
-        {/* 内容区骨架 */}
-        {activeTab === 'status' ? (
-          <ProviderStatusSkeleton />
-        ) : (
-          <div className="space-y-4 animate-pulse">
-            <div className="h-12 bg-slate-200 rounded-xl" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-32 bg-slate-200 rounded-xl" />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -122,8 +123,18 @@ export function ProviderPage() {
           <h2 className="text-xl font-semibold text-slate-800">{t('provider.title')}</h2>
           <p className="text-slate-600 mt-1">{t('provider.description')}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={loadData} disabled={isLoading}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isStatusRefreshing || isConfigLoading || isConfigRefreshing}
+        >
+          <RefreshCw
+            className={cn(
+              'w-4 h-4 mr-2',
+              (isStatusRefreshing || isConfigLoading || isConfigRefreshing) && 'animate-spin'
+            )}
+          />
           {t('common.refresh')}
         </Button>
       </div>
@@ -158,14 +169,32 @@ export function ProviderPage() {
       {activeTab === 'status' ? (
         <ProviderStatus />
       ) : (
-        <ProviderList
-          configuredProviders={configuredProviders}
-          unconfiguredProviders={unconfiguredProviders}
-          onConfigure={handleConfigure}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAddCustom={handleAddCustom}
-        />
+        <>
+          {isConfigRefreshing && (
+            <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
+              {t('common.loading')}
+            </div>
+          )}
+          {!configLoaded && isConfigLoading ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="h-12 bg-slate-200 rounded-xl" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="h-32 bg-slate-200 rounded-xl" />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <ProviderList
+              configuredProviders={configuredProviders}
+              unconfiguredProviders={unconfiguredProviders}
+              onConfigure={handleConfigure}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAddCustom={handleAddCustom}
+            />
+          )}
+        </>
       )}
 
       {selectedProvider && (
