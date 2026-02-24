@@ -160,9 +160,7 @@ jobs:
             exit 1
           fi
 
-          KEY_PATH="$RUNNER_TEMP/tauri-updater.key"
-          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$KEY_PATH"
-          npm run -s tauri -- signer sign -f "$KEY_PATH" -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
+          npm run -s tauri -- signer sign -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$UPDATE_BUNDLE"
           SIG_PATH="${UPDATE_BUNDLE}.sig"
           if [ ! -f "$SIG_PATH" ]; then
             echo "Signature not generated: $SIG_PATH" >&2
@@ -219,9 +217,7 @@ jobs:
             throw "No setup exe found for updater signing."
           }
 
-          $keyPath = Join-Path $env:RUNNER_TEMP "tauri-updater.key"
-          Set-Content -Path $keyPath -Value $env:TAURI_SIGNING_PRIVATE_KEY -NoNewline
-          npm run -s tauri -- signer sign -f $keyPath -p $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $setupExe.FullName
+          npm run -s tauri -- signer sign -p $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $setupExe.FullName
 
           $sigPath = "$($setupExe.FullName).sig"
           if (-not (Test-Path $sigPath)) {
