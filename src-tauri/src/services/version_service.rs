@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -61,7 +62,22 @@ pub fn get_opencode_version() -> Option<String> {
 pub fn get_omo_current_version() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
 
-    // 1. 本地安装: ~/.config/opencode/node_modules/oh-my-opencode/
+    // 1. opencode 缓存安装: ~/.cache/opencode/node_modules/oh-my-opencode/
+    let cache_pkg = format!(
+        "{}/.cache/opencode/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if let Some(version) = read_pkg_version(&cache_pkg) {
+        return Some(version);
+    }
+
+    // 2. opencode 缓存依赖: ~/.cache/opencode/package.json
+    let cache_dep_pkg = format!("{}/.cache/opencode/package.json", home);
+    if let Some(version) = read_dependency_version(&cache_dep_pkg, "oh-my-opencode") {
+        return Some(version);
+    }
+
+    // 3. 本地安装: ~/.config/opencode/node_modules/oh-my-opencode/
     let local_pkg = format!(
         "{}/.config/opencode/node_modules/oh-my-opencode/package.json",
         home
@@ -70,13 +86,13 @@ pub fn get_omo_current_version() -> Option<String> {
         return Some(version);
     }
 
-    // 2. 配置文件: opencode.json 的 plugin 字段
+    // 4. 配置文件: opencode.json 的 plugin 字段（仅识别显式版本）
     let config_path = format!("{}/.config/opencode/opencode.json", home);
-    if let Some(version) = read_version_from_config(&config_path) {
+    if let Some(version) = read_plugin_version_from_config(&config_path, "oh-my-opencode") {
         return Some(version);
     }
 
-    // 3. bun 全局安装: ~/.bun/install/global/node_modules/oh-my-opencode/
+    // 5. bun 全局安装: ~/.bun/install/global/node_modules/oh-my-opencode/
     let bun_global = format!(
         "{}/.bun/install/global/node_modules/oh-my-opencode/package.json",
         home
@@ -85,52 +101,7 @@ pub fn get_omo_current_version() -> Option<String> {
         return Some(version);
     }
 
-    // 4. 尝试执行命令获取版本（最后兜底）
-    if let Some(version) = get_version_from_command() {
-        return Some(version);
-    }
-
     None
-}
-
-/// 通过命令获取版本号（兜底方案）
-/// 添加 3 秒超时机制，防止网络问题阻塞 UI
-fn get_version_from_command() -> Option<String> {
-    let mut child = Command::new("bunx")
-        .args(["oh-my-opencode", "--version"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-
-    // 3 秒超时
-    let timeout = Duration::from_secs(3);
-    let start = Instant::now();
-
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) if status.success() => {
-                let output = child.wait_with_output().ok()?;
-                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !version.is_empty() {
-                    return Some(version);
-                }
-                return None;
-            }
-            Ok(Some(_)) => return None, // 命令执行失败
-            Ok(None) => {
-                // 还在运行，检查超时
-                if start.elapsed() > timeout {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return None;
-                }
-                // 短暂休眠避免忙等待
-                std::thread::sleep(Duration::from_millis(100));
-            }
-            Err(_) => return None,
-        }
-    }
 }
 
 fn read_pkg_version(path: &str) -> Option<String> {
@@ -139,15 +110,24 @@ fn read_pkg_version(path: &str) -> Option<String> {
     pkg.get("version")?.as_str().map(|s| s.to_string())
 }
 
-fn read_version_from_config(path: &str) -> Option<String> {
+fn read_dependency_version(path: &str, dep_name: &str) -> Option<String> {
     let content = std::fs::read_to_string(path).ok()?;
-    let config: serde_json::Value = serde_json::from_str(&content).ok()?;
+    let pkg: Value = serde_json::from_str(&content).ok()?;
+    pkg.get("dependencies")?
+        .get(dep_name)?
+        .as_str()
+        .map(|s| s.to_string())
+}
+
+fn read_plugin_version_from_config(path: &str, plugin_name: &str) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let config: Value = serde_json::from_str(&content).ok()?;
     let plugins = config.get("plugin")?.as_array()?;
 
     for plugin in plugins {
         if let Some(s) = plugin
             .as_str()
-            .and_then(|s| s.strip_prefix("oh-my-opencode@"))
+            .and_then(|s| s.strip_prefix(&format!("{}@", plugin_name)))
         {
             return Some(s.to_string());
         }
@@ -155,10 +135,83 @@ fn read_version_from_config(path: &str) -> Option<String> {
     None
 }
 
+fn is_omo_installed() -> bool {
+    let home = match std::env::var("HOME") {
+        Ok(home) => home,
+        Err(_) => return false,
+    };
+
+    // 1. 可直接解析出插件版本，视为已安装
+    let config_path = format!("{}/.config/opencode/opencode.json", home);
+    if read_plugin_version_from_config(&config_path, "oh-my-opencode").is_some() {
+        return true;
+    }
+
+    // 2. 配置中声明了插件（不带版本也算已安装）
+    if is_plugin_declared_in_config(&config_path, "oh-my-opencode") {
+        return true;
+    }
+
+    // 3. 常见安装路径存在包
+    let local_pkg = format!(
+        "{}/.config/opencode/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if read_pkg_version(&local_pkg).is_some() {
+        return true;
+    }
+
+    // 4. opencode 缓存安装/依赖存在
+    let cache_pkg = format!(
+        "{}/.cache/opencode/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if read_pkg_version(&cache_pkg).is_some() {
+        return true;
+    }
+
+    let cache_dep_pkg = format!("{}/.cache/opencode/package.json", home);
+    if read_dependency_version(&cache_dep_pkg, "oh-my-opencode").is_some() {
+        return true;
+    }
+
+    let bun_global = format!(
+        "{}/.bun/install/global/node_modules/oh-my-opencode/package.json",
+        home
+    );
+    if read_pkg_version(&bun_global).is_some() {
+        return true;
+    }
+
+    false
+}
+
+fn is_plugin_declared_in_config(path: &str, plugin_name: &str) -> bool {
+    let content = match std::fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(_) => return false,
+    };
+    let config: Value = match serde_json::from_str(&content) {
+        Ok(config) => config,
+        Err(_) => return false,
+    };
+    let plugins = match config.get("plugin").and_then(|v| v.as_array()) {
+        Some(plugins) => plugins,
+        None => return false,
+    };
+
+    plugins.iter().any(|plugin| {
+        let Some(raw) = plugin.as_str() else {
+            return false;
+        };
+        raw == plugin_name || raw.starts_with(&format!("{}@", plugin_name))
+    })
+}
+
 /// Get oh-my-opencode latest version from npm registry
 pub fn get_omo_latest_version() -> Option<String> {
     let resp = ureq::get("https://registry.npmjs.org/oh-my-opencode/latest")
-        .timeout(std::time::Duration::from_secs(2))
+        .timeout(std::time::Duration::from_secs(5))
         .call()
         .ok()?;
     let json: serde_json::Value = resp.into_json().ok()?;
@@ -215,7 +268,7 @@ pub fn check_all_versions() -> Vec<VersionInfo> {
     };
     results.push(VersionInfo {
         name: "Oh My OpenCode".to_string(),
-        installed: omo_current.is_some(),
+        installed: is_omo_installed(),
         current_version: omo_current.clone(),
         latest_version: omo_latest.clone(),
         has_update,

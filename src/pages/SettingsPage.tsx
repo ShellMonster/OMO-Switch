@@ -295,7 +295,10 @@ export function SettingsPage() {
           {isLoadingVersions && versions.length === 0 ? (
             <VersionSkeleton />
           ) : (
-            versions.map((v) => (
+            versions.map((v) => {
+              const checkFailed = v.installed && !v.latest_version;
+              const canConfirmUpToDate = v.installed && !!v.current_version && !!v.latest_version && !v.has_update;
+              return (
               <div key={v.name} className="py-3 border-b border-slate-100 last:border-0">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-slate-800">{v.name}</span>
@@ -306,7 +309,12 @@ export function SettingsPage() {
                       <AlertCircle className="w-4 h-4" />
                       {t('versionCheck.updateAvailable')}
                     </span>
-                  ) : (
+                  ) : checkFailed ? (
+                    <span className="flex items-center gap-1 text-sm text-slate-500">
+                      <AlertCircle className="w-4 h-4" />
+                      {t('versionCheck.checkFailed')}
+                    </span>
+                  ) : canConfirmUpToDate ? (
                     <div className="flex flex-col items-end">
                       <span className="flex items-center gap-1 text-sm text-emerald-600">
                         <CheckCircle2 className="w-4 h-4" />
@@ -318,6 +326,8 @@ export function SettingsPage() {
                         </span>
                       )}
                     </div>
+                  ) : (
+                    <span className="text-sm text-slate-400">-</span>
                   )}
                 </div>
 
@@ -357,7 +367,8 @@ export function SettingsPage() {
                   </div>
                 )}
               </div>
-            ))
+              );
+            })
           )}
 
             {versions.length > 0 && (
