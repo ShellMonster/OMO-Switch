@@ -216,6 +216,10 @@ export async function deletePreset(name: string): Promise<void> {
   return invoke<void>('delete_preset', { name });
 }
 
+export async function renamePreset(oldName: string, newName: string): Promise<void> {
+  return invoke<void>('rename_preset', { oldName, newName });
+}
+
 export async function getPresetInfo(name: string): Promise<[number, number, string]> {
   return invoke<[number, number, string]>('get_preset_info', { name });
 }

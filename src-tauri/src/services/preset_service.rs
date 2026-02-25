@@ -271,6 +271,46 @@ pub fn delete_preset(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// 重命名预设（原子操作）
+/// 1. 校验旧名称与新名称
+/// 2. 预设文件从 old_name.json 重命名为 new_name.json
+/// 3. 若当前激活预设是旧名称，同步更新 active_preset
+pub fn rename_preset(old_name: &str, new_name: &str) -> Result<(), String> {
+    if old_name.is_empty() || new_name.is_empty() {
+        return Err(i18n::tr_current("preset_name_empty"));
+    }
+    if old_name.contains('/') || old_name.contains('\\') {
+        return Err(i18n::tr_current("preset_name_invalid_path"));
+    }
+    if new_name.contains('/') || new_name.contains('\\') {
+        return Err(i18n::tr_current("preset_name_invalid_path"));
+    }
+    if old_name == "default" {
+        return Err("默认预设不支持重命名".to_string());
+    }
+    if old_name == new_name {
+        return Ok(());
+    }
+
+    let old_path = get_preset_path(old_name)?;
+    if !old_path.exists() {
+        return Err(i18n::tr_current("preset_not_found"));
+    }
+
+    let new_path = get_preset_path(new_name)?;
+    if new_path.exists() {
+        return Err("预设名称已存在".to_string());
+    }
+
+    fs::rename(&old_path, &new_path).map_err(|e| format!("重命名预设失败: {}", e))?;
+
+    if get_active_preset().as_deref() == Some(old_name) {
+        set_active_preset(new_name)?;
+    }
+
+    Ok(())
+}
+
 /// 获取预设详情
 /// 读取预设文件并返回其中的 agent 数量、category 数量和创建时间
 ///

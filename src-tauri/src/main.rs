@@ -44,6 +44,7 @@ fn main() {
             commands::preset_commands::get_preset_config,
             commands::preset_commands::list_presets,
             commands::preset_commands::delete_preset,
+            commands::preset_commands::rename_preset,
             commands::preset_commands::get_preset_info,
             commands::preset_commands::update_preset,
             commands::preset_commands::get_preset_meta,

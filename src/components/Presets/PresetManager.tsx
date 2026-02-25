@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Plus, Trash2, Power, CheckCircle2, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { Bookmark, Plus, Trash2, Power, CheckCircle2, ChevronDown, ChevronRight, AlertCircle, Pencil, Check, X } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Modal, ConfirmModal } from '../common/Modal';
 import { toast } from '../common/Toast';
-import { savePreset, loadPreset, deletePreset, getPresetInfo, getPresetMeta, saveConfigSnapshot } from '../../services/tauri';
+import { savePreset, loadPreset, deletePreset, renamePreset, getPresetInfo, getPresetMeta, saveConfigSnapshot } from '../../services/tauri';
 import { usePresetStore } from '../../store/presetStore';
 import { usePreloadStore } from '../../store/preloadStore';
 
@@ -16,12 +16,17 @@ interface PresetCardProps {
   isActive?: boolean;
   onLoad: () => void;
   onDelete: () => void;
+  onRename: (oldName: string, newName: string) => Promise<void>;
   loadLabel: string;
   deleteLabel: string;
 }
 
-function PresetCard({ name, agentCount, categoryCount, updatedAt, isActive, onLoad, onDelete, loadLabel, deleteLabel }: PresetCardProps) {
+function PresetCard({ name, agentCount, categoryCount, updatedAt, isActive, onLoad, onDelete, onRename, loadLabel, deleteLabel }: PresetCardProps) {
   const { t } = useTranslation();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [renameDraft, setRenameDraft] = useState(name);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
 
   const formatUpdatedTime = (timestamp: number | null): string => {
     if (!timestamp) return t('presetCard.unknown');
@@ -35,6 +40,36 @@ function PresetCard({ name, agentCount, categoryCount, updatedAt, isActive, onLo
     }).replace(/\//g, '-');
   };
 
+  const startRename = () => {
+    setRenameDraft(name);
+    setRenameError(null);
+    setIsEditingName(true);
+  };
+
+  const cancelRename = () => {
+    setRenameDraft(name);
+    setRenameError(null);
+    setIsEditingName(false);
+  };
+
+  const confirmRename = async () => {
+    const next = renameDraft.trim();
+    if (!next) {
+      setRenameError(t('presetManager.presetNameEmpty'));
+      return;
+    }
+    try {
+      setIsRenaming(true);
+      setRenameError(null);
+      await onRename(name, next);
+      setIsEditingName(false);
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : t('presetManager.renameFailed'));
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
   return (
     <div className="group bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md hover:border-indigo-200 transition-all duration-200">
       <div className="flex items-center gap-3">
@@ -43,9 +78,32 @@ function PresetCard({ name, agentCount, categoryCount, updatedAt, isActive, onLo
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-slate-800 truncate" title={name === 'default' ? t('presetManager.defaultPreset') : name}>
-            {name === 'default' ? t('presetManager.defaultPreset') : name}
-          </h3>
+          {isEditingName ? (
+            <div className="space-y-1">
+              <input
+                type="text"
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void confirmRename();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelRename();
+                  }
+                }}
+                placeholder={t('presetManager.renamePlaceholder')}
+                className="w-full max-w-xs px-2 py-1 text-sm border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                autoFocus
+              />
+              {renameError && <p className="text-xs text-rose-600">{renameError}</p>}
+            </div>
+          ) : (
+            <h3 className="font-semibold text-slate-800 truncate" title={name === 'default' ? t('presetManager.defaultPreset') : name}>
+              {name === 'default' ? t('presetManager.defaultPreset') : name}
+            </h3>
+          )}
           <p className="text-xs text-slate-400 mt-0.5">
             {t('presetCard.lastUpdated')}: {formatUpdatedTime(updatedAt)}
           </p>
@@ -65,27 +123,65 @@ function PresetCard({ name, agentCount, categoryCount, updatedAt, isActive, onLo
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          {!isActive && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onLoad}
-              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-            >
-              <Power className="w-4 h-4" />
-              <span className="hidden sm:inline">{loadLabel}</span>
-            </Button>
+          {isEditingName ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void confirmRename()}
+                isLoading={isRenaming}
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                title={t('presetManager.renameSave')}
+              >
+                <Check className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={cancelRename}
+                disabled={isRenaming}
+                className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                title={t('presetManager.cancel')}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              {!isActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onLoad}
+                  className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                >
+                  <Power className="w-4 h-4" />
+                  <span className="hidden sm:inline">{loadLabel}</span>
+                </Button>
+              )}
+              {name !== 'default' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={startRename}
+                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  title={t('presetManager.rename')}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                disabled={isActive}
+                className={isActive ? 'text-slate-300 cursor-not-allowed' : 'text-rose-500 hover:text-rose-600 hover:bg-rose-50'}
+                title={isActive ? t('presetManager.deleteDisabledHint') : deleteLabel}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-            disabled={isActive}
-            className={isActive ? 'text-slate-300 cursor-not-allowed' : 'text-rose-500 hover:text-rose-600 hover:bg-rose-50'}
-            title={isActive ? t('presetManager.deleteDisabledHint') : deleteLabel}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </div>
@@ -218,6 +314,37 @@ export function PresetManager() {
     setShowDeleteModal(true);
   };
 
+  const handleRenamePreset = async (oldName: string, newName: string) => {
+    const trimmedName = newName.trim();
+    if (!trimmedName) {
+      throw new Error(t('presetManager.presetNameEmpty'));
+    }
+    if (trimmedName.includes('/') || trimmedName.includes('\\')) {
+      throw new Error(t('presetManager.presetNameInvalidPath'));
+    }
+    if (trimmedName !== oldName && presets.some((preset) => preset.name === trimmedName)) {
+      throw new Error(t('presetManager.presetNameExists'));
+    }
+
+    await renamePreset(oldName, trimmedName);
+
+    setPresets((prev) =>
+      prev
+        .map((preset) => (preset.name === oldName ? { ...preset, name: trimmedName } : preset))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+
+    if (activePreset === oldName) {
+      setActivePreset(trimmedName);
+    }
+    if (selectedPreset === oldName) {
+      setSelectedPreset(trimmedName);
+    }
+
+    await refreshPresetList(true);
+    toast.success(t('presetManager.renameSuccess', { name: trimmedName }));
+  };
+
   return (
     <div className="space-y-6">
       {omoInstalled === false && (
@@ -297,6 +424,7 @@ export function PresetManager() {
                   isActive={activePreset === preset.name}
                   onLoad={() => handleLoadPreset(preset.name)}
                   onDelete={() => openDeleteModal(preset.name)}
+                  onRename={handleRenamePreset}
                   loadLabel={t('presetManager.load')}
                   deleteLabel={t('presetManager.delete')}
                 />

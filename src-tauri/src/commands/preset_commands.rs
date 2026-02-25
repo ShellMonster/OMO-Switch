@@ -29,6 +29,11 @@ pub fn delete_preset(name: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn rename_preset(old_name: String, new_name: String) -> Result<(), String> {
+    preset_service::rename_preset(&old_name, &new_name)
+}
+
+#[tauri::command]
 pub fn get_preset_info(name: String) -> Result<(usize, usize, String), String> {
     preset_service::get_preset_info(&name)
 }
