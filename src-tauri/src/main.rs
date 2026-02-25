@@ -6,19 +6,22 @@ mod i18n;
 mod services;
 mod tray;
 
+use tauri::Manager;
+
+fn show_main_window<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
 fn main() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
-        // 拦截窗口关闭：隐藏窗口而不是退出，托盘可继续操作
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
-            }
-        })
         .setup(|app| {
             tray::setup_tray(app)?;
             Ok(())
@@ -77,6 +80,26 @@ fn main() {
             commands::config_cache_commands::get_config_modification_time,
             commands::config_cache_commands::accept_external_changes,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        #[cfg(target_os = "macos")]
+        match event {
+            tauri::RunEvent::WindowEvent { label, event, .. } => {
+                if label == "main" {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.hide();
+                        }
+                    }
+                }
+            }
+            tauri::RunEvent::Reopen { .. } => {
+                show_main_window(app_handle);
+            }
+            _ => {}
+        }
+    });
 }

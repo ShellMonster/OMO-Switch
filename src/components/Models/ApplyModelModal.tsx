@@ -32,13 +32,41 @@ const VARIANT_OPTIONS = [
   { value: 'low', label: 'Low' },
   { value: 'none', label: 'None' },
 ] as const;
-const VARIANT_PRIORITY: AgentConfig['variant'][] = ['max', 'high', 'medium', 'low', 'none'];
+type VariantValue = NonNullable<AgentConfig['variant']>;
+const VARIANT_PRIORITY: VariantValue[] = ['max', 'high', 'medium', 'low', 'none'];
+const VARIANT_BADGE_STYLE: Record<VariantValue, string> = {
+  max: 'border-rose-200 bg-rose-50 text-rose-700',
+  high: 'border-amber-200 bg-amber-50 text-amber-700',
+  medium: 'border-blue-200 bg-blue-50 text-blue-700',
+  low: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  none: 'border-slate-200 bg-slate-50 text-slate-600',
+};
+const VARIANT_BADGE_TEXT: Record<VariantValue, string> = {
+  max: 'M',
+  high: 'H',
+  medium: 'M',
+  low: 'L',
+  none: 'N',
+};
 
-function normalizeVariant(value?: string): AgentConfig['variant'] {
+function normalizeVariant(value?: string): VariantValue {
   if (value === 'max' || value === 'high' || value === 'medium' || value === 'low' || value === 'none') {
     return value;
   }
   return 'none';
+}
+
+function toCamelCaseProvider(value: string): string {
+  if (!value) return 'unknown';
+  const parts = value.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  if (parts.length === 0) return 'unknown';
+  return parts
+    .map((part, index) => {
+      const lower = part.toLowerCase();
+      if (index === 0) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join('');
 }
 
 export function ApplyModelModal({
@@ -56,7 +84,7 @@ export function ApplyModelModal({
   const activePreset = usePresetStore((state) => state.activePreset);
   const refreshPresetList = usePresetStore((state) => state.refreshPresetList);
 
-  const [variant, setVariant] = useState<AgentConfig['variant']>('none');
+  const [variant, setVariant] = useState<VariantValue>('none');
   const [presetOptions, setPresetOptions] = useState<string[]>([]);
   const [targetPreset, setTargetPreset] = useState<string>('');
   const [draftConfig, setDraftConfig] = useState<OmoConfig | null>(null);
@@ -68,7 +96,7 @@ export function ApplyModelModal({
   const [isApplying, setIsApplying] = useState(false);
 
   const resolveDefaultVariant = useCallback(
-    (config?: OmoConfig | null): AgentConfig['variant'] => {
+    (config?: OmoConfig | null): VariantValue => {
       if (!config) return 'none';
       const allConfigs = [
         ...Object.values(config.agents || {}),
@@ -87,12 +115,12 @@ export function ApplyModelModal({
         return variants[0];
       }
 
-      const counts = new Map<AgentConfig['variant'], number>();
+      const counts = new Map<VariantValue, number>();
       variants.forEach((item) => {
         counts.set(item, (counts.get(item) || 0) + 1);
       });
 
-      let best: AgentConfig['variant'] = 'none';
+      let best: VariantValue = 'none';
       let bestCount = -1;
       VARIANT_PRIORITY.forEach((candidate) => {
         const count = counts.get(candidate) || 0;
@@ -326,7 +354,9 @@ export function ApplyModelModal({
     const modelSegments = modelPath.split('/');
     const hasProvider = modelSegments.length > 1;
     const providerName = hasProvider ? modelSegments[0] : 'unknown';
+    const providerDisplayName = toCamelCaseProvider(providerName);
     const modelId = hasProvider ? modelSegments.slice(1).join('/') : modelPath;
+    const currentVariant = normalizeVariant(config.variant);
 
     return (
       <label
@@ -342,14 +372,20 @@ export function ApplyModelModal({
         />
         <span className="flex-1 text-sm font-medium text-slate-700">{name}</span>
         <span
-          className="flex items-center gap-1.5 max-w-[220px] min-w-0"
-          title={t('applyModel.currentModel', { model: `${providerName}/${modelId}` })}
+          className="flex items-center gap-1.5 max-w-[260px] min-w-0"
+          title={t('applyModel.currentModel', { model: `${providerDisplayName}/${modelId}` })}
         >
-          <span className="px-1.5 py-0.5 rounded border border-indigo-100 bg-indigo-50 text-[10px] font-medium uppercase tracking-wide text-indigo-700 shrink-0">
-            {providerName}
+          <span className="px-1.5 py-0.5 rounded border border-indigo-100 bg-indigo-50 text-[10px] font-medium text-indigo-700 shrink-0">
+            {providerDisplayName}
           </span>
           <span className="text-xs text-slate-500 truncate">
             {modelId}
+          </span>
+          <span
+            className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold shrink-0 ${VARIANT_BADGE_STYLE[currentVariant]}`}
+            title={t(`variantOptions.${currentVariant}`)}
+          >
+            {VARIANT_BADGE_TEXT[currentVariant]}
           </span>
         </span>
       </label>
