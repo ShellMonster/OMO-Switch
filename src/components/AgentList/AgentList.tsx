@@ -141,24 +141,29 @@ export function AgentList({
 
   const selectedAgentConfig = selectedAgent ? data[selectedAgent] : undefined;
 
+  const searchableItems = useMemo(() => {
+    const i18nKey = dataSource === 'agents' ? 'agentNames' : 'categoryNames';
+    return Object.entries(data).map(([name, config]) => {
+      const localizedName = t(`${i18nKey}.${name}`);
+      const normalizedLocalizedName = localizedName === `${i18nKey}.${name}` ? name : localizedName;
+      return {
+        name,
+        config,
+        searchText: `${name} ${config.model || ''} ${normalizedLocalizedName}`.toLowerCase(),
+      };
+    });
+  }, [data, dataSource, t]);
+
   const items = useMemo(() => {
-    const allItems = Object.entries(data);
-    if (!searchQuery.trim()) return allItems;
+    if (!searchQuery.trim()) {
+      return searchableItems.map(({ name, config }) => [name, config] as const);
+    }
 
     const query = searchQuery.toLowerCase();
-    return allItems.filter(([name, config]) => {
-      // 检查原名
-      const nameMatch = name.toLowerCase().includes(query);
-      // 检查模型名称
-      const modelMatch = config.model?.toLowerCase().includes(query);
-      // 检查 i18n 名称（agentNames 或 categoryNames）
-      const i18nKey = dataSource === 'agents' ? 'agentNames' : 'categoryNames';
-      const i18nName = t(`${i18nKey}.${name}`);
-      const i18nMatch = i18nName.toLowerCase().includes(query);
-
-      return nameMatch || modelMatch || i18nMatch;
-    });
-  }, [data, searchQuery, t, dataSource]);
+    return searchableItems
+      .filter((item) => item.searchText.includes(query))
+      .map(({ name, config }) => [name, config] as const);
+  }, [searchQuery, searchableItems]);
 
   if (isLoading) {
     return (
@@ -233,7 +238,7 @@ export function AgentList({
             agentName={agentName}
             config={config}
             isCategory={dataSource === 'categories'}
-            onEdit={() => handleEdit(agentName)}
+            onEdit={handleEdit}
           />
         ))}
       </div>

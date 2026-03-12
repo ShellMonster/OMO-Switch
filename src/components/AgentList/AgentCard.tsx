@@ -8,7 +8,7 @@ import { getVariantDisplayValue } from '../../utils/modelCapabilities';
 interface AgentCardProps {
   agentName: string;
   config: AgentConfig;
-  onEdit: () => void;
+  onEdit: (agentName: string) => void;
   isCategory?: boolean;
 }
 
@@ -130,7 +130,7 @@ const AgentCardBase = ({ agentName, config, onEdit, isCategory }: AgentCardProps
       )}
     >
       <button
-        onClick={onEdit}
+        onClick={() => onEdit(agentName)}
         className={cn(
           "absolute top-3 right-3 p-1.5 rounded-lg transition-all duration-200",
           "bg-slate-50 text-slate-400 opacity-0 group-hover:opacity-100",
