@@ -47,6 +47,7 @@
     "apiKeyHint": "请在 {{website}} 获取 API Key",
     "baseUrl": "Base URL",
     "baseUrlPlaceholder": "API 端点地址",
+    "type": "类型",
     "baseUrlHint": "如果使用官方 API，可留空使用默认地址",
     "openaiBaseUrlHint": "填写后会写入 opencode 的 OpenAI provider baseURL，使自定义 API Base 直接作用到 openai 模型请求",
     "compatibleBaseUrlHint": "填写后写入 opencode Base URL；留空用默认地址",
@@ -96,6 +97,13 @@
     "configure": "配置",
     "setApiKey": "设置 API Key",
     "setApiKeyDesc": "为 {{name}} 设置 API Key 以启用此供应商",
+    "typeOptions": {
+      "openai": "OpenAI",
+      "openaiCompatible": "OpenAI Compatible",
+      "anthropic": "Anthropic",
+      "openrouter": "OpenRouter",
+      "groq": "Groq"
+    },
     "presets": {
       "anthropicDesc": "Claude 系列模型官方 API",
       "openaiDesc": "GPT 系列模型官方 API",

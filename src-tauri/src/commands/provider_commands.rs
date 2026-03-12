@@ -85,6 +85,8 @@ pub struct ProviderInfo {
 pub struct ProviderConfigSnapshot {
     pub api_key: Option<String>,
     pub base_url: Option<String>,
+    pub provider_type: Option<String>,
+    pub default_provider_type: String,
 }
 
 /// 连接测试结果
@@ -300,6 +302,17 @@ fn get_provider_base_url(provider_id: &str, config: &Value) -> Option<String> {
         .map(ToString::to_string)
 }
 
+fn get_provider_npm(provider_id: &str, config: &Value) -> Option<String> {
+    config
+        .get("provider")
+        .and_then(|providers| providers.get(provider_id))
+        .and_then(|provider| provider.get("npm"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
 fn provider_supports_base_url(provider_id: &str) -> bool {
     provider_id != "opencode"
 }
@@ -406,8 +419,14 @@ pub fn get_provider_config(provider_id: String) -> Result<ProviderConfigSnapshot
         .filter(|value| !value.is_empty());
 
     let base_url = get_provider_base_url(&provider_id, &config);
+    let provider_type = get_provider_npm(&provider_id, &config);
 
-    Ok(ProviderConfigSnapshot { api_key, base_url })
+    Ok(ProviderConfigSnapshot {
+        api_key,
+        base_url,
+        provider_type,
+        default_provider_type: provider_default_npm(&provider_id).to_string(),
+    })
 }
 
 /// 设置供应商的 API Key
@@ -421,6 +440,7 @@ pub fn set_provider_api_key(
     provider_id: String,
     api_key: String,
     base_url: Option<String>,
+    provider_type: Option<String>,
 ) -> Result<(), String> {
     let provider_id_for_config = provider_id.clone();
 
@@ -448,11 +468,16 @@ pub fn set_provider_api_key(
 
         if config["provider"].get(&provider_id_for_config).is_none() {
             config["provider"][&provider_id_for_config] = json!({
-                "npm": provider_npm(&provider_id_for_config)
+                "npm": provider_default_npm(&provider_id_for_config)
             });
-        } else if config["provider"][&provider_id_for_config].get("npm").is_none() {
-            config["provider"][&provider_id_for_config]["npm"] = json!(provider_npm(&provider_id_for_config));
         }
+
+        let selected_provider_type = provider_type
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| provider_default_npm(&provider_id_for_config));
+        config["provider"][&provider_id_for_config]["npm"] = json!(selected_provider_type);
 
         let trimmed = base_url
             .as_deref()
@@ -479,11 +504,13 @@ pub fn set_provider_api_key(
     Ok(())
 }
 
-fn provider_npm(provider_id: &str) -> &'static str {
+fn provider_default_npm(provider_id: &str) -> &'static str {
     match provider_id {
-        "openai" | "deepseek" | "xai" | "moonshotai" | "moonshotai-cn" | "kimi-for-coding"
-        | "zhipuai" | "zhipuai-coding-plan" | "minimax" | "minimax-cn"
-        | "minimax-coding-plan" | "minimax-cn-coding-plan" => "@ai-sdk/openai",
+        "openai" => "@ai-sdk/openai",
+        "zhipuai" | "zhipuai-coding-plan" | "moonshotai" | "moonshotai-cn" | "kimi-for-coding"
+        | "minimax" | "minimax-cn" | "minimax-coding-plan" | "minimax-cn-coding-plan" => "@ai-sdk/openai-compatible",
+        "deepseek" => "@ai-sdk/anthropic",
+        "xai" => "@ai-sdk/openai",
         "groq" => "@ai-sdk/groq",
         "openrouter" => "@openrouter/ai-sdk-provider",
         _ => "@ai-sdk/openai",

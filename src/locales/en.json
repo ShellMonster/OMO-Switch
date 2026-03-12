@@ -47,6 +47,7 @@
     "apiKeyHint": "Get your API Key from {{website}}",
     "baseUrl": "Base URL",
     "baseUrlPlaceholder": "API endpoint",
+    "type": "Type",
     "baseUrlHint": "Leave empty to use default endpoint for official API",
     "openaiBaseUrlHint": "When provided, OMO Switch writes the baseURL into opencode's OpenAI provider config so custom API Base applies directly to openai model requests",
     "compatibleBaseUrlHint": "Writes to opencode Base URL; leave empty to use the default endpoint",
@@ -96,6 +97,13 @@
     "configure": "Configure",
     "setApiKey": "Set API Key",
     "setApiKeyDesc": "Set API Key for {{name}} to enable this provider",
+    "typeOptions": {
+      "openai": "OpenAI",
+      "openaiCompatible": "OpenAI Compatible",
+      "anthropic": "Anthropic",
+      "openrouter": "OpenRouter",
+      "groq": "Groq"
+    },
     "presets": {
       "anthropicDesc": "Official Claude series model API",
       "openaiDesc": "Official GPT series model API",

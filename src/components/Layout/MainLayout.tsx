@@ -58,7 +58,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const startPreload = usePreloadStore(s => s.startPreload);
   
   const [appName, setAppName] = useState('OMO Switch');
-  const [appVersion, setAppVersion] = useState('1.2.1');
+  const [appVersion, setAppVersion] = useState('1.2.2');
 
   useEffect(() => {
     getName()
@@ -66,7 +66,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       .catch(() => setAppName('OMO Switch'));
     getVersion()
       .then(v => setAppVersion(v))
-      .catch(() => setAppVersion('1.2.1'));
+      .catch(() => setAppVersion('1.2.2'));
   }, []);
 
   useEffect(() => {
