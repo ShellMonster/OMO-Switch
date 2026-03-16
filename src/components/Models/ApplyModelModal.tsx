@@ -422,117 +422,123 @@ export function ApplyModelModal({
         </>
       }
     >
-      <div className="space-y-5">
-        <Select
-          label={t('applyModel.targetPreset', { defaultValue: '目标预设' })}
-          value={targetPreset}
-          onChange={(value) => {
-            setTargetPreset(value);
-            setSelectedAgents(new Set());
-            setSelectedCategories(new Set());
-            setAgentSearch('');
-            setCategorySearch('');
-            void (async () => {
-              const presetConfig = await loadPresetDraft(value);
-              setVariant(resolveDefaultVariant(presetConfig));
-            })();
-          }}
-          options={presetOptions.map((preset) => ({
-            value: preset,
-            label: preset,
-          }))}
-        />
-
-        {isPresetLoading && (
-          <p className="text-xs text-slate-500 -mt-2">
-            {t('applyModel.loadingPreset', { defaultValue: '正在加载所选预设配置...' })}
-          </p>
-        )}
-
-        <Select
-          label={t('applyModel.intensityLevel')}
-          value={variant || 'none'}
-          onChange={(value) => setVariant(value as AgentVariant)}
-          options={variantOptions.map((opt) => ({
-            value: opt,
-            label: t(`variantOptions.${opt}`),
-          }))}
-        />
-
-        <div className="border border-slate-200 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-800">
-              {t('applyModel.agents')} ({Object.keys(agents).length})
-            </h4>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={selectAllAgents}>
-                {t('applyModel.selectAll')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={clearAgents}>
-                {t('applyModel.clearAll')}
-              </Button>
-            </div>
-          </div>
-          <SearchInput
-            value={agentSearch}
-            onChange={setAgentSearch}
-            placeholder={t('applyModel.searchPlaceholder')}
-            className="mb-2"
+      <div className="flex min-h-0 flex-1 flex-col gap-5">
+        <div className="flex-shrink-0 space-y-5">
+          <Select
+            label={t('applyModel.targetPreset', { defaultValue: '目标预设' })}
+            value={targetPreset}
+            onChange={(value) => {
+              setTargetPreset(value);
+              setSelectedAgents(new Set());
+              setSelectedCategories(new Set());
+              setAgentSearch('');
+              setCategorySearch('');
+              void (async () => {
+                const presetConfig = await loadPresetDraft(value);
+                setVariant(resolveDefaultVariant(presetConfig));
+              })();
+            }}
+            options={presetOptions.map((preset) => ({
+              value: preset,
+              label: preset,
+            }))}
           />
-          <div className="max-h-40 overflow-y-auto space-y-1">
-            {filteredAgents.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">
-                {t('applyModel.noResults')}
+
+          {isPresetLoading && (
+            <p className="text-xs text-slate-500 -mt-2">
+              {t('applyModel.loadingPreset', { defaultValue: '正在加载所选预设配置...' })}
+            </p>
+          )}
+
+          <Select
+            label={t('applyModel.intensityLevel')}
+            value={variant || 'none'}
+            onChange={(value) => setVariant(value as AgentVariant)}
+            options={variantOptions.map((opt) => ({
+              value: opt,
+              label: t(`variantOptions.${opt}`),
+            }))}
+          />
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="space-y-5">
+            <div className="border border-slate-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-slate-800">
+                  {t('applyModel.agents')} ({Object.keys(agents).length})
+                </h4>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={selectAllAgents}>
+                    {t('applyModel.selectAll')}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={clearAgents}>
+                    {t('applyModel.clearAll')}
+                  </Button>
+                </div>
+              </div>
+              <SearchInput
+                value={agentSearch}
+                onChange={setAgentSearch}
+                placeholder={t('applyModel.searchPlaceholder')}
+                className="mb-2"
+              />
+              <div className="space-y-1">
+                {filteredAgents.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">
+                    {t('applyModel.noResults')}
+                  </p>
+                ) : (
+                  filteredAgents.map(([name, config]) =>
+                    renderSelectItem(name, config, selectedAgents.has(name), () => toggleAgent(name))
+                  )
+                )}
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-slate-800">
+                  {t('applyModel.categories')} ({Object.keys(categories).length})
+                </h4>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={selectAllCategories}>
+                    {t('applyModel.selectAll')}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={clearCategories}>
+                    {t('applyModel.clearAll')}
+                  </Button>
+                </div>
+              </div>
+              <SearchInput
+                value={categorySearch}
+                onChange={setCategorySearch}
+                placeholder={t('applyModel.searchPlaceholder')}
+                className="mb-2"
+              />
+              <div className="space-y-1">
+                {filteredCategories.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">
+                    {t('applyModel.noResults')}
+                  </p>
+                ) : (
+                  filteredCategories.map(([name, config]) =>
+                    renderSelectItem(name, config, selectedCategories.has(name), () => toggleCategory(name))
+                  )
+                )}
+              </div>
+            </div>
+
+            {totalSelected > 0 && (
+              <p className="text-sm text-slate-600 text-center">
+                {t('applyModel.selected', {
+                  agents: selectedAgentCount,
+                  categories: selectedCategoryCount,
+                })}
               </p>
-            ) : (
-              filteredAgents.map(([name, config]) =>
-                renderSelectItem(name, config, selectedAgents.has(name), () => toggleAgent(name))
-              )
             )}
           </div>
         </div>
-
-        <div className="border border-slate-200 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-800">
-              {t('applyModel.categories')} ({Object.keys(categories).length})
-            </h4>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={selectAllCategories}>
-                {t('applyModel.selectAll')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={clearCategories}>
-                {t('applyModel.clearAll')}
-              </Button>
-            </div>
-          </div>
-          <SearchInput
-            value={categorySearch}
-            onChange={setCategorySearch}
-            placeholder={t('applyModel.searchPlaceholder')}
-            className="mb-2"
-          />
-          <div className="max-h-40 overflow-y-auto space-y-1">
-            {filteredCategories.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">
-                {t('applyModel.noResults')}
-              </p>
-            ) : (
-              filteredCategories.map(([name, config]) =>
-                renderSelectItem(name, config, selectedCategories.has(name), () => toggleCategory(name))
-              )
-            )}
-          </div>
-        </div>
-
-        {totalSelected > 0 && (
-          <p className="text-sm text-slate-600 text-center">
-            {t('applyModel.selected', {
-              agents: selectedAgentCount,
-              categories: selectedCategoryCount,
-            })}
-          </p>
-        )}
       </div>
     </Modal>
   );

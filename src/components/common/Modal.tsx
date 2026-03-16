@@ -11,6 +11,7 @@ interface ModalProps {
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showCloseButton?: boolean;
+  bodyScroll?: 'visible' | 'auto';
 }
 
 /**
@@ -36,6 +37,7 @@ export function Modal({
   footer,
   size = 'md',
   showCloseButton = true,
+  bodyScroll = 'visible',
 }: ModalProps) {
   const { t } = useTranslation();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,8 @@ export function Modal({
       ref={overlayRef}
       onClick={handleOverlayClick}
       className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center p-4',
+        'fixed inset-0 z-50 flex justify-center p-4',
+        bodyScroll === 'auto' ? 'items-start overflow-y-auto' : 'items-center',
         'bg-slate-900/50 backdrop-blur-sm',
         'animate-in fade-in duration-200'
       )}
@@ -103,7 +106,8 @@ export function Modal({
         ref={contentRef}
         tabIndex={-1}
         className={cn(
-          'w-full bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col',
+          'w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col',
+          bodyScroll === 'auto' ? 'my-4' : 'max-h-[90vh]',
           'animate-in zoom-in-95 slide-in-from-bottom-4 duration-200',
           sizeClasses[size]
         )}
@@ -133,7 +137,14 @@ export function Modal({
         )}
 
         {/* 内容区 */}
-        <div className="px-6 py-4 overflow-visible flex-1 min-h-0">{children}</div>
+        <div
+          className={cn(
+            'px-6 py-4 flex flex-1 min-h-0 flex-col',
+            'overflow-visible'
+          )}
+        >
+          {children}
+        </div>
 
         {/* 底部按钮区 */}
         {footer && (
