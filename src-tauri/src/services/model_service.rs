@@ -186,7 +186,7 @@ pub fn get_custom_models() -> HashMap<String, Vec<String>> {
 /// 2. ~/.config/opencode/opencode.json 的 provider.{name}.models - 自定义模型
 ///
 /// 返回格式: { "provider_name": ["model1", "model2", ...] }
-const OPENCODE_MODELS_TIMEOUT_SECS: u64 = 3;
+const DEFAULT_OPENCODE_MODELS_TIMEOUT_SECS: u64 = 12;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AvailableModelsWithStatus {
@@ -220,6 +220,14 @@ fn parse_opencode_models_output(output: &str) -> HashMap<String, Vec<String>> {
     }
 
     result
+}
+
+fn get_opencode_models_timeout_secs() -> u64 {
+    env::var("OMO_OPENCODE_MODELS_TIMEOUT_SECS")
+        .ok()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(DEFAULT_OPENCODE_MODELS_TIMEOUT_SECS)
 }
 
 fn build_opencode_path_env() -> Option<String> {
@@ -282,7 +290,8 @@ fn run_opencode_models_with_command(binary: &str) -> Result<HashMap<String, Vec<
         .spawn()
         .map_err(|e| format!("启动 `{}` 失败: {}", binary, e))?;
 
-    let timeout = Duration::from_secs(OPENCODE_MODELS_TIMEOUT_SECS);
+    let timeout_secs = get_opencode_models_timeout_secs();
+    let timeout = Duration::from_secs(timeout_secs);
     let start = Instant::now();
 
     loop {
@@ -306,7 +315,7 @@ fn run_opencode_models_with_command(binary: &str) -> Result<HashMap<String, Vec<
                     let _ = child.wait();
                     return Err(format!(
                         "`{}` 执行超时（{}s）",
-                        binary, OPENCODE_MODELS_TIMEOUT_SECS
+                        binary, timeout_secs
                     ));
                 }
                 std::thread::sleep(Duration::from_millis(100));
