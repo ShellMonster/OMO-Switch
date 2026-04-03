@@ -117,15 +117,16 @@ fn detect_omo_install() -> Option<InstallDetection> {
         }
     }
 
-    // 4. 配置文件: opencode.json 的 plugin 字段（兼容 openagent/opencode 插件名）
-    let config_path = format!("{}/.config/opencode/opencode.json", home);
-    if let Some(version) = read_plugin_version_from_config(&config_path, &OMO_PLUGIN_NAMES) {
-        return Some(InstallDetection {
-            version: Some(version),
-            install_source: "config_declared".to_string(),
-            install_path: config_path.clone(),
-            detected_from: config_path,
-        });
+    // 4. 配置文件: opencode.json/jsonc 的 plugin 字段（兼容 openagent/opencode 插件名）
+    for config_path in get_opencode_config_candidates(&home) {
+        if let Some(version) = read_plugin_version_from_config(&config_path, &OMO_PLUGIN_NAMES) {
+            return Some(InstallDetection {
+                version: Some(version),
+                install_source: "config_declared".to_string(),
+                install_path: config_path.clone(),
+                detected_from: config_path,
+            });
+        }
     }
 
     // 5. npm 全局安装
@@ -205,9 +206,22 @@ fn read_dependency_version(path: &str, dep_name: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+fn get_opencode_config_candidates(home: &str) -> Vec<String> {
+    vec![
+        format!("{}/.config/opencode/opencode.json", home),
+        format!("{}/.config/opencode/opencode.jsonc", home),
+    ]
+}
+
+fn parse_json_or_json5(content: &str) -> Option<Value> {
+    serde_json::from_str::<Value>(content)
+        .or_else(|_| json5::from_str::<Value>(content))
+        .ok()
+}
+
 fn read_plugin_version_from_config(path: &str, plugin_names: &[&str]) -> Option<String> {
     let content = std::fs::read_to_string(path).ok()?;
-    let config: Value = serde_json::from_str(&content).ok()?;
+    let config = parse_json_or_json5(&content)?;
     let plugins = config.get("plugin")?.as_array()?;
 
     for plugin in plugins {
@@ -251,8 +265,9 @@ fn is_omo_installed() -> bool {
         Ok(home) => home,
         Err(_) => return false,
     };
-    let config_path = format!("{}/.config/opencode/opencode.json", home);
-    is_plugin_declared_in_config(&config_path, &OMO_PLUGIN_NAMES)
+    get_opencode_config_candidates(&home)
+        .iter()
+        .any(|path| is_plugin_declared_in_config(path, &OMO_PLUGIN_NAMES))
 }
 
 fn build_omo_update_command(install_source: Option<&str>) -> (String, String) {
@@ -296,9 +311,9 @@ fn is_plugin_declared_in_config(path: &str, plugin_names: &[&str]) -> bool {
         Ok(content) => content,
         Err(_) => return false,
     };
-    let config: Value = match serde_json::from_str(&content) {
-        Ok(config) => config,
-        Err(_) => return false,
+    let config = match parse_json_or_json5(&content) {
+        Some(config) => config,
+        None => return false,
     };
     let plugins = match config.get("plugin").and_then(|v| v.as_array()) {
         Some(plugins) => plugins,

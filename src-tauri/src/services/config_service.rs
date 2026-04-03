@@ -54,20 +54,41 @@ pub fn get_config_path() -> Result<PathBuf, String> {
 /// 读取 OMO 配置文件
 /// 返回完整的 JSON 配置对象，使用 serde_json::Value 保留所有字段
 pub fn read_omo_config() -> Result<Value, String> {
-    let config_path = resolve_existing_config_path()?
-        .ok_or_else(|| i18n::tr_current("config_file_not_found"))?;
+    let mut has_existing = false;
+    let mut last_error: Option<String> = None;
 
-    // 检查文件是否存在
-    if !config_path.exists() {
-        return Err(i18n::tr_current("config_file_not_found"));
+    for config_path in get_config_candidates()? {
+        if !config_path.exists() {
+            continue;
+        }
+
+        has_existing = true;
+
+        let content = match fs::read_to_string(&config_path) {
+            Ok(content) => content,
+            Err(e) => {
+                last_error = Some(format!(
+                    "{}: {}",
+                    i18n::tr_current("read_config_failed"),
+                    e
+                ));
+                continue;
+            }
+        };
+
+        match parse_config_content(&content) {
+            Ok(config) => return Ok(config),
+            Err(e) => {
+                last_error = Some(e);
+            }
+        }
     }
 
-    // 读取文件内容
-    let content = fs::read_to_string(&config_path)
-        .map_err(|e| format!("{}: {}", i18n::tr_current("read_config_failed"), e))?;
+    if has_existing {
+        return Err(last_error.unwrap_or_else(|| i18n::tr_current("config_file_not_found")));
+    }
 
-    // 解析 JSON/JSONC（使用 Value 保留所有未知字段）
-    parse_config_content(&content)
+    Err(i18n::tr_current("config_file_not_found"))
 }
 
 /// 写入 OMO 配置文件
