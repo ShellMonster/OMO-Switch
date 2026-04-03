@@ -9,6 +9,15 @@ use crate::services::config_service::{read_omo_config, validate_config, write_om
 
 const DEFAULT_MAX_BACKUP_RECORDS: usize = 10;
 const MAX_BACKUP_RECORDS_UPPER: usize = 500;
+const BACKUP_PREFIX_OPENAGENT: &str = "oh-my-openagent_";
+const BACKUP_PREFIX_OPENCODE: &str = "oh-my-opencode_";
+const BACKUP_PREFIX_EXPORT: &str = "export_";
+
+fn is_managed_backup_filename(filename: &str) -> bool {
+    filename.starts_with(BACKUP_PREFIX_OPENAGENT)
+        || filename.starts_with(BACKUP_PREFIX_OPENCODE)
+        || filename.starts_with(BACKUP_PREFIX_EXPORT)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ImportExportSettings {
@@ -97,7 +106,7 @@ fn get_managed_backup_entries_with_ts() -> Result<Vec<(PathBuf, u64)>, String> {
         let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
         let path = entry.path();
         let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or_default();
-        let is_managed = filename.starts_with("oh-my-opencode_") || filename.starts_with("export_");
+        let is_managed = is_managed_backup_filename(filename);
         if !is_managed || path.extension().and_then(|s| s.to_str()) != Some("json") {
             continue;
         }
@@ -257,7 +266,7 @@ pub fn validate_import_file(path: &str) -> Result<Value, String> {
 /// - `Ok(PathBuf)`: 备份成功，返回备份文件路径
 /// - `Err(String)`: 备份失败，包含错误信息
 fn backup_current_config() -> Result<PathBuf, String> {
-    backup_current_config_with_prefix("oh-my-opencode")
+    backup_current_config_with_prefix("oh-my-openagent")
 }
 
 fn backup_current_config_with_prefix(prefix: &str) -> Result<PathBuf, String> {
@@ -323,7 +332,7 @@ fn ensure_backup_path(path: &str) -> Result<PathBuf, String> {
         .file_name()
         .and_then(|s| s.to_str())
         .ok_or_else(|| "无效备份文件名".to_string())?;
-    if !(filename.starts_with("oh-my-opencode_") || filename.starts_with("export_")) {
+    if !is_managed_backup_filename(filename) {
         return Err("仅允许操作 OMO 生成的备份文件".to_string());
     }
 
@@ -384,7 +393,7 @@ pub fn clear_backup_history() -> Result<usize, String> {
         let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
         let path = entry.path();
         let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or_default();
-        let is_managed = filename.starts_with("oh-my-opencode_") || filename.starts_with("export_");
+        let is_managed = is_managed_backup_filename(filename);
         if is_managed && path.extension().and_then(|s| s.to_str()) == Some("json") {
             fs::remove_file(&path).map_err(|e| format!("删除备份文件失败: {}", e))?;
             deleted += 1;
@@ -423,7 +432,7 @@ pub fn get_backup_history() -> Result<Vec<BackupInfo>, String> {
         // 只处理 .json 文件
         if path.extension().and_then(|s| s.to_str()) == Some("json") {
             if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
-                let is_managed = filename.starts_with("oh-my-opencode_") || filename.starts_with("export_");
+                let is_managed = is_managed_backup_filename(filename);
                 if !is_managed {
                     continue;
                 }
@@ -441,7 +450,7 @@ pub fn get_backup_history() -> Result<Vec<BackupInfo>, String> {
                     })
                     .unwrap_or_else(|_| "未知".to_string());
 
-                let op = if filename.starts_with("export_") {
+                let op = if filename.starts_with(BACKUP_PREFIX_EXPORT) {
                     "export"
                 } else {
                     "import"
@@ -641,9 +650,9 @@ mod tests {
         let backup_dir = temp_home.join(".config").join("opencode").join("backups");
         fs::create_dir_all(&backup_dir).unwrap();
 
-        fs::write(backup_dir.join("oh-my-opencode_1.json"), "{}").unwrap();
+        fs::write(backup_dir.join("oh-my-openagent_1.json"), "{}").unwrap();
         std::thread::sleep(Duration::from_millis(2));
-        fs::write(backup_dir.join("oh-my-opencode_2.json"), "{}").unwrap();
+        fs::write(backup_dir.join("oh-my-openagent_2.json"), "{}").unwrap();
         std::thread::sleep(Duration::from_millis(2));
         fs::write(backup_dir.join("export_3.json"), "{}").unwrap();
         fs::write(backup_dir.join("manual-note.json"), "{}").unwrap();
@@ -658,7 +667,7 @@ mod tests {
 
         let managed_count = entries
             .iter()
-            .filter(|name| name.starts_with("oh-my-opencode_") || name.starts_with("export_"))
+            .filter(|name| is_managed_backup_filename(name))
             .count();
         assert_eq!(managed_count, 2);
         assert!(entries.iter().any(|name| name == "manual-note.json"));
@@ -671,7 +680,7 @@ mod tests {
         let backup_dir = temp_home.join(".config").join("opencode").join("backups");
         fs::create_dir_all(&backup_dir).unwrap();
 
-        fs::write(backup_dir.join("oh-my-opencode_a.json"), "{}").unwrap();
+        fs::write(backup_dir.join("oh-my-openagent_a.json"), "{}").unwrap();
         fs::write(backup_dir.join("export_b.json"), "{}").unwrap();
         fs::write(backup_dir.join("random.json"), "{}").unwrap();
 
@@ -683,7 +692,7 @@ mod tests {
         assert!(ops.contains("export"));
 
         let names: HashSet<_> = history.iter().map(|x| x.filename.as_str()).collect();
-        assert!(names.contains("oh-my-opencode_a.json"));
+        assert!(names.contains("oh-my-openagent_a.json"));
         assert!(names.contains("export_b.json"));
         assert!(!names.contains("random.json"));
     }

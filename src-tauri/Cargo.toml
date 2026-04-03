@@ -23,6 +23,7 @@ dirs = "5"
 sha2 = "0.10"
 regex = "1"
 tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
+json5 = "0.4"
 
 [features]
 default = ["custom-protocol"]

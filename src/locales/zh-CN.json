@@ -628,7 +628,7 @@
    },
    "versionCheck": {
      "title": "版本信息",
-     "description": "OpenCode 和 Oh My OpenCode 版本状态",
+    "description": "OpenCode 和 Oh My OpenAgent 版本状态",
      "currentVersion": "当前版本",
      "latestVersion": "最新版本",
      "installSource": "安装来源",
@@ -644,7 +644,7 @@
        "updateCommand": "opencode upgrade"
      },
      "omo": {
-       "updateHint": "修改 ~/.config/opencode/opencode.json 中的 oh-my-opencode@版本号，然后重启 opencode",
+      "updateHint": "修改 ~/.config/opencode/opencode.json 中的 oh-my-openagent@版本号（兼容旧名 oh-my-opencode），然后重启 opencode",
        "updateCommand": "编辑 opencode.json"
      },
       "checkUpdate": "检查更新",

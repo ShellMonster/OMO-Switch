@@ -199,9 +199,11 @@ interface PresetWithInfo {
 export function PresetManager() {
   const { t } = useTranslation();
   const { activePreset, setActivePreset, refreshPresetList } = usePresetStore();
-  // 获取版本信息，检测 Oh My OpenCode 是否已安装
+  // 获取版本信息，检测 Oh My OpenAgent / OpenCode 插件是否已安装
   const versions = usePreloadStore(s => s.versions.data);
-  const omoInfo = versions?.find(v => v.name === 'Oh My OpenCode');
+  const omoInfo = versions?.find(
+    v => v.name === 'Oh My OpenAgent' || v.name === 'Oh My OpenCode'
+  );
   const omoInstalled = omoInfo?.installed ?? true;  // 默认假设已安装，避免闪烁
   const [presets, setPresets] = useState<PresetWithInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -352,9 +354,9 @@ export function PresetManager() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="font-medium text-amber-800">预设功能需要 Oh My OpenCode</h4>
+              <h4 className="font-medium text-amber-800">预设功能需要 Oh My OpenAgent</h4>
               <p className="text-sm text-amber-700 mt-1">
-                请先安装 Oh My OpenCode 插件后再使用预设功能。
+                请先安装 Oh My OpenAgent 插件后再使用预设功能。
               </p>
               <code className="mt-2 inline-block text-xs bg-amber-100 px-2 py-1 rounded text-amber-900">
                 {omoInfo?.update_command || 'cd ~/.opencode && npm install oh-my-opencode@latest'}

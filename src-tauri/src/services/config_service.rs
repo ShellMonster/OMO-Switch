@@ -3,23 +3,59 @@ use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
 
-/// 获取 OMO 配置文件路径
-/// 返回 ~/.config/opencode/oh-my-opencode.json 的完整路径
-pub fn get_config_path() -> Result<PathBuf, String> {
+const PRIMARY_CONFIG_BASENAME: &str = "oh-my-openagent.json";
+const PRIMARY_CONFIG_BASENAME_JSONC: &str = "oh-my-openagent.jsonc";
+const LEGACY_CONFIG_BASENAME: &str = "oh-my-opencode.json";
+const LEGACY_CONFIG_BASENAME_JSONC: &str = "oh-my-opencode.jsonc";
+
+fn get_config_dir() -> Result<PathBuf, String> {
     let home = std::env::var("HOME").map_err(|_| i18n::tr_current("home_env_var_error"))?;
+    Ok(PathBuf::from(home).join(".config").join("opencode"))
+}
 
-    let config_path = PathBuf::from(home)
-        .join(".config")
-        .join("opencode")
-        .join("oh-my-opencode.json");
+fn get_config_candidates() -> Result<Vec<PathBuf>, String> {
+    let dir = get_config_dir()?;
+    Ok(vec![
+        dir.join(PRIMARY_CONFIG_BASENAME),
+        dir.join(PRIMARY_CONFIG_BASENAME_JSONC),
+        dir.join(LEGACY_CONFIG_BASENAME),
+        dir.join(LEGACY_CONFIG_BASENAME_JSONC),
+    ])
+}
 
-    Ok(config_path)
+fn resolve_existing_config_path() -> Result<Option<PathBuf>, String> {
+    for path in get_config_candidates()? {
+        if path.exists() {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
+fn resolve_write_config_path() -> Result<PathBuf, String> {
+    if let Some(existing) = resolve_existing_config_path()? {
+        return Ok(existing);
+    }
+    Ok(get_config_dir()?.join(PRIMARY_CONFIG_BASENAME))
+}
+
+fn parse_config_content(content: &str) -> Result<Value, String> {
+    serde_json::from_str::<Value>(content)
+        .or_else(|_| json5::from_str::<Value>(content))
+        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_json_failed"), e))
+}
+
+/// 获取 OMO 配置文件路径
+/// 返回当前实际写入使用的配置路径（优先已存在文件，否则新建到 openagent 文件名）
+pub fn get_config_path() -> Result<PathBuf, String> {
+    resolve_write_config_path()
 }
 
 /// 读取 OMO 配置文件
 /// 返回完整的 JSON 配置对象，使用 serde_json::Value 保留所有字段
 pub fn read_omo_config() -> Result<Value, String> {
-    let config_path = get_config_path()?;
+    let config_path = resolve_existing_config_path()?
+        .ok_or_else(|| i18n::tr_current("config_file_not_found"))?;
 
     // 检查文件是否存在
     if !config_path.exists() {
@@ -30,18 +66,15 @@ pub fn read_omo_config() -> Result<Value, String> {
     let content = fs::read_to_string(&config_path)
         .map_err(|e| format!("{}: {}", i18n::tr_current("read_config_failed"), e))?;
 
-    // 解析 JSON（使用 Value 保留所有未知字段）
-    let config: Value = serde_json::from_str(&content)
-        .map_err(|e| format!("{}: {}", i18n::tr_current("parse_json_failed"), e))?;
-
-    Ok(config)
+    // 解析 JSON/JSONC（使用 Value 保留所有未知字段）
+    parse_config_content(&content)
 }
 
 /// 写入 OMO 配置文件
 /// 先创建 .bak 备份，再写入新配置
 /// 使用 serde_json::Value 确保不丢失任何字段
 pub fn write_omo_config(config: &Value) -> Result<(), String> {
-    let config_path = get_config_path()?;
+    let config_path = resolve_write_config_path()?;
 
     // 如果原文件存在，先创建备份
     if config_path.exists() {
@@ -111,7 +144,7 @@ mod tests {
         let path = get_config_path().unwrap();
         assert!(path
             .to_string_lossy()
-            .contains(".config/opencode/oh-my-opencode.json"));
+            .contains(".config/opencode/oh-my-openagent.json"));
     }
 
     /// 测试配置验证 - 有效配置

@@ -626,7 +626,7 @@
    },
    "versionCheck": {
      "title": "Version Info",
-     "description": "OpenCode and Oh My OpenCode version status",
+    "description": "OpenCode and Oh My OpenAgent version status",
      "currentVersion": "Current Version",
      "latestVersion": "Latest Version",
      "installSource": "Install Source",
@@ -642,7 +642,7 @@
        "updateCommand": "opencode upgrade"
      },
      "omo": {
-       "updateHint": "Edit oh-my-opencode@version in ~/.config/opencode/opencode.json and restart opencode",
+      "updateHint": "Edit oh-my-openagent@version (legacy oh-my-opencode also works) in ~/.config/opencode/opencode.json and restart opencode",
        "updateCommand": "Edit opencode.json"
      },
       "checkUpdate": "Check for Updates",
