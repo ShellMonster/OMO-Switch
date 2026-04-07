@@ -9,7 +9,7 @@
 
 [English](README_EN.md) | [简体中文](README.md) | [繁體中文](README_TW.md) | [日本語](README_JP.md) | [한국어](README_KR.md)
 
-**OMO Switch** is a desktop model configuration management tool designed for [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode). Built with **Tauri 2.0**, it provides visual AI model switching, preset management, model library browsing, and automatic updates.
+**OMO Switch** is a desktop model configuration management tool designed for [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent). Built with **Tauri 2.0**, it provides visual AI model switching, preset management, model library browsing, and automatic updates.
 
 <p align="center">
   <img src="assets/demo_1.png" alt="OMO Switch Preview" width="800">
@@ -79,7 +79,7 @@
 
 ### 6. Settings
 - **Language Switching**: 5 languages with real-time switching
-- **Version Detection**: Detect OpenCode and oh-my-opencode versions
+- **Version Detection**: Detect OpenCode and oh-my-openagent versions
 - **Auto Updates**: Check for app updates with one-click installation
 - **GitHub Link**: Quick access to project repository
 
@@ -225,7 +225,7 @@ This project is open source under the [MIT License](LICENSE).
 ## 🙏 Acknowledgments
 
 - Built with [Tauri](https://tauri.app/), thanks to the Tauri team
-- Thanks to [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode) for the powerful Agent framework
+- Thanks to [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent) for the powerful Agent framework
 - Thanks to all contributors and users for their support
 
 ---

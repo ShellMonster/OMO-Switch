@@ -9,7 +9,7 @@
 
 [English](README_EN.md) | [简体中文](README.md) | [繁體中文](README_TW.md) | [日本語](README_JP.md) | [한국어](README_KR.md)
 
-**OMO Switch** 是一款专为 [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode) 打造的桌面端模型配置管理工具。基于 **Tauri 2.0** 构建，支持可视化切换 AI 模型、管理预设配置、浏览模型库，并提供自动更新功能。
+**OMO Switch** 是一款专为 [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent) 打造的桌面端模型配置管理工具。基于 **Tauri 2.0** 构建，支持可视化切换 AI 模型、管理预设配置、浏览模型库，并提供自动更新功能。
 
 <p align="center">
   <img src="assets/demo_1.png" alt="OMO Switch 预览" width="800">
@@ -79,7 +79,7 @@
 
 ### 6. 设置中心
 - **语言切换**：5 种语言实时切换
-- **版本检测**：检测 OpenCode 和 oh-my-opencode 版本
+- **版本检测**：检测 OpenCode 和 oh-my-openagent 版本
 - **自动更新**：检查应用更新，一键下载安装
 - **GitHub 链接**：快速访问项目仓库
 
@@ -314,7 +314,7 @@ SOFTWARE.
 ## 🙏 特别鸣谢
 
 - 本项目基于 [Tauri](https://tauri.app/) 构建，感谢 Tauri 团队提供的优秀框架
-- 感谢 [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode) 提供的强大 Agent 框架
+- 感谢 [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent) 提供的强大 Agent 框架
 - 感谢所有贡献者和用户的支持与反馈
 
 ---

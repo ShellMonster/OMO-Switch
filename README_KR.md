@@ -9,7 +9,7 @@
 
 [English](README_EN.md) | [简体中文](README.md) | [繁體中文](README_TW.md) | [日本語](README_JP.md) | [한국어](README_KR.md)
 
-**OMO Switch**는 [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode)를 위한 데스크톱 모델 설정 관리 도구입니다. **Tauri 2.0**을 기반으로 구축되어 AI 모델 전환, 프리셋 관리, 모델 라이브러리 탐색 및 자동 업데이트 기능을 제공합니다.
+**OMO Switch**는 [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent)를 위한 데스크톱 모델 설정 관리 도구입니다. **Tauri 2.0**을 기반으로 구축되어 AI 모델 전환, 프리셋 관리, 모델 라이브러리 탐색 및 자동 업데이트 기능을 제공합니다.
 
 <p align="center">
   <img src="assets/demo_1.png" alt="OMO Switch 미리보기" width="800">
@@ -73,7 +73,7 @@
 
 ### 6. 설정 센터
 - **언어 전환**: 5개 언어를 실시간으로 전환
-- **버전 감지**: OpenCode 및 oh-my-opencode 버전 감지
+- **버전 감지**: OpenCode 및 oh-my-openagent 버전 감지
 - **자동 업데이트**: 앱 업데이트를 확인하고 한 번의 클릭으로 다운로드 및 설치
 - **GitHub 링크**: 프로젝트 저장소에 빠르게 액세스
 
@@ -156,7 +156,7 @@ bun run tauri signer generate -- -w ~/.tauri/omo-switch.key
 ## 🙏 감사의 글
 
 - 이 프로젝트는 [Tauri](https://tauri.app/)를 기반으로 구축되었습니다. Tauri 팀에 감사드립니다
-- 강력한 Agent 프레임워크를 제공해 주신 [oh-my-opencode](https://github.com/oh-my-opencode/oh-my-opencode)에 감사드립니다
+- 강력한 Agent 프레임워크를 제공해 주신 [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent)에 감사드립니다
 - 모든 기여자와 사용자의 지원에 감사드립니다
 
 ---
