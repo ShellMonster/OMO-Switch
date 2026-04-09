@@ -14,6 +14,7 @@ import {
   updatePreset,
   savePreset,
   saveConfigSnapshot,
+  setActivePreset as persistActivePreset,
   type AgentConfig,
 } from '../../services/tauri';
 
@@ -127,6 +128,7 @@ export function AgentList({
 
     try {
       await savePreset(name);
+      await persistActivePreset(name);
       setActivePreset(name);
       await refreshPresetList(true);
       setShowSaveModal(false);

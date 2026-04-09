@@ -51,6 +51,7 @@ fn main() {
             commands::preset_commands::sync_preset_from_config,
             commands::preset_commands::apply_updates_to_preset,
             commands::preset_commands::set_active_preset,
+            commands::preset_commands::get_active_preset,
             commands::provider_commands::get_provider_status,
             commands::provider_commands::get_provider_config,
             commands::provider_commands::set_provider_api_key,

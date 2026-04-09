@@ -7,6 +7,7 @@ import {
   fetchModelsDev,
   checkVersions,
   getOmoConfig,
+  getActivePreset as loadActivePreset,
   listPresets,
   savePreset,
   setActivePreset as persistActivePreset,
@@ -120,9 +121,24 @@ export const usePreloadStore = create<PreloadState>()(
           await savePreset('default');
         }
 
-        // 如果没有活跃预设，设置为 default
         const currentPreset = usePresetStore.getState().activePreset;
-        if (!currentPreset || currentPreset.startsWith('__builtin__')) {
+        const persistedPreset = await loadActivePreset();
+        const hasPersistedPreset = Boolean(
+          persistedPreset &&
+          !persistedPreset.startsWith('__builtin__') &&
+          presets.includes(persistedPreset)
+        );
+        const hasLocalPreset = Boolean(
+          currentPreset &&
+          !currentPreset.startsWith('__builtin__') &&
+          presets.includes(currentPreset)
+        );
+
+        if (hasPersistedPreset && persistedPreset) {
+          usePresetStore.getState().setActivePreset(persistedPreset);
+        } else if (hasLocalPreset && currentPreset) {
+          await persistActivePreset(currentPreset);
+        } else {
           usePresetStore.getState().setActivePreset('default');
           await persistActivePreset('default');
         }

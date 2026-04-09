@@ -68,3 +68,8 @@ pub fn sync_preset_from_config(name: String) -> Result<(), String> {
 pub fn set_active_preset(name: String) -> Result<(), String> {
     preset_service::set_active_preset(&name)
 }
+
+#[tauri::command]
+pub fn get_active_preset() -> Result<Option<String>, String> {
+    Ok(preset_service::get_active_preset())
+}
