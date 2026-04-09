@@ -23,6 +23,14 @@ interface GroupedModels {
   models: string[];
 }
 
+function isValidUserPreset(name: string | null | undefined, presets: string[]): name is string {
+  return Boolean(
+    name &&
+    !name.startsWith('__builtin__') &&
+    presets.includes(name)
+  );
+}
+
 interface PreloadState {
   // OMO 配置状态
   omoConfig: {
@@ -123,20 +131,9 @@ export const usePreloadStore = create<PreloadState>()(
 
         const currentPreset = usePresetStore.getState().activePreset;
         const persistedPreset = await loadActivePreset();
-        const hasPersistedPreset = Boolean(
-          persistedPreset &&
-          !persistedPreset.startsWith('__builtin__') &&
-          presets.includes(persistedPreset)
-        );
-        const hasLocalPreset = Boolean(
-          currentPreset &&
-          !currentPreset.startsWith('__builtin__') &&
-          presets.includes(currentPreset)
-        );
-
-        if (hasPersistedPreset && persistedPreset) {
+        if (isValidUserPreset(persistedPreset, presets)) {
           usePresetStore.getState().setActivePreset(persistedPreset);
-        } else if (hasLocalPreset && currentPreset) {
+        } else if (isValidUserPreset(currentPreset, presets)) {
           await persistActivePreset(currentPreset);
         } else {
           usePresetStore.getState().setActivePreset('default');

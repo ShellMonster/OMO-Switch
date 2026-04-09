@@ -76,12 +76,23 @@ export function PresetSelector({ onLoadPreset, compact }: PresetSelectorProps) {
 
     try {
       await savePreset(name);
-      await persistActivePreset(name);
       setActivePreset(name);
       await refreshPresetList(true);
       setShowSaveModal(false);
       setNewPresetName('');
       toast.success(t('presetSelector.saveSuccess', { name }));
+
+      try {
+        await persistActivePreset(name);
+      } catch (err) {
+        toast.warning(
+          err instanceof Error
+            ? err.message
+            : t('presetSelector.persistActivePresetFailed', {
+                defaultValue: '预设已保存，但当前活动预设同步失败',
+              })
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('presetSelector.saveFailed'));
     } finally {

@@ -338,8 +338,18 @@ export function PresetManager() {
     );
 
     if (activePreset === oldName) {
-      await persistActivePreset(trimmedName);
       setActivePreset(trimmedName);
+      try {
+        await persistActivePreset(trimmedName);
+      } catch (err) {
+        toast.warning(
+          err instanceof Error
+            ? err.message
+            : t('presetManager.persistActivePresetFailed', {
+                defaultValue: '预设已重命名，但当前活动预设同步失败',
+              })
+        );
+      }
     }
     if (selectedPreset === oldName) {
       setSelectedPreset(trimmedName);
