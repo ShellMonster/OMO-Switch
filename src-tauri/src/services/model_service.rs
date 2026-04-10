@@ -9,6 +9,8 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use crate::services::provider_store;
+
 /// 模型信息结构体 - 从 models.dev API 获取的模型详细信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelInfo {
@@ -52,11 +54,11 @@ impl ModelOrString {
     }
 }
 
-
 impl ProviderModelsCache {
     /// 将缓存中的模型列表转换为 HashMap<String, Vec<String>>
     fn into_string_map(self) -> HashMap<String, Vec<String>> {
-        self.models.into_iter()
+        self.models
+            .into_iter()
             .map(|(provider, model_entries)| {
                 let ids: Vec<String> = model_entries
                     .into_iter()
@@ -67,7 +69,6 @@ impl ProviderModelsCache {
             .collect()
     }
 }
-
 
 /// 用于解析 verified-provider-models.json 的简单格式（仅字符串数组）
 #[derive(Debug, Serialize, Deserialize)]
@@ -111,142 +112,6 @@ fn get_cache_dir() -> Result<PathBuf, String> {
     std::env::var("HOME")
         .map(|home| PathBuf::from(home).join(".cache").join("oh-my-opencode"))
         .map_err(|_| "无法获取 HOME 环境变量".to_string())
-}
-
-/// 获取 OpenCode 配置文件路径
-/// 路径: ~/.config/opencode/opencode.json
-fn get_opencode_config_path() -> Result<PathBuf, String> {
-    std::env::var("HOME")
-        .map(|home| {
-            PathBuf::from(home)
-                .join(".config")
-                .join("opencode")
-                .join("opencode.json")
-        })
-        .map_err(|_| "无法获取 HOME 环境变量".to_string())
-}
-
-/// 获取 OpenCode auth 文件路径
-/// 路径: ~/.local/share/opencode/auth.json
-fn get_auth_file_path() -> Result<PathBuf, String> {
-    std::env::var("HOME")
-        .map(|home| {
-            PathBuf::from(home)
-                .join(".local")
-                .join("share")
-                .join("opencode")
-                .join("auth.json")
-        })
-        .map_err(|_| "无法获取 HOME 环境变量".to_string())
-}
-
-/// 从 auth.json 提取 provider ID 列表（兼容 api/oauth 等结构）
-fn get_auth_provider_ids() -> Vec<String> {
-    let Ok(auth_path) = get_auth_file_path() else {
-        return Vec::new();
-    };
-    if !auth_path.exists() {
-        return Vec::new();
-    }
-
-    let Ok(content) = fs::read_to_string(&auth_path) else {
-        return Vec::new();
-    };
-    if content.trim().is_empty() {
-        return Vec::new();
-    }
-
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(&content) else {
-        return Vec::new();
-    };
-    let Some(obj) = value.as_object() else {
-        return Vec::new();
-    };
-
-    obj.keys().cloned().collect()
-}
-
-/// 从 opencode.json 的 provider 节点提取 provider ID 列表
-fn get_opencode_config_provider_ids() -> Vec<String> {
-    let Ok(config_path) = get_opencode_config_path() else {
-        return Vec::new();
-    };
-    if !config_path.exists() {
-        return Vec::new();
-    }
-
-    let Ok(content) = fs::read_to_string(&config_path) else {
-        return Vec::new();
-    };
-    if content.trim().is_empty() {
-        return Vec::new();
-    }
-
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(&content) else {
-        return Vec::new();
-    };
-
-    value
-        .get("provider")
-        .and_then(|v| v.as_object())
-        .map(|obj| obj.keys().cloned().collect())
-        .unwrap_or_default()
-}
-
-/// 获取自定义模型配置
-///
-/// 从 opencode.json 读取 provider.{name}.models 字段
-///
-/// # 返回值
-/// 返回 HashMap，key 是 provider ID，value 是该 provider 下的模型 ID 列表
-///
-/// # 示例
-/// ```
-/// let models = get_custom_models();
-/// // 返回: { "anthropic": ["claude-3-opus", "claude-3-sonnet"], ... }
-/// ```
-pub fn get_custom_models() -> HashMap<String, Vec<String>> {
-    let mut result = HashMap::new();
-
-    // 获取配置文件路径
-    let Ok(config_path) = get_opencode_config_path() else {
-        return result;
-    };
-
-    // 文件不存在时返回空结果
-    if !config_path.exists() {
-        return result;
-    }
-
-    // 读取文件内容
-    let Ok(content) = fs::read_to_string(&config_path) else {
-        return result;
-    };
-
-    // 解析 JSON（使用 serde_json::Value 保持灵活性）
-    let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) else {
-        return result;
-    };
-
-    // 遍历 provider 对象，提取每个 provider 的 models 字段
-    if let Some(provider) = config.get("provider") {
-        if let Some(provider_obj) = provider.as_object() {
-            for (provider_id, provider_config) in provider_obj {
-                // 获取该 provider 的 models 字段
-                if let Some(models) = provider_config.get("models") {
-                    if let Some(models_obj) = models.as_object() {
-                        // models 是一个对象，key 是模型 ID
-                        let model_ids: Vec<String> = models_obj.keys().cloned().collect();
-                        if !model_ids.is_empty() {
-                            result.insert(provider_id.clone(), model_ids);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    result
 }
 
 /// 获取可用模型列表，按提供商分组（缓存快照）
@@ -373,7 +238,9 @@ fn run_opencode_models_with_command(
         Command::new(binary)
     };
 
-    cmd.args(["models"]).stdout(Stdio::piped()).stderr(Stdio::null());
+    cmd.args(["models"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
 
     if let Some(path_env) = build_opencode_path_env() {
         cmd.env("PATH", path_env);
@@ -406,10 +273,7 @@ fn run_opencode_models_with_command(
                 if start.elapsed() > timeout {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err(format!(
-                        "`{}` 执行超时（{}s）",
-                        binary, timeout_secs
-                    ));
+                    return Err(format!("`{}` 执行超时（{}s）", binary, timeout_secs));
                 }
                 std::thread::sleep(Duration::from_millis(100));
             }
@@ -433,10 +297,7 @@ fn get_available_models_from_opencode_cmd() -> Result<HashMap<String, Vec<String
     for binary in build_opencode_candidates() {
         let elapsed = started.elapsed();
         if elapsed >= total_timeout {
-            errors.push(format!(
-                "总超时预算已耗尽（{}s）",
-                total_timeout.as_secs()
-            ));
+            errors.push(format!("总超时预算已耗尽（{}s）", total_timeout.as_secs()));
             break;
         }
 
@@ -454,7 +315,7 @@ fn get_available_models_from_opencode_cmd() -> Result<HashMap<String, Vec<String
 }
 
 fn merge_custom_models(result: &mut HashMap<String, Vec<String>>) {
-    let custom_models = get_custom_models();
+    let custom_models = provider_store::get_custom_models();
     for (provider_id, models) in custom_models {
         let entry = result.entry(provider_id).or_default();
         for model_id in models {
@@ -519,8 +380,8 @@ fn write_verified_models_override(models: &HashMap<String, Vec<String>>) -> Resu
     let payload = VerifiedModelsCache {
         models: models.clone(),
     };
-    let content = serde_json::to_string_pretty(&payload)
-        .map_err(|e| format!("序列化模型缓存失败: {}", e))?;
+    let content =
+        serde_json::to_string_pretty(&payload).map_err(|e| format!("序列化模型缓存失败: {}", e))?;
     fs::write(&cache_file, content)
         .map_err(|e| format!("写入模型缓存文件失败 {:?}: {}", cache_file, e))?;
     Ok(())
@@ -594,15 +455,15 @@ pub fn get_connected_providers() -> Result<Vec<String>, String> {
             .map_err(|e| format!("无法读取已连接提供商文件 {:?}: {}", cache_file, e))?;
 
         // 解析 JSON
-        let cache: ConnectedProvidersCache =
-            serde_json::from_str(&content).map_err(|e| format!("解析已连接提供商文件失败: {}", e))?;
+        let cache: ConnectedProvidersCache = serde_json::from_str(&content)
+            .map_err(|e| format!("解析已连接提供商文件失败: {}", e))?;
 
         cache.connected
     };
 
     let mut seen: HashSet<String> = providers.iter().cloned().collect();
-    let auth_ids = get_auth_provider_ids();
-    let config_ids = get_opencode_config_provider_ids();
+    let auth_ids = provider_store::get_auth_provider_ids();
+    let config_ids = provider_store::get_opencode_config_provider_ids();
     for source in [auth_ids, config_ids] {
         for provider_id in source {
             if seen.insert(provider_id.clone()) {

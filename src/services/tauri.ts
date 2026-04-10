@@ -266,6 +266,48 @@ export interface BackupInfo {
   operation: string;
 }
 
+export interface ConfigMetadata {
+  path: string;
+  lastModified: string;
+  size: number;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+export interface ProviderInfo {
+  id: string;
+  name: string;
+  npm: string | null;
+  website_url: string | null;
+  is_configured: boolean;
+  is_builtin: boolean;
+  supports_base_url: boolean;
+  supports_connection_test: boolean;
+  can_delete_auth: boolean;
+}
+
+export interface ProviderConfigSnapshot {
+  api_key: string | null;
+  base_url: string | null;
+  provider_type: string | null;
+  default_provider_type: string;
+}
+
+export interface ConnectionTestResult {
+  success: boolean;
+  message: string;
+}
+
+export interface ConfigChange {
+  path: string;
+  change_type: 'added' | 'removed' | 'modified';
+  old_value: unknown;
+  new_value: unknown;
+}
+
 export async function exportOmoConfig(path: string, recordHistory = false): Promise<void> {
   return invoke<void>('export_omo_config', { path, recordHistory });
 }
@@ -306,6 +348,59 @@ export async function setBackupHistoryLimit(limit: number): Promise<number> {
   return invoke<number>('set_backup_history_limit', { limit });
 }
 
+export async function getConfigPath(): Promise<string> {
+  return invoke<string>('get_config_path');
+}
+
+export async function getConfigMetadata(): Promise<ConfigMetadata> {
+  return invoke<ConfigMetadata>('get_config_metadata');
+}
+
+export async function validateConfig(config: OmoConfig): Promise<void> {
+  return invoke<void>('validate_config', { config });
+}
+
+export async function getProviderStatus(): Promise<ProviderInfo[]> {
+  return invoke<ProviderInfo[]>('get_provider_status');
+}
+
+export async function getProviderConfig(providerId: string): Promise<ProviderConfigSnapshot> {
+  return invoke<ProviderConfigSnapshot>('get_provider_config', { providerId });
+}
+
+export async function setProviderApiKey(
+  providerId: string,
+  apiKey: string,
+  baseUrl: string | null,
+  providerType?: string
+): Promise<void> {
+  return invoke<void>('set_provider_api_key', { providerId, apiKey, baseUrl, providerType });
+}
+
+export async function deleteProviderAuth(providerId: string): Promise<void> {
+  return invoke<void>('delete_provider_auth', { providerId });
+}
+
+export async function addCustomProvider(
+  name: string,
+  apiKey: string,
+  baseUrl: string
+): Promise<ProviderInfo> {
+  return invoke<ProviderInfo>('add_custom_provider', { name, apiKey, baseUrl });
+}
+
+export async function testProviderConnection(
+  npm: string,
+  baseUrl: string | null,
+  apiKey: string
+): Promise<ConnectionTestResult> {
+  return invoke<ConnectionTestResult>('test_provider_connection', { npm, baseUrl, apiKey });
+}
+
+export async function getProviderIcon(providerId: string): Promise<string | null> {
+  return invoke<string | null>('get_provider_icon', { providerId });
+}
+
 // ==================== 配置快照相关接口 ====================
 
 /**
@@ -315,6 +410,14 @@ export async function setBackupHistoryLimit(limit: number): Promise<number> {
  */
 export async function saveConfigSnapshot(): Promise<void> {
   return invoke<void>('save_config_snapshot');
+}
+
+export async function ensureSnapshotExists(): Promise<boolean> {
+  return invoke<boolean>('ensure_snapshot_exists');
+}
+
+export async function compareWithSnapshot(): Promise<ConfigChange[]> {
+  return invoke<ConfigChange[]>('compare_with_snapshot');
 }
 
 /**
@@ -400,9 +503,21 @@ const tauriService = {
   clearBackupHistory,
   getBackupHistoryLimit,
   setBackupHistoryLimit,
+  getConfigPath,
+  getConfigMetadata,
+  validateConfig,
+  getProviderStatus,
+  getProviderConfig,
+  setProviderApiKey,
+  deleteProviderAuth,
+  addCustomProvider,
+  testProviderConnection,
+  getProviderIcon,
 
   // 配置快照
   saveConfigSnapshot,
+  ensureSnapshotExists,
+  compareWithSnapshot,
   mergeAndSave,
   acceptExternalChanges,
 

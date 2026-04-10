@@ -446,7 +446,10 @@ pub fn apply_updates_to_preset(name: &str, updates: &[PresetUpdateRequest]) -> R
     let mut preset_config = get_preset_config(name)?;
 
     for update in updates {
-        if let Some(agents) = preset_config.get_mut("agents").and_then(|a| a.as_object_mut()) {
+        if let Some(agents) = preset_config
+            .get_mut("agents")
+            .and_then(|a| a.as_object_mut())
+        {
             if let Some(agent) = agents.get_mut(&update.agent_name) {
                 if let Some(obj) = agent.as_object_mut() {
                     obj.insert("model".to_string(), Value::String(update.model.clone()));

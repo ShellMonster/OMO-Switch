@@ -14,7 +14,7 @@
  * ```
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { compareWithSnapshot, ensureSnapshotExists, saveConfigSnapshot } from '../services/tauri';
 
 export interface ConfigChange {
   path: string;
@@ -54,8 +54,8 @@ export function useConfigChangeDetection(): UseConfigChangeDetectionReturn {
     setError(null);
 
     try {
-      await invoke<void>('ensure_snapshot_exists');
-      const result = await invoke<ConfigChange[]>('compare_with_snapshot');
+      await ensureSnapshotExists();
+      const result = await compareWithSnapshot();
       setChanges(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -87,7 +87,7 @@ export function useConfigChangeDetection(): UseConfigChangeDetectionReturn {
     setError(null);
 
     try {
-      await invoke<void>('save_config_snapshot');
+      await saveConfigSnapshot();
       setChanges([]);
       if (import.meta.env.DEV) {
         console.log('[ConfigChangeDetection] 已更新缓存快照');

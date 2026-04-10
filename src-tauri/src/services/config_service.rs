@@ -1,6 +1,7 @@
 use crate::i18n;
 use serde_json::Value;
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 
 const PRIMARY_CONFIG_BASENAME: &str = "oh-my-openagent.json";
@@ -45,6 +46,34 @@ fn parse_config_content(content: &str) -> Result<Value, String> {
         .map_err(|e| format!("{}: {}", i18n::tr_current("parse_json_failed"), e))
 }
 
+pub(crate) fn write_string_atomically(
+    path: &PathBuf,
+    content: &str,
+    error_context: &str,
+) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("{}: {}", error_context, e))?;
+    }
+
+    let temp_path = path.with_extension(format!(
+        "{}.tmp",
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or("tmp")
+    ));
+
+    let mut file = fs::File::create(&temp_path).map_err(|e| format!("{}: {}", error_context, e))?;
+    file.write_all(content.as_bytes())
+        .map_err(|e| format!("{}: {}", error_context, e))?;
+    file.sync_all()
+        .map_err(|e| format!("{}: {}", error_context, e))?;
+    drop(file);
+
+    fs::rename(&temp_path, path).map_err(|e| format!("{}: {}", error_context, e))?;
+
+    Ok(())
+}
+
 /// 获取 OMO 配置文件路径
 /// 返回当前实际写入使用的配置路径（优先已存在文件，否则新建到 openagent 文件名）
 pub fn get_config_path() -> Result<PathBuf, String> {
@@ -67,11 +96,7 @@ pub fn read_omo_config() -> Result<Value, String> {
         let content = match fs::read_to_string(&config_path) {
             Ok(content) => content,
             Err(e) => {
-                last_error = Some(format!(
-                    "{}: {}",
-                    i18n::tr_current("read_config_failed"),
-                    e
-                ));
+                last_error = Some(format!("{}: {}", i18n::tr_current("read_config_failed"), e));
                 continue;
             }
         };
@@ -104,19 +129,15 @@ pub fn write_omo_config(config: &Value) -> Result<(), String> {
             .map_err(|e| format!("{}: {}", i18n::tr_current("create_backup_failed"), e))?;
     }
 
-    // 确保父目录存在
-    if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("{}: {}", i18n::tr_current("create_config_dir_failed"), e))?;
-    }
-
     // 格式化 JSON（带缩进，便于人类阅读）
     let json_string = serde_json::to_string_pretty(config)
         .map_err(|e| format!("{}: {}", i18n::tr_current("serialize_json_failed"), e))?;
 
-    // 写入文件
-    fs::write(&config_path, json_string)
-        .map_err(|e| format!("{}: {}", i18n::tr_current("write_config_failed"), e))?;
+    write_string_atomically(
+        &config_path,
+        &json_string,
+        &i18n::tr_current("write_config_failed"),
+    )?;
 
     Ok(())
 }
@@ -157,6 +178,7 @@ pub fn validate_config(config: &Value) -> Result<(), String> {
 mod tests {
     use super::*;
     use serde_json::json;
+    use serial_test::serial;
     use std::fs;
 
     /// 测试配置路径生成
@@ -321,5 +343,64 @@ mod tests {
 
         // 清理
         fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    #[serial]
+    fn test_write_omo_config_is_atomic_and_creates_backup() {
+        let temp_dir = std::env::temp_dir().join("omo-write-config-atomic-test");
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let original_home = std::env::var("HOME").ok();
+        unsafe {
+            std::env::set_var("HOME", &temp_dir);
+        }
+
+        let config_dir = temp_dir.join(".config").join("opencode");
+        fs::create_dir_all(&config_dir).unwrap();
+
+        let config_path = config_dir.join("oh-my-openagent.json");
+        let initial = json!({
+            "agents": {"a": {"model": "m1"}},
+            "categories": {}
+        });
+        fs::write(
+            &config_path,
+            serde_json::to_string_pretty(&initial).unwrap(),
+        )
+        .unwrap();
+
+        let updated = json!({
+            "agents": {"a": {"model": "m2"}},
+            "categories": {}
+        });
+
+        write_omo_config(&updated).unwrap();
+
+        let backup_path = config_path.with_extension("json.bak");
+        let temp_path = config_path.with_extension("json.tmp");
+
+        let content = fs::read_to_string(&config_path).unwrap();
+        let written: Value = serde_json::from_str(&content).unwrap();
+        let backup: Value =
+            serde_json::from_str(&fs::read_to_string(&backup_path).unwrap()).unwrap();
+
+        assert_eq!(written, updated);
+        assert_eq!(backup, initial);
+        assert!(
+            !temp_path.exists(),
+            "atomic write should not leave temp files behind"
+        );
+
+        unsafe {
+            if let Some(home) = original_home {
+                std::env::set_var("HOME", home);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

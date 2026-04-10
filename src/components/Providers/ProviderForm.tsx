@@ -1,15 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Save, X, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import type { ProviderPreset, ProviderConfig } from './ProviderList';
-
-interface ConnectionTestResult {
-  success: boolean;
-  message: string;
-}
+import { testProviderConnection, type ConnectionTestResult } from '../../services/tauri';
 
 interface ProviderFormProps {
   preset: ProviderPreset;
@@ -36,11 +31,11 @@ export function ProviderForm({ preset, initialConfig, onSave, onCancel }: Provid
     
     try {
       if (preset.npm) {
-        const result = await invoke<ConnectionTestResult>('test_provider_connection', {
-          npm: preset.npm,
-          baseUrl: baseUrl.trim() || null,
-          apiKey: apiKey.trim(),
-        });
+        const result = await testProviderConnection(
+          preset.npm,
+          baseUrl.trim() || null,
+          apiKey.trim(),
+        );
         setTestResult(result);
         
         if (result.success) {

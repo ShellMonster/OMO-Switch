@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import {
   FileText, 
@@ -22,16 +21,11 @@ import { cn } from '../common/cn';
 import { getAgentLocalizedName } from '../AgentList/AgentCard';
 import { usePreloadStore } from '../../store/preloadStore';
 import { getVariantDisplayValue } from '../../utils/modelCapabilities';
+import { getConfigMetadata, getConfigPath, validateConfig, type ConfigMetadata } from '../../services/tauri';
 
 /**
  * 配置元数据接口
  */
-interface ConfigMetadata {
-  path: string;
-  lastModified: string;
-  size: number;
-}
-
 /**
  * 配置验证结果接口
  */
@@ -88,12 +82,12 @@ export function ConfigDashboard() {
     const loadMetadata = async () => {
       // 加载配置文件路径
       try {
-        const path = await invoke<string>('get_config_path');
+        const path = await getConfigPath();
         setConfigPath(path);
         
         // 尝试获取文件元数据
         try {
-          const metadata = await invoke<ConfigMetadata>('get_config_metadata');
+          const metadata = await getConfigMetadata();
           setConfigMetadata(metadata);
         } catch {
           setConfigMetadata({
@@ -109,7 +103,7 @@ export function ConfigDashboard() {
       // 验证配置
       if (omoConfig.data) {
         try {
-          await invoke('validate_config', { config: omoConfig.data });
+          await validateConfig(omoConfig.data);
           setValidation({ valid: true, errors: [] });
         } catch (err) {
           setValidation({ 

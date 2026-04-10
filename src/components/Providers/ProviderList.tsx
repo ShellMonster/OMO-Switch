@@ -1,10 +1,10 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ExternalLink, Trash2, Settings, Plus, ChevronDown, Edit } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { Button } from '../common/Button';
 import { cn } from '../common/cn';
+import { getProviderIcon } from '../../services/tauri';
 
 const ICON_REQUEST_CONCURRENCY = 4;
 const ICON_FAIL_TTL_MS = 6 * 60 * 60 * 1000;
@@ -104,7 +104,7 @@ async function getProviderIconPath(providerId: string): Promise<string | null> {
 
   const request = runWithIconQueue(async () => {
     try {
-      const path = await invoke<string | null>('get_provider_icon', { providerId });
+      const path = await getProviderIcon(providerId);
       if (path) {
         clearIconLoadFailed(providerId);
       } else {

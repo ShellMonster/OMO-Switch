@@ -105,7 +105,10 @@ fn get_managed_backup_entries_with_ts() -> Result<Vec<(PathBuf, u64)>, String> {
     for entry in entries {
         let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
         let path = entry.path();
-        let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or_default();
+        let filename = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default();
         let is_managed = is_managed_backup_filename(filename);
         if !is_managed || path.extension().and_then(|s| s.to_str()) != Some("json") {
             continue;
@@ -392,7 +395,10 @@ pub fn clear_backup_history() -> Result<usize, String> {
     for entry in entries {
         let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
         let path = entry.path();
-        let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or_default();
+        let filename = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default();
         let is_managed = is_managed_backup_filename(filename);
         if is_managed && path.extension().and_then(|s| s.to_str()) == Some("json") {
             fs::remove_file(&path).map_err(|e| format!("删除备份文件失败: {}", e))?;

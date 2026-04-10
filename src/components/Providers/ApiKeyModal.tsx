@@ -1,22 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
 import { X, Key, Loader2, Globe, Boxes, ChevronDown } from 'lucide-react';
 import { Button } from '../common/Button';
 import { toast } from '../common/Toast';
-import type { ProviderInfo } from './ProviderList';
+import { getProviderConfig, setProviderApiKey, type ProviderInfo } from '../../services/tauri';
 
 interface ApiKeyModalProps {
   provider: ProviderInfo;
   onClose: () => void;
   onSuccess: () => void;
-}
-
-interface ProviderConfigSnapshot {
-  api_key: string | null;
-  base_url: string | null;
-  provider_type: string | null;
-  default_provider_type: string;
 }
 
 const PROVIDER_TYPE_OPTIONS = [
@@ -48,9 +40,7 @@ export function ApiKeyModal({ provider, onClose, onSuccess }: ApiKeyModalProps) 
     const loadProviderConfig = async () => {
       setIsFetchingConfig(true);
       try {
-        const config = await invoke<ProviderConfigSnapshot>('get_provider_config', {
-          providerId: provider.id,
-        });
+        const config = await getProviderConfig(provider.id);
         if (cancelled) return;
         setApiKey(config.api_key ?? '');
         setBaseUrl(config.base_url ?? '');
@@ -81,12 +71,12 @@ export function ApiKeyModal({ provider, onClose, onSuccess }: ApiKeyModalProps) 
 
     setIsLoading(true);
     try {
-      await invoke('set_provider_api_key', {
-        providerId: provider.id,
-        apiKey: apiKey.trim(),
-        baseUrl: provider.supports_base_url ? (baseUrl.trim() || null) : null,
+      await setProviderApiKey(
+        provider.id,
+        apiKey.trim(),
+        provider.supports_base_url ? (baseUrl.trim() || null) : null,
         providerType,
-      });
+      );
       toast.success(t('provider.saveSuccess'));
       onSuccess();
       onClose();

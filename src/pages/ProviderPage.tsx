@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
 import { toast } from '../components/common/Toast';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
-import { ProviderList, type ProviderInfo } from '../components/Providers/ProviderList';
+import { ProviderList } from '../components/Providers/ProviderList';
 import { ProviderStatus } from '../components/Models/ProviderStatus';
 import { ApiKeyModal } from '../components/Providers/ApiKeyModal';
 import { CustomProviderModal } from '../components/Providers/CustomProviderModal';
 import { KeyRound, Wifi, Settings, RefreshCw } from 'lucide-react';
 import { cn } from '../components/common/cn';
 import { usePreloadStore } from '../store/preloadStore';
+import { getProviderStatus, deleteProviderAuth, type ProviderInfo } from '../services/tauri';
 
 type TabType = 'status' | 'config';
 
@@ -40,7 +40,7 @@ export function ProviderPage() {
       setIsConfigLoading(true);
     }
     try {
-      const providerList = await invoke<ProviderInfo[]>('get_provider_status');
+      const providerList = await getProviderStatus();
       setProviders(providerList);
       setConfigLoaded(true);
     } catch (err) {
@@ -70,7 +70,7 @@ export function ProviderPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm) return;
     try {
-      await invoke('delete_provider_auth', { providerId: deleteConfirm.id });
+      await deleteProviderAuth(deleteConfirm.id);
       toast.success(t('provider.deleteSuccess'));
       await loadData({ silent: configLoaded });
       await refreshModels();

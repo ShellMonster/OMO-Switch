@@ -77,7 +77,10 @@ fn detect_omo_install() -> Option<InstallDetection> {
 
     // 1. 当前实际 opencode 运行目录: ~/.opencode/node_modules/<omo-package>/
     for package_name in OMO_PACKAGE_NAMES {
-        let runtime_pkg = format!("{}/.opencode/node_modules/{}/package.json", home, package_name);
+        let runtime_pkg = format!(
+            "{}/.opencode/node_modules/{}/package.json",
+            home, package_name
+        );
         if let Some(version) = read_pkg_version(&runtime_pkg) {
             return Some(InstallDetection {
                 version: Some(version),
@@ -273,7 +276,10 @@ fn is_omo_installed() -> bool {
 fn build_omo_update_command(install_source: Option<&str>) -> (String, String) {
     match install_source {
         Some("opencode_runtime") => (
-            format!("cd ~/.opencode && npm install {}@latest", OMO_UPDATE_PACKAGE_NAME),
+            format!(
+                "cd ~/.opencode && npm install {}@latest",
+                OMO_UPDATE_PACKAGE_NAME
+            ),
             "在当前 opencode 运行目录升级：".to_string(),
         ),
         Some("npm_global") => (
@@ -292,15 +298,24 @@ fn build_omo_update_command(install_source: Option<&str>) -> (String, String) {
             "在本地 opencode 配置目录升级：".to_string(),
         ),
         Some("config_declared") => (
-            format!("cd ~/.opencode && npm install {}@latest", OMO_UPDATE_PACKAGE_NAME),
+            format!(
+                "cd ~/.opencode && npm install {}@latest",
+                OMO_UPDATE_PACKAGE_NAME
+            ),
             "配置中已声明插件，建议在实际运行目录安装/升级：".to_string(),
         ),
         Some("opencode_cache") => (
-            format!("cd ~/.opencode && npm install {}@latest", OMO_UPDATE_PACKAGE_NAME),
+            format!(
+                "cd ~/.opencode && npm install {}@latest",
+                OMO_UPDATE_PACKAGE_NAME
+            ),
             "检测到缓存版本，建议在实际运行目录重新安装：".to_string(),
         ),
         _ => (
-            format!("cd ~/.opencode && npm install {}@latest", OMO_UPDATE_PACKAGE_NAME),
+            format!(
+                "cd ~/.opencode && npm install {}@latest",
+                OMO_UPDATE_PACKAGE_NAME
+            ),
             "建议在 opencode 运行目录安装/升级：".to_string(),
         ),
     }
@@ -342,8 +357,7 @@ fn get_npm_latest_version(package_name: &str) -> Option<String> {
 
 /// Get Oh My OpenAgent latest version from npm registry (兼容旧包名)
 pub fn get_omo_latest_version() -> Option<String> {
-    get_npm_latest_version("oh-my-openagent")
-        .or_else(|| get_npm_latest_version("oh-my-opencode"))
+    get_npm_latest_version("oh-my-openagent").or_else(|| get_npm_latest_version("oh-my-opencode"))
 }
 
 /// Get OpenCode latest version from GitHub Releases

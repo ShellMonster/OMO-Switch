@@ -1,18 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
 import { X, Plus, Globe, Key, User, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { toast } from '../common/Toast';
+import { addCustomProvider, testProviderConnection } from '../../services/tauri';
 
 interface CustomProviderModalProps {
   onClose: () => void;
   onSuccess: () => void;
-}
-
-interface ConnectionTestResult {
-  success: boolean;
-  message: string;
 }
 
 export function CustomProviderModal({ onClose, onSuccess }: CustomProviderModalProps) {
@@ -40,11 +35,7 @@ export function CustomProviderModal({ onClose, onSuccess }: CustomProviderModalP
 
     setIsLoading(true);
     try {
-      await invoke('add_custom_provider', {
-        name: name.trim(),
-        apiKey: apiKey.trim(),
-        baseUrl: baseUrl.trim(),
-      });
+      await addCustomProvider(name.trim(), apiKey.trim(), baseUrl.trim());
       toast.success(t('provider.addCustomSuccess'));
       onSuccess();
       onClose();
@@ -69,11 +60,7 @@ export function CustomProviderModal({ onClose, onSuccess }: CustomProviderModalP
     setIsTesting(true);
     setTestStatus('idle');
     try {
-      const result = await invoke<ConnectionTestResult>('test_provider_connection', {
-        npm: '',
-        baseUrl: baseUrl.trim(),
-        apiKey: apiKey.trim(),
-      });
+      const result = await testProviderConnection('', baseUrl.trim(), apiKey.trim());
       if (result.success) {
         setTestStatus('success');
         toast.success(t('provider.testSuccess'));
